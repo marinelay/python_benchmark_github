@@ -1,0 +1,57 @@
+[
+    {
+        "commit": "https://github.com/amaembo/streamex/commit/e367a0991c2a1bd7bf718208c83488d2f612933b",
+        "repo": "streamex",
+        "parent": "https://github.com/amaembo/streamex/commit/04eda630e8660f82fe705a72c0cc7ce591e38d26",
+        "message": "[#219] Specify when MoreCollectors methods throw NPE; eager null-checks",
+        "commit_id": "e367a09",
+        "date": "2020-06-06",
+        "bug_id": "streamex_e367a09",
+        "files": [
+            {
+                "sha": "e69f3bb19d139a0225051fdafaf23cfb55afccfe",
+                "filename": "CHANGES.md",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/amaembo/streamex/blob/e367a0991c2a1bd7bf718208c83488d2f612933b/CHANGES.md",
+                "raw_url": "https://github.com/amaembo/streamex/raw/e367a0991c2a1bd7bf718208c83488d2f612933b/CHANGES.md",
+                "contents_url": "https://api.github.com/repos/amaembo/streamex/contents/CHANGES.md?ref=e367a0991c2a1bd7bf718208c83488d2f612933b"
+            },
+            {
+                "sha": "293ae5206af1f4013a1a0a86a975b8ecc3668765",
+                "filename": "MIGRATION.md",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/amaembo/streamex/blob/e367a0991c2a1bd7bf718208c83488d2f612933b/MIGRATION.md",
+                "raw_url": "https://github.com/amaembo/streamex/raw/e367a0991c2a1bd7bf718208c83488d2f612933b/MIGRATION.md",
+                "contents_url": "https://api.github.com/repos/amaembo/streamex/contents/MIGRATION.md?ref=e367a0991c2a1bd7bf718208c83488d2f612933b"
+            },
+            {
+                "sha": "7445919c23b9ba0e5fd22ab9aa0e58515f138cb1",
+                "filename": "src/main/java/one/util/streamex/MoreCollectors.java",
+                "status": "modified",
+                "additions": 1786,
+                "deletions": 1728,
+                "changes": 3514,
+                "blob_url": "https://github.com/amaembo/streamex/blob/e367a0991c2a1bd7bf718208c83488d2f612933b/src/main/java/one/util/streamex/MoreCollectors.java",
+                "raw_url": "https://github.com/amaembo/streamex/raw/e367a0991c2a1bd7bf718208c83488d2f612933b/src/main/java/one/util/streamex/MoreCollectors.java",
+                "contents_url": "https://api.github.com/repos/amaembo/streamex/contents/src/main/java/one/util/streamex/MoreCollectors.java?ref=e367a0991c2a1bd7bf718208c83488d2f612933b"
+            },
+            {
+                "sha": "aba85723343b1ec66bcd84ce3b853b8726650381",
+                "filename": "src/test/java/one/util/streamex/MoreCollectorsTest.java",
+                "status": "modified",
+                "additions": 863,
+                "deletions": 808,
+                "changes": 1671,
+                "blob_url": "https://github.com/amaembo/streamex/blob/e367a0991c2a1bd7bf718208c83488d2f612933b/src/test/java/one/util/streamex/MoreCollectorsTest.java",
+                "raw_url": "https://github.com/amaembo/streamex/raw/e367a0991c2a1bd7bf718208c83488d2f612933b/src/test/java/one/util/streamex/MoreCollectorsTest.java",
+                "contents_url": "https://api.github.com/repos/amaembo/streamex/contents/src/test/java/one/util/streamex/MoreCollectorsTest.java?ref=e367a0991c2a1bd7bf718208c83488d2f612933b"
+            }
+        ]
+    }
+]

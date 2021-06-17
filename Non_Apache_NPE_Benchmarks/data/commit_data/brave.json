@@ -1,0 +1,211 @@
+[
+    {
+        "commit": "https://github.com/openzipkin/brave/commit/906633285ee33c0cc1883f644a5f44162c04b350",
+        "repo": "brave",
+        "parent": "https://github.com/openzipkin/brave/commit/fe8b520772de92c84507569f4ef8452812248e07",
+        "message": "Fixes NPE when client cannot return a valid status code (#1102)\n\nThis occurs in an old branch of sleuth.. I didn't notice it.",
+        "commit_id": "9066332",
+        "date": "2020-02-26",
+        "bug_id": "brave_9066332",
+        "files": [
+            {
+                "sha": "819546114054ef3ef5c69d2fee8a7b9838d170da",
+                "filename": "instrumentation/http/src/main/java/brave/http/HttpClientAdapters.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/openzipkin/brave/blob/906633285ee33c0cc1883f644a5f44162c04b350/instrumentation/http/src/main/java/brave/http/HttpClientAdapters.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/906633285ee33c0cc1883f644a5f44162c04b350/instrumentation/http/src/main/java/brave/http/HttpClientAdapters.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/http/src/main/java/brave/http/HttpClientAdapters.java?ref=906633285ee33c0cc1883f644a5f44162c04b350"
+            },
+            {
+                "sha": "8cd5b6d838341f48d9f15fb8d6e59209f0558a05",
+                "filename": "instrumentation/http/src/main/java/brave/http/HttpServerAdapters.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/openzipkin/brave/blob/906633285ee33c0cc1883f644a5f44162c04b350/instrumentation/http/src/main/java/brave/http/HttpServerAdapters.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/906633285ee33c0cc1883f644a5f44162c04b350/instrumentation/http/src/main/java/brave/http/HttpServerAdapters.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/http/src/main/java/brave/http/HttpServerAdapters.java?ref=906633285ee33c0cc1883f644a5f44162c04b350"
+            },
+            {
+                "sha": "fe3d7a556723acc2d73e3106c921627572a35517",
+                "filename": "instrumentation/http/src/test/java/brave/http/HttpAdaptersTest.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/openzipkin/brave/blob/906633285ee33c0cc1883f644a5f44162c04b350/instrumentation/http/src/test/java/brave/http/HttpAdaptersTest.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/906633285ee33c0cc1883f644a5f44162c04b350/instrumentation/http/src/test/java/brave/http/HttpAdaptersTest.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/http/src/test/java/brave/http/HttpAdaptersTest.java?ref=906633285ee33c0cc1883f644a5f44162c04b350"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/openzipkin/brave/commit/c959c5096d68b5986a9758e96bff4bd8d951d69c",
+        "repo": "brave",
+        "parent": "https://github.com/openzipkin/brave/commit/4f238325d6a1dd1a63654a74ebdc81a7bbf0c7c2",
+        "message": "Ensures there's no NPE when tracing builder uses default propagation constant",
+        "commit_id": "c959c50",
+        "date": "2018-01-05",
+        "bug_id": "brave_c959c50",
+        "files": [
+            {
+                "sha": "970d23bed3159fa6ef6caaad9d15e66a237b4699",
+                "filename": "brave/src/main/java/brave/Tracing.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 2,
+                "changes": 5,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/main/java/brave/Tracing.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/main/java/brave/Tracing.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/brave/src/main/java/brave/Tracing.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            },
+            {
+                "sha": "a3235e24ec3e8ee9d418501fc2cad1921e2715e2",
+                "filename": "brave/src/main/java/brave/propagation/Propagation.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/main/java/brave/propagation/Propagation.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/main/java/brave/propagation/Propagation.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/brave/src/main/java/brave/propagation/Propagation.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            },
+            {
+                "sha": "98f03ab24aebe6060cbe8a51cd80097245f8f1ee",
+                "filename": "brave/src/test/java/brave/propagation/ExtraFieldPropagationTest.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/test/java/brave/propagation/ExtraFieldPropagationTest.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/test/java/brave/propagation/ExtraFieldPropagationTest.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/brave/src/test/java/brave/propagation/ExtraFieldPropagationTest.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            },
+            {
+                "sha": "dc4e7b5a3ed6b1cca546c44faf634ed708a77957",
+                "filename": "brave/src/test/java/brave/propagation/PropagationConstantsTest.java",
+                "status": "added",
+                "additions": 13,
+                "deletions": 0,
+                "changes": 13,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/test/java/brave/propagation/PropagationConstantsTest.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/brave/src/test/java/brave/propagation/PropagationConstantsTest.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/brave/src/test/java/brave/propagation/PropagationConstantsTest.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            },
+            {
+                "sha": "d0f1e123688b5a581299663303c762bc560176d2",
+                "filename": "instrumentation/grpc/src/test/java/brave/grpc/TestServer.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/instrumentation/grpc/src/test/java/brave/grpc/TestServer.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/instrumentation/grpc/src/test/java/brave/grpc/TestServer.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/grpc/src/test/java/brave/grpc/TestServer.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            },
+            {
+                "sha": "fc9dac20cafbc6112835f0efd47fe5994b94b8a8",
+                "filename": "instrumentation/http-tests/src/main/java/brave/http/ITHttp.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/instrumentation/http-tests/src/main/java/brave/http/ITHttp.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/instrumentation/http-tests/src/main/java/brave/http/ITHttp.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/http-tests/src/main/java/brave/http/ITHttp.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            },
+            {
+                "sha": "f4fbde647b909800b9b9ed263c998291754467e7",
+                "filename": "propagation/aws/src/test/java/brave/propagation/aws/AWSPropagationTest.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/openzipkin/brave/blob/c959c5096d68b5986a9758e96bff4bd8d951d69c/propagation/aws/src/test/java/brave/propagation/aws/AWSPropagationTest.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/c959c5096d68b5986a9758e96bff4bd8d951d69c/propagation/aws/src/test/java/brave/propagation/aws/AWSPropagationTest.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/propagation/aws/src/test/java/brave/propagation/aws/AWSPropagationTest.java?ref=c959c5096d68b5986a9758e96bff4bd8d951d69c"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/openzipkin/brave/commit/578523f9179ebcc827671dcc39b3aa46572dd051",
+        "repo": "brave",
+        "parent": "https://github.com/openzipkin/brave/commit/aca24d9d6ba6f1c00aef3594c3e14e5496296c13",
+        "message": "Fixes NPE on SpanId.toSpan().equals (#208)\n\nFixes #1203",
+        "commit_id": "578523f",
+        "date": "2016-07-27",
+        "bug_id": "brave_578523f",
+        "files": [
+            {
+                "sha": "aae0452e74685f36ea0e31748efde49dc89ada23",
+                "filename": "brave-core/src/main/java/com/github/kristofa/brave/SpanId.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/openzipkin/brave/blob/578523f9179ebcc827671dcc39b3aa46572dd051/brave-core/src/main/java/com/github/kristofa/brave/SpanId.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/578523f9179ebcc827671dcc39b3aa46572dd051/brave-core/src/main/java/com/github/kristofa/brave/SpanId.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/brave-core/src/main/java/com/github/kristofa/brave/SpanId.java?ref=578523f9179ebcc827671dcc39b3aa46572dd051"
+            },
+            {
+                "sha": "2b8fd41c1397107955149a52a538d722bc231844",
+                "filename": "brave-core/src/test/java/com/github/kristofa/brave/SpanIdTest.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/openzipkin/brave/blob/578523f9179ebcc827671dcc39b3aa46572dd051/brave-core/src/test/java/com/github/kristofa/brave/SpanIdTest.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/578523f9179ebcc827671dcc39b3aa46572dd051/brave-core/src/test/java/com/github/kristofa/brave/SpanIdTest.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/brave-core/src/test/java/com/github/kristofa/brave/SpanIdTest.java?ref=578523f9179ebcc827671dcc39b3aa46572dd051"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/openzipkin/brave/commit/1d9662bcf09bd57015cefb3f37195ff3e5a13636",
+        "repo": "brave",
+        "parent": "https://github.com/openzipkin/brave/commit/00ad52c38775407ed24b66f3b6224de22a528d7b",
+        "message": "Avoids NPEs in `p6spy` edge-cases\n\nIn rare cases, `p6spy` is unable to intercept the executed SQL properly.\nThis will then lead to an NPE in the\n`TracingJdbcEventListener#onBeforeAnyExecute` method.\nThis change checks for SQL before creating a span instead.\n\nFixes #459",
+        "commit_id": "1d9662b",
+        "date": "2017-07-24",
+        "bug_id": "brave_1d9662b",
+        "files": [
+            {
+                "sha": "7d0a0fa1f95c7799f812ac23d43083ff61c849c3",
+                "filename": "instrumentation/p6spy/src/main/java/brave/p6spy/TracingJdbcEventListener.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 1,
+                "changes": 4,
+                "blob_url": "https://github.com/openzipkin/brave/blob/1d9662bcf09bd57015cefb3f37195ff3e5a13636/instrumentation/p6spy/src/main/java/brave/p6spy/TracingJdbcEventListener.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/1d9662bcf09bd57015cefb3f37195ff3e5a13636/instrumentation/p6spy/src/main/java/brave/p6spy/TracingJdbcEventListener.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/p6spy/src/main/java/brave/p6spy/TracingJdbcEventListener.java?ref=1d9662bcf09bd57015cefb3f37195ff3e5a13636"
+            },
+            {
+                "sha": "6a5013b4bdba189a45412189a0b777c1877dd7f9",
+                "filename": "instrumentation/p6spy/src/test/java/brave/p6spy/ITTracingP6Factory.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/openzipkin/brave/blob/1d9662bcf09bd57015cefb3f37195ff3e5a13636/instrumentation/p6spy/src/test/java/brave/p6spy/ITTracingP6Factory.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/1d9662bcf09bd57015cefb3f37195ff3e5a13636/instrumentation/p6spy/src/test/java/brave/p6spy/ITTracingP6Factory.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/p6spy/src/test/java/brave/p6spy/ITTracingP6Factory.java?ref=1d9662bcf09bd57015cefb3f37195ff3e5a13636"
+            },
+            {
+                "sha": "ecbf387ddefdf81a896b9a97331ad1e02f7f8ad1",
+                "filename": "instrumentation/p6spy/src/test/java/brave/p6spy/TracingJdbcEventListenerTest.java",
+                "status": "modified",
+                "additions": 32,
+                "deletions": 4,
+                "changes": 36,
+                "blob_url": "https://github.com/openzipkin/brave/blob/1d9662bcf09bd57015cefb3f37195ff3e5a13636/instrumentation/p6spy/src/test/java/brave/p6spy/TracingJdbcEventListenerTest.java",
+                "raw_url": "https://github.com/openzipkin/brave/raw/1d9662bcf09bd57015cefb3f37195ff3e5a13636/instrumentation/p6spy/src/test/java/brave/p6spy/TracingJdbcEventListenerTest.java",
+                "contents_url": "https://api.github.com/repos/openzipkin/brave/contents/instrumentation/p6spy/src/test/java/brave/p6spy/TracingJdbcEventListenerTest.java?ref=1d9662bcf09bd57015cefb3f37195ff3e5a13636"
+            }
+        ]
+    }
+]

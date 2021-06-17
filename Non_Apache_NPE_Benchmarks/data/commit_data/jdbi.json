@@ -1,0 +1,167 @@
+[
+    {
+        "commit": "https://github.com/jdbi/jdbi/commit/d87e0f53d00f4fcb5721516787cc10723a6e741d",
+        "repo": "jdbi",
+        "parent": "https://github.com/jdbi/jdbi/commit/312a140d3d2a0a71789dee8f892995319a9918bc",
+        "message": "Fix #1729 - jdbi-jpa produces NullPointerException when deserializing class.\n\nThis fixes the issue by ignoring any property that doesn't have a way of setting itself.",
+        "commit_id": "d87e0f5",
+        "date": "2020-07-03",
+        "bug_id": "jdbi_d87e0f5",
+        "files": [
+            {
+                "sha": "03fd1504b46801aa147793f52eb312f5e613e7c8",
+                "filename": "jpa/src/main/java/org/jdbi/v3/jpa/internal/JpaClass.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/d87e0f53d00f4fcb5721516787cc10723a6e741d/jpa/src/main/java/org/jdbi/v3/jpa/internal/JpaClass.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/d87e0f53d00f4fcb5721516787cc10723a6e741d/jpa/src/main/java/org/jdbi/v3/jpa/internal/JpaClass.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/jpa/src/main/java/org/jdbi/v3/jpa/internal/JpaClass.java?ref=d87e0f53d00f4fcb5721516787cc10723a6e741d"
+            },
+            {
+                "sha": "d11ea52c20785e7b9488b440b76fc48b479e9b29",
+                "filename": "jpa/src/test/java/org/jdbi/v3/jpa/JpaTest.java",
+                "status": "modified",
+                "additions": 57,
+                "deletions": 0,
+                "changes": 57,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/d87e0f53d00f4fcb5721516787cc10723a6e741d/jpa/src/test/java/org/jdbi/v3/jpa/JpaTest.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/d87e0f53d00f4fcb5721516787cc10723a6e741d/jpa/src/test/java/org/jdbi/v3/jpa/JpaTest.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/jpa/src/test/java/org/jdbi/v3/jpa/JpaTest.java?ref=d87e0f53d00f4fcb5721516787cc10723a6e741d"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/jdbi/jdbi/commit/989368d3a176510188e5d93ddb482e4e372a75f3",
+        "repo": "jdbi",
+        "parent": "https://github.com/jdbi/jdbi/commit/6a8b59c59260921f5c49ef97928d522fe4547130",
+        "message": "Save/load null in array columns instead of throwing NullPointerException",
+        "commit_id": "989368d",
+        "date": "2017-03-28",
+        "bug_id": "jdbi_989368d",
+        "files": [
+            {
+                "sha": "e127c65203055d39e3f34fe7ccb663df1387a22a",
+                "filename": "core/src/main/java/org/jdbi/v3/core/array/ArrayColumnMapper.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/989368d3a176510188e5d93ddb482e4e372a75f3/core/src/main/java/org/jdbi/v3/core/array/ArrayColumnMapper.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/989368d3a176510188e5d93ddb482e4e372a75f3/core/src/main/java/org/jdbi/v3/core/array/ArrayColumnMapper.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/core/src/main/java/org/jdbi/v3/core/array/ArrayColumnMapper.java?ref=989368d3a176510188e5d93ddb482e4e372a75f3"
+            },
+            {
+                "sha": "6370e8a41dfc28a0c7e04697e07f2200b1f33109",
+                "filename": "core/src/main/java/org/jdbi/v3/core/array/CollectionColumnMapper.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/989368d3a176510188e5d93ddb482e4e372a75f3/core/src/main/java/org/jdbi/v3/core/array/CollectionColumnMapper.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/989368d3a176510188e5d93ddb482e4e372a75f3/core/src/main/java/org/jdbi/v3/core/array/CollectionColumnMapper.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/core/src/main/java/org/jdbi/v3/core/array/CollectionColumnMapper.java?ref=989368d3a176510188e5d93ddb482e4e372a75f3"
+            },
+            {
+                "sha": "9b3ae3350d9182d582e0d73efe1a1fff973de86c",
+                "filename": "core/src/main/java/org/jdbi/v3/core/array/SqlArrayArgumentFactory.java",
+                "status": "modified",
+                "additions": 16,
+                "deletions": 6,
+                "changes": 22,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/989368d3a176510188e5d93ddb482e4e372a75f3/core/src/main/java/org/jdbi/v3/core/array/SqlArrayArgumentFactory.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/989368d3a176510188e5d93ddb482e4e372a75f3/core/src/main/java/org/jdbi/v3/core/array/SqlArrayArgumentFactory.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/core/src/main/java/org/jdbi/v3/core/array/SqlArrayArgumentFactory.java?ref=989368d3a176510188e5d93ddb482e4e372a75f3"
+            },
+            {
+                "sha": "7a26db156de3364625bc91e3a2be17a0fd63912a",
+                "filename": "postgres/src/test/java/org/jdbi/v3/postgres/TestSqlArrays.java",
+                "status": "modified",
+                "additions": 12,
+                "deletions": 0,
+                "changes": 12,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/989368d3a176510188e5d93ddb482e4e372a75f3/postgres/src/test/java/org/jdbi/v3/postgres/TestSqlArrays.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/989368d3a176510188e5d93ddb482e4e372a75f3/postgres/src/test/java/org/jdbi/v3/postgres/TestSqlArrays.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/postgres/src/test/java/org/jdbi/v3/postgres/TestSqlArrays.java?ref=989368d3a176510188e5d93ddb482e4e372a75f3"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/jdbi/jdbi/commit/c277d02cd79b883c2a9c44cf105e1cfe7289c768",
+        "repo": "jdbi",
+        "parent": "https://github.com/jdbi/jdbi/commit/609aeb88e0020085815470b339949f36d213dbf6",
+        "message": "Return default primitive value from queries with no result rows, rather than throwing NullPointerException",
+        "commit_id": "c277d02",
+        "date": "2016-12-23",
+        "bug_id": "jdbi_c277d02",
+        "files": [
+            {
+                "sha": "1113a6e236094055781d84e024ab89c6ee99ecf2",
+                "filename": "CONTRIBUTING.md",
+                "status": "modified",
+                "additions": 15,
+                "deletions": 1,
+                "changes": 16,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/c277d02cd79b883c2a9c44cf105e1cfe7289c768/CONTRIBUTING.md",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/c277d02cd79b883c2a9c44cf105e1cfe7289c768/CONTRIBUTING.md",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/CONTRIBUTING.md?ref=c277d02cd79b883c2a9c44cf105e1cfe7289c768"
+            },
+            {
+                "sha": "fa85a407175e54cc931b6d72d8dcb14f4fb7d043",
+                "filename": "sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/ResultReturner.java",
+                "status": "modified",
+                "additions": 33,
+                "deletions": 3,
+                "changes": 36,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/c277d02cd79b883c2a9c44cf105e1cfe7289c768/sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/ResultReturner.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/c277d02cd79b883c2a9c44cf105e1cfe7289c768/sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/ResultReturner.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/ResultReturner.java?ref=c277d02cd79b883c2a9c44cf105e1cfe7289c768"
+            },
+            {
+                "sha": "20a916ad9348984eea2b1689c52430cdf51a0a80",
+                "filename": "sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestPrimitiveQueryResult.java",
+                "status": "added",
+                "additions": 114,
+                "deletions": 0,
+                "changes": 114,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/c277d02cd79b883c2a9c44cf105e1cfe7289c768/sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestPrimitiveQueryResult.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/c277d02cd79b883c2a9c44cf105e1cfe7289c768/sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestPrimitiveQueryResult.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestPrimitiveQueryResult.java?ref=c277d02cd79b883c2a9c44cf105e1cfe7289c768"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/jdbi/jdbi/commit/ee96f32db7b2861ef00704df885aa84895469d75",
+        "repo": "jdbi",
+        "parent": "https://github.com/jdbi/jdbi/commit/a1862c5f0d9d668a760159500bd0a14fdf0acae8",
+        "message": "Fix NPE in @SqlBatch when batch arguments are empty",
+        "commit_id": "ee96f32",
+        "date": "2017-01-25",
+        "bug_id": "jdbi_ee96f32",
+        "files": [
+            {
+                "sha": "698212e57cc69f12d0c799b302bdbbe9ea7d96cc",
+                "filename": "sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/SqlBatch.java",
+                "status": "modified",
+                "additions": 73,
+                "deletions": 45,
+                "changes": 118,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/ee96f32db7b2861ef00704df885aa84895469d75/sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/SqlBatch.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/ee96f32db7b2861ef00704df885aa84895469d75/sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/SqlBatch.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/sqlobject/src/main/java/org/jdbi/v3/sqlobject/statement/SqlBatch.java?ref=ee96f32db7b2861ef00704df885aa84895469d75"
+            },
+            {
+                "sha": "e851719fdee3f1dc594fca8cd2db994b09f15c51",
+                "filename": "sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestBatching.java",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/jdbi/jdbi/blob/ee96f32db7b2861ef00704df885aa84895469d75/sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestBatching.java",
+                "raw_url": "https://github.com/jdbi/jdbi/raw/ee96f32db7b2861ef00704df885aa84895469d75/sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestBatching.java",
+                "contents_url": "https://api.github.com/repos/jdbi/jdbi/contents/sqlobject/src/test/java/org/jdbi/v3/sqlobject/TestBatching.java?ref=ee96f32db7b2861ef00704df885aa84895469d75"
+            }
+        ]
+    }
+]

@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/JSQLParser/JSqlParser/commit/2897935037560dbf47088924efe958dcd1605761",
+        "repo": "JSqlParser",
+        "parent": "https://github.com/JSQLParser/JSqlParser/commit/66e44c956be74810018d3567b076c6d09a8dfd9c",
+        "message": "fixed NPE in ExpressionVisitorAdapter when SubSelect doesn't has withItemsList",
+        "commit_id": "2897935",
+        "date": "2016-12-20",
+        "bug_id": "JSqlParser_2897935",
+        "files": [
+            {
+                "sha": "cb58d8f0f7760834c1072f1eec54051709d5f7f4",
+                "filename": "src/main/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapter.java",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 2,
+                "changes": 6,
+                "blob_url": "https://github.com/JSQLParser/JSqlParser/blob/2897935037560dbf47088924efe958dcd1605761/src/main/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapter.java",
+                "raw_url": "https://github.com/JSQLParser/JSqlParser/raw/2897935037560dbf47088924efe958dcd1605761/src/main/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapter.java",
+                "contents_url": "https://api.github.com/repos/JSQLParser/JSqlParser/contents/src/main/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapter.java?ref=2897935037560dbf47088924efe958dcd1605761"
+            },
+            {
+                "sha": "af3636e0896f6c7afedcb3ef0580c44b2ee9af7a",
+                "filename": "src/test/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapterTest.java",
+                "status": "modified",
+                "additions": 17,
+                "deletions": 0,
+                "changes": 17,
+                "blob_url": "https://github.com/JSQLParser/JSqlParser/blob/2897935037560dbf47088924efe958dcd1605761/src/test/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapterTest.java",
+                "raw_url": "https://github.com/JSQLParser/JSqlParser/raw/2897935037560dbf47088924efe958dcd1605761/src/test/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapterTest.java",
+                "contents_url": "https://api.github.com/repos/JSQLParser/JSqlParser/contents/src/test/java/net/sf/jsqlparser/expression/ExpressionVisitorAdapterTest.java?ref=2897935037560dbf47088924efe958dcd1605761"
+            }
+        ]
+    }
+]

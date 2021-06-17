@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/prometheus/client_java/commit/422e3b3bfd068f764428dba65e54099d9ecbdf1e",
+        "repo": "client_java",
+        "parent": "https://github.com/prometheus/client_java/commit/3d9a3302ecb06c721db392202745f4c089df7ed3",
+        "message": "fix NPE in PrometheusMvcEndpoint.value() (#256)",
+        "commit_id": "422e3b3",
+        "date": "2017-06-12",
+        "bug_id": "client_java_422e3b3",
+        "files": [
+            {
+                "sha": "35ec57bdc58d91d9ef1f884c58422a0c9be8c3ff",
+                "filename": "simpleclient_spring_boot/src/main/java/io/prometheus/client/spring/boot/PrometheusMvcEndpoint.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/prometheus/client_java/blob/422e3b3bfd068f764428dba65e54099d9ecbdf1e/simpleclient_spring_boot/src/main/java/io/prometheus/client/spring/boot/PrometheusMvcEndpoint.java",
+                "raw_url": "https://github.com/prometheus/client_java/raw/422e3b3bfd068f764428dba65e54099d9ecbdf1e/simpleclient_spring_boot/src/main/java/io/prometheus/client/spring/boot/PrometheusMvcEndpoint.java",
+                "contents_url": "https://api.github.com/repos/prometheus/client_java/contents/simpleclient_spring_boot/src/main/java/io/prometheus/client/spring/boot/PrometheusMvcEndpoint.java?ref=422e3b3bfd068f764428dba65e54099d9ecbdf1e"
+            },
+            {
+                "sha": "34765f0b74f26b8a21ff12adadfb8a98dae29d65",
+                "filename": "simpleclient_spring_boot/src/test/java/io/prometheus/client/spring/boot/PrometheusMvcEndpointTest.java",
+                "status": "added",
+                "additions": 57,
+                "deletions": 0,
+                "changes": 57,
+                "blob_url": "https://github.com/prometheus/client_java/blob/422e3b3bfd068f764428dba65e54099d9ecbdf1e/simpleclient_spring_boot/src/test/java/io/prometheus/client/spring/boot/PrometheusMvcEndpointTest.java",
+                "raw_url": "https://github.com/prometheus/client_java/raw/422e3b3bfd068f764428dba65e54099d9ecbdf1e/simpleclient_spring_boot/src/test/java/io/prometheus/client/spring/boot/PrometheusMvcEndpointTest.java",
+                "contents_url": "https://api.github.com/repos/prometheus/client_java/contents/simpleclient_spring_boot/src/test/java/io/prometheus/client/spring/boot/PrometheusMvcEndpointTest.java?ref=422e3b3bfd068f764428dba65e54099d9ecbdf1e"
+            }
+        ]
+    }
+]

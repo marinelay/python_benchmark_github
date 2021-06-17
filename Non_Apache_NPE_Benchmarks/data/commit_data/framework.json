@@ -1,0 +1,354 @@
+[
+    {
+        "commit": "https://github.com/vaadin/framework/commit/b36dc81569fffc9d12fd6648366c965bbae4000e",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/446a7680c2903d03a90e7eb869ea67ef9a23c51f",
+        "message": "Fix possible NPE with MPR (#12040)\n\nIt is possible when Vaadin 8 is used with MPR, that ui.getCurrent().getSession() returns null.\r\n\r\nSee: https://github.com/vaadin/multiplatform-runtime/issues/5",
+        "commit_id": "b36dc81",
+        "date": "2020-08-05",
+        "bug_id": "framework_b36dc81",
+        "files": [
+            {
+                "sha": "0479ee3c883caead9b229aa15b1f80f528f69811",
+                "filename": "server/src/main/java/com/vaadin/server/Page.java",
+                "status": "modified",
+                "additions": 16,
+                "deletions": 5,
+                "changes": 21,
+                "blob_url": "https://github.com/vaadin/framework/blob/b36dc81569fffc9d12fd6648366c965bbae4000e/server/src/main/java/com/vaadin/server/Page.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/b36dc81569fffc9d12fd6648366c965bbae4000e/server/src/main/java/com/vaadin/server/Page.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/main/java/com/vaadin/server/Page.java?ref=b36dc81569fffc9d12fd6648366c965bbae4000e"
+            },
+            {
+                "sha": "9d68aca8986b957199fe03b2cb644e9109431a05",
+                "filename": "server/src/test/java/com/vaadin/server/communication/ServletUIInitHandlerTest.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/vaadin/framework/blob/b36dc81569fffc9d12fd6648366c965bbae4000e/server/src/test/java/com/vaadin/server/communication/ServletUIInitHandlerTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/b36dc81569fffc9d12fd6648366c965bbae4000e/server/src/test/java/com/vaadin/server/communication/ServletUIInitHandlerTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/test/java/com/vaadin/server/communication/ServletUIInitHandlerTest.java?ref=b36dc81569fffc9d12fd6648366c965bbae4000e"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/2c58ba7c5a4b3f573de3140f7b516b3329d54359",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/6783bca88d4cf0c8944e84a0fef0a219c0b9a4d0",
+        "message": "Fix NPE sorting columns with null values (#8610)\n\n* Fix NPE sorting columns with null values\n\nSorting a column in Grid throws a NullPointerException if there are null values and we are using the default TextRenderer\n\n* Test for #8610\n\n* Update Grid.java\n\n* Update GridNullValueSortTest.java\n\n* Update GridNullValueSortTest.java",
+        "commit_id": "2c58ba7",
+        "date": "2017-02-23",
+        "bug_id": "framework_2c58ba7",
+        "files": [
+            {
+                "sha": "c464acb8fcbeb6eb260e83ded6c528e640d0d5fb",
+                "filename": "server/src/main/java/com/vaadin/ui/Grid.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 1,
+                "changes": 6,
+                "blob_url": "https://github.com/vaadin/framework/blob/2c58ba7c5a4b3f573de3140f7b516b3329d54359/server/src/main/java/com/vaadin/ui/Grid.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/2c58ba7c5a4b3f573de3140f7b516b3329d54359/server/src/main/java/com/vaadin/ui/Grid.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/main/java/com/vaadin/ui/Grid.java?ref=2c58ba7c5a4b3f573de3140f7b516b3329d54359"
+            },
+            {
+                "sha": "ddf48444902d078ea444e495bd9c63ab575dd117",
+                "filename": "server/src/test/java/com/vaadin/tests/components/grid/GridNullValueSortTest.java",
+                "status": "added",
+                "additions": 45,
+                "deletions": 0,
+                "changes": 45,
+                "blob_url": "https://github.com/vaadin/framework/blob/2c58ba7c5a4b3f573de3140f7b516b3329d54359/server/src/test/java/com/vaadin/tests/components/grid/GridNullValueSortTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/2c58ba7c5a4b3f573de3140f7b516b3329d54359/server/src/test/java/com/vaadin/tests/components/grid/GridNullValueSortTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/test/java/com/vaadin/tests/components/grid/GridNullValueSortTest.java?ref=2c58ba7c5a4b3f573de3140f7b516b3329d54359"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/7cd94ce0b02bb4ecd7826283d3928e3a66e39301",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/51b64cc579c302b693aecfbf91726fa45dc08b47",
+        "message": "Fix NPE in v7 compatibility Grid during datasource rebind (#11473)\n\nAdd DataChangeHandler removal in v7 Grid just as in v8 Grid.\r\nAdding tests to the fix to verify, that NPE is not thrown.",
+        "commit_id": "7cd94ce",
+        "date": "2019-03-27",
+        "bug_id": "framework_7cd94ce",
+        "files": [
+            {
+                "sha": "1d2f88f57062ccad627671504a3fe57505cd5913",
+                "filename": "compatibility-client/src/main/java/com/vaadin/v7/client/widgets/Grid.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 3,
+                "changes": 8,
+                "blob_url": "https://github.com/vaadin/framework/blob/7cd94ce0b02bb4ecd7826283d3928e3a66e39301/compatibility-client/src/main/java/com/vaadin/v7/client/widgets/Grid.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/7cd94ce0b02bb4ecd7826283d3928e3a66e39301/compatibility-client/src/main/java/com/vaadin/v7/client/widgets/Grid.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/compatibility-client/src/main/java/com/vaadin/v7/client/widgets/Grid.java?ref=7cd94ce0b02bb4ecd7826283d3928e3a66e39301"
+            },
+            {
+                "sha": "28aec9c5963b3e12e02fa39971058a86718e1bd7",
+                "filename": "uitest/src/main/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7.java",
+                "status": "added",
+                "additions": 42,
+                "deletions": 0,
+                "changes": 42,
+                "blob_url": "https://github.com/vaadin/framework/blob/7cd94ce0b02bb4ecd7826283d3928e3a66e39301/uitest/src/main/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/7cd94ce0b02bb4ecd7826283d3928e3a66e39301/uitest/src/main/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/main/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7.java?ref=7cd94ce0b02bb4ecd7826283d3928e3a66e39301"
+            },
+            {
+                "sha": "817cc880324995e4c8a30d323ea1d968d61268dd",
+                "filename": "uitest/src/test/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7Test.java",
+                "status": "added",
+                "additions": 23,
+                "deletions": 0,
+                "changes": 23,
+                "blob_url": "https://github.com/vaadin/framework/blob/7cd94ce0b02bb4ecd7826283d3928e3a66e39301/uitest/src/test/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7Test.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/7cd94ce0b02bb4ecd7826283d3928e3a66e39301/uitest/src/test/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7Test.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/test/java/com/vaadin/tests/components/grid/GridRebindDataSourceV7Test.java?ref=7cd94ce0b02bb4ecd7826283d3928e3a66e39301"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/023ec7f48c5ca59d3a995d360500dda6ce9ef32f",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/09207941a982b825dbd429b71c7e89712a3da8f2",
+        "message": "Fixing NPE in Binder, ported from Flow (#11290)",
+        "commit_id": "023ec7f",
+        "date": "2018-11-06",
+        "bug_id": "framework_023ec7f",
+        "files": [
+            {
+                "sha": "d2aff412f684161bca385693d652f2c0f11c1b4d",
+                "filename": "server/src/main/java/com/vaadin/data/Binder.java",
+                "status": "modified",
+                "additions": 19,
+                "deletions": 5,
+                "changes": 24,
+                "blob_url": "https://github.com/vaadin/framework/blob/023ec7f48c5ca59d3a995d360500dda6ce9ef32f/server/src/main/java/com/vaadin/data/Binder.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/023ec7f48c5ca59d3a995d360500dda6ce9ef32f/server/src/main/java/com/vaadin/data/Binder.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/main/java/com/vaadin/data/Binder.java?ref=023ec7f48c5ca59d3a995d360500dda6ce9ef32f"
+            },
+            {
+                "sha": "ca26c34d4cb11e62c9dc37435f0d5283cc3def0f",
+                "filename": "server/src/test/java/com/vaadin/data/UnbindTest.java",
+                "status": "added",
+                "additions": 54,
+                "deletions": 0,
+                "changes": 54,
+                "blob_url": "https://github.com/vaadin/framework/blob/023ec7f48c5ca59d3a995d360500dda6ce9ef32f/server/src/test/java/com/vaadin/data/UnbindTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/023ec7f48c5ca59d3a995d360500dda6ce9ef32f/server/src/test/java/com/vaadin/data/UnbindTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/test/java/com/vaadin/data/UnbindTest.java?ref=023ec7f48c5ca59d3a995d360500dda6ce9ef32f"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/8a756b89c2da2de672a81d5c54c51448d589ffbc",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/6dea707429c06a64c6f22df6a361959851d29067",
+        "message": "Fix NPE check in BindingValidationStatus (#10964)",
+        "commit_id": "8a756b8",
+        "date": "2018-06-05",
+        "bug_id": "framework_8a756b8",
+        "files": [
+            {
+                "sha": "a527ac4683fcef8d3a84e9f90e55405ff826d888",
+                "filename": "server/src/main/java/com/vaadin/data/BinderValidationStatus.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/vaadin/framework/blob/8a756b89c2da2de672a81d5c54c51448d589ffbc/server/src/main/java/com/vaadin/data/BinderValidationStatus.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/8a756b89c2da2de672a81d5c54c51448d589ffbc/server/src/main/java/com/vaadin/data/BinderValidationStatus.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/main/java/com/vaadin/data/BinderValidationStatus.java?ref=8a756b89c2da2de672a81d5c54c51448d589ffbc"
+            },
+            {
+                "sha": "52afdc71a119507ea04de09b793b2677f2a6c76f",
+                "filename": "server/src/test/java/com/vaadin/data/BinderValidationStatusTest.java",
+                "status": "modified",
+                "additions": 13,
+                "deletions": 0,
+                "changes": 13,
+                "blob_url": "https://github.com/vaadin/framework/blob/8a756b89c2da2de672a81d5c54c51448d589ffbc/server/src/test/java/com/vaadin/data/BinderValidationStatusTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/8a756b89c2da2de672a81d5c54c51448d589ffbc/server/src/test/java/com/vaadin/data/BinderValidationStatusTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/test/java/com/vaadin/data/BinderValidationStatusTest.java?ref=8a756b89c2da2de672a81d5c54c51448d589ffbc"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/18ce7e396540906649388179149abf59880d69ee",
+        "message": "Fix an NPE caused by the previous fix to Grid's frozen columns (#11444)\n\n* Fix an NPE caused by the previous fix to Grid's frozen columns (#10653)\r\n\r\nIf the user managed to get two frozen column count changes into a single server round-trip before the component had been attached, the previous fix  #11346 lead to a null pointer exception since there was no diff state available.\r\n\r\nThis fix adds a null check before removing the frozen column count value from the diff state so that this will not happen.\r\n\r\nCloses #10653",
+        "commit_id": "4c1919c",
+        "date": "2019-02-04",
+        "bug_id": "framework_4c1919c",
+        "files": [
+            {
+                "sha": "9ee57512b2247447f527bd2bbd1d8dedd94dc901",
+                "filename": "server/src/main/java/com/vaadin/ui/Grid.java",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 2,
+                "changes": 8,
+                "blob_url": "https://github.com/vaadin/framework/blob/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97/server/src/main/java/com/vaadin/ui/Grid.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97/server/src/main/java/com/vaadin/ui/Grid.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/main/java/com/vaadin/ui/Grid.java?ref=4c1919c6ec83ef60f44e688aafe83a2eaf25ef97"
+            },
+            {
+                "sha": "1d7f5901f32c5da2d4582db0d1126cb14b38c228",
+                "filename": "uitest/src/main/java/com/vaadin/tests/components/grid/GridFrozenColumnNPE.java",
+                "status": "added",
+                "additions": 60,
+                "deletions": 0,
+                "changes": 60,
+                "blob_url": "https://github.com/vaadin/framework/blob/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97/uitest/src/main/java/com/vaadin/tests/components/grid/GridFrozenColumnNPE.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97/uitest/src/main/java/com/vaadin/tests/components/grid/GridFrozenColumnNPE.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/main/java/com/vaadin/tests/components/grid/GridFrozenColumnNPE.java?ref=4c1919c6ec83ef60f44e688aafe83a2eaf25ef97"
+            },
+            {
+                "sha": "29b91d332696925c21a827804a93cf3a682e58d9",
+                "filename": "uitest/src/test/java/com/vaadin/tests/components/grid/GridFrozenColumnNPETest.java",
+                "status": "added",
+                "additions": 26,
+                "deletions": 0,
+                "changes": 26,
+                "blob_url": "https://github.com/vaadin/framework/blob/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97/uitest/src/test/java/com/vaadin/tests/components/grid/GridFrozenColumnNPETest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/4c1919c6ec83ef60f44e688aafe83a2eaf25ef97/uitest/src/test/java/com/vaadin/tests/components/grid/GridFrozenColumnNPETest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/test/java/com/vaadin/tests/components/grid/GridFrozenColumnNPETest.java?ref=4c1919c6ec83ef60f44e688aafe83a2eaf25ef97"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/2bee988272657df4d886ea79b04be9fbc54d3928",
+        "message": "Fix RadioButtonGroup client-side NPE which breaks item icons.\n\nChange-Id: I3a9c887196b503eaa8c2307d7a714ce61e6deacc",
+        "commit_id": "db3a91c",
+        "date": "2016-09-29",
+        "bug_id": "framework_db3a91c",
+        "files": [
+            {
+                "sha": "fd4d7cf98a5593f1201cc8f9deee0944254a45e0",
+                "filename": "client/src/main/java/com/vaadin/client/ui/VRadioButtonGroup.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 2,
+                "changes": 5,
+                "blob_url": "https://github.com/vaadin/framework/blob/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/client/src/main/java/com/vaadin/client/ui/VRadioButtonGroup.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/client/src/main/java/com/vaadin/client/ui/VRadioButtonGroup.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/client/src/main/java/com/vaadin/client/ui/VRadioButtonGroup.java?ref=db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a"
+            },
+            {
+                "sha": "13aa840462525dfc4f29eb242bed8e2948126bae",
+                "filename": "server/src/main/java/com/vaadin/ui/RadioButtonGroup.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/vaadin/framework/blob/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/server/src/main/java/com/vaadin/ui/RadioButtonGroup.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/server/src/main/java/com/vaadin/ui/RadioButtonGroup.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/main/java/com/vaadin/ui/RadioButtonGroup.java?ref=db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a"
+            },
+            {
+                "sha": "036512a514eb572da3d6f7274bade61ee96fe755",
+                "filename": "uitest/src/main/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTestUI.java",
+                "status": "modified",
+                "additions": 41,
+                "deletions": 6,
+                "changes": 47,
+                "blob_url": "https://github.com/vaadin/framework/blob/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/uitest/src/main/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTestUI.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/uitest/src/main/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTestUI.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/main/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTestUI.java?ref=db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a"
+            },
+            {
+                "sha": "b2546347dd212767de18e07e85f8c002484ea59b",
+                "filename": "uitest/src/test/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTest.java",
+                "status": "modified",
+                "additions": 38,
+                "deletions": 9,
+                "changes": 47,
+                "blob_url": "https://github.com/vaadin/framework/blob/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/uitest/src/test/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a/uitest/src/test/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/test/java/com/vaadin/tests/components/radiobutton/RadioButtonGroupTest.java?ref=db3a91c9b4d8d0451c8f1c5e875f4c6f6f50324a"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/c317e6005b3bf17be404aa12c94593bd948fadef",
+        "message": "Fix NPE on column width detection in TreeTable and RowGenerator (#19437)\n\nChange-Id: I7ed03d34124dda839bddc2507274a63b1e22f05f",
+        "commit_id": "b5fb9c6",
+        "date": "2016-01-18",
+        "bug_id": "framework_b5fb9c6",
+        "files": [
+            {
+                "sha": "5e5ae8a25983c2b5da75eb518d3a0a6a987db095",
+                "filename": "client/src/com/vaadin/client/ui/VScrollTable.java",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 3,
+                "changes": 10,
+                "blob_url": "https://github.com/vaadin/framework/blob/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff/client/src/com/vaadin/client/ui/VScrollTable.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff/client/src/com/vaadin/client/ui/VScrollTable.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/client/src/com/vaadin/client/ui/VScrollTable.java?ref=b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff"
+            },
+            {
+                "sha": "e8da4abbec178aa4036faa173f835d0af63bfe12",
+                "filename": "uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGenerator.java",
+                "status": "added",
+                "additions": 65,
+                "deletions": 0,
+                "changes": 65,
+                "blob_url": "https://github.com/vaadin/framework/blob/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff/uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGenerator.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff/uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGenerator.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGenerator.java?ref=b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff"
+            },
+            {
+                "sha": "84a2f7bbb3b82af820d5a32f88a484a8c84e8a67",
+                "filename": "uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGeneratorTest.java",
+                "status": "added",
+                "additions": 31,
+                "deletions": 0,
+                "changes": 31,
+                "blob_url": "https://github.com/vaadin/framework/blob/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff/uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGeneratorTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff/uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGeneratorTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/uitest/src/com/vaadin/tests/components/treetable/TreeTableRowGeneratorTest.java?ref=b5fb9c61ee7710558bdedda2ccf4c5e2f9481bff"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/vaadin/framework/commit/47b7f536b28305914d40812e2a97eb99ec836eef",
+        "repo": "framework",
+        "parent": "https://github.com/vaadin/framework/commit/9e359afb598beefd18ac8ea67262ef19a290c8e0",
+        "message": "Fix NPE in Label.writeDesign with NULL values #19434\n\nChange-Id: If3628bc655d6cd58ab51b7400af808bdbca3dc91",
+        "commit_id": "47b7f53",
+        "date": "2016-01-04",
+        "bug_id": "framework_47b7f53",
+        "files": [
+            {
+                "sha": "1498246ec56ef1c7a6cc14880574f121e176f55d",
+                "filename": "server/src/com/vaadin/ui/Label.java",
+                "status": "modified",
+                "additions": 25,
+                "deletions": 6,
+                "changes": 31,
+                "blob_url": "https://github.com/vaadin/framework/blob/47b7f536b28305914d40812e2a97eb99ec836eef/server/src/com/vaadin/ui/Label.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/47b7f536b28305914d40812e2a97eb99ec836eef/server/src/com/vaadin/ui/Label.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/src/com/vaadin/ui/Label.java?ref=47b7f536b28305914d40812e2a97eb99ec836eef"
+            },
+            {
+                "sha": "7a7f4bd84465887998a9ab096079c97b9a0b622b",
+                "filename": "server/tests/src/com/vaadin/tests/server/component/label/LabelDeclarativeTest.java",
+                "status": "modified",
+                "additions": 33,
+                "deletions": 0,
+                "changes": 33,
+                "blob_url": "https://github.com/vaadin/framework/blob/47b7f536b28305914d40812e2a97eb99ec836eef/server/tests/src/com/vaadin/tests/server/component/label/LabelDeclarativeTest.java",
+                "raw_url": "https://github.com/vaadin/framework/raw/47b7f536b28305914d40812e2a97eb99ec836eef/server/tests/src/com/vaadin/tests/server/component/label/LabelDeclarativeTest.java",
+                "contents_url": "https://api.github.com/repos/vaadin/framework/contents/server/tests/src/com/vaadin/tests/server/component/label/LabelDeclarativeTest.java?ref=47b7f536b28305914d40812e2a97eb99ec836eef"
+            }
+        ]
+    }
+]

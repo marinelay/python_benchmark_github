@@ -1,0 +1,66 @@
+[
+    {
+        "url": "https://api.github.com/repos/python-poetry/poetry/issues/2499",
+        "repository_url": "https://api.github.com/repos/python-poetry/poetry",
+        "labels_url": "https://api.github.com/repos/python-poetry/poetry/issues/2499/labels{/name}",
+        "comments_url": "https://api.github.com/repos/python-poetry/poetry/issues/2499/comments",
+        "events_url": "https://api.github.com/repos/python-poetry/poetry/issues/2499/events",
+        "html_url": "https://github.com/python-poetry/poetry/pull/2499",
+        "id": 631627061,
+        "node_id": "MDExOlB1bGxSZXF1ZXN0NDI4NDc4NjA2",
+        "number": 2499,
+        "title": "Fix a TypeError when trying to execute `setup.py` files",
+        "user": {
+            "login": "sdispater",
+            "id": 555648,
+            "node_id": "MDQ6VXNlcjU1NTY0OA==",
+            "avatar_url": "https://avatars.githubusercontent.com/u/555648?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/sdispater",
+            "html_url": "https://github.com/sdispater",
+            "followers_url": "https://api.github.com/users/sdispater/followers",
+            "following_url": "https://api.github.com/users/sdispater/following{/other_user}",
+            "gists_url": "https://api.github.com/users/sdispater/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/sdispater/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/sdispater/subscriptions",
+            "organizations_url": "https://api.github.com/users/sdispater/orgs",
+            "repos_url": "https://api.github.com/users/sdispater/repos",
+            "events_url": "https://api.github.com/users/sdispater/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/sdispater/received_events",
+            "type": "User",
+            "site_admin": false
+        },
+        "labels": [
+            {
+                "id": 851628021,
+                "node_id": "MDU6TGFiZWw4NTE2MjgwMjE=",
+                "url": "https://api.github.com/repos/python-poetry/poetry/labels/Bug",
+                "name": "Bug",
+                "color": "f74a2a",
+                "default": false,
+                "description": "Something isn't working"
+            }
+        ],
+        "state": "closed",
+        "locked": false,
+        "assignee": null,
+        "assignees": [],
+        "milestone": null,
+        "comments": 0,
+        "created_at": "2020-06-05T14:16:23Z",
+        "updated_at": "2020-06-05T14:25:33Z",
+        "closed_at": "2020-06-05T14:25:29Z",
+        "author_association": "MEMBER",
+        "active_lock_reason": null,
+        "draft": false,
+        "pull_request": {
+            "url": "https://api.github.com/repos/python-poetry/poetry/pulls/2499",
+            "html_url": "https://github.com/python-poetry/poetry/pull/2499",
+            "diff_url": "https://github.com/python-poetry/poetry/pull/2499.diff",
+            "patch_url": "https://github.com/python-poetry/poetry/pull/2499.patch"
+        },
+        "body": "## Pull Request Check List\r\n\r\nResolves: #2498 \r\n\r\n- [ ] Added **tests** for changed code.\r\n- [ ] Updated **documentation** for changed code.\r\n",
+        "performed_via_github_app": null,
+        "score": 1.0
+    }
+]

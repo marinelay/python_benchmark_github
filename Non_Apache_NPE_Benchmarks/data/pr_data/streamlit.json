@@ -1,0 +1,36 @@
+[
+    {
+        "pr": "https://github.com/streamlit/streamlit/pull/1112",
+        "repo": "streamlit",
+        "number": 1112,
+        "bug_id": "streamlit_1112",
+        "title": "Show warning to user and use skipkeys=True if json.dumps causes TypeError",
+        "body": "**Issue:** #975 \r\n\r\n**Description:**  Currently, st.json will trip over the use of a nonstandard key in a dictionary, resulting in a confusing and unhelpful traceback to the user.\r\n\r\nThis PR wraps the conversion to JSON in a try-except block that catches the TypeError that arises from use of weird keys that json.dumps cannot handle.  If triggered, we show a warning to the user that this happened, and then rerun json.dumps with skipkeys=True.  \r\n\r\nThe resultant data structure will not show the entire data, but the warning should be informative enough to the user to understand why.\r\n\r\n---\r\n\r\n**Contribution License Agreement**\r\n\r\nBy submiting this pull request you agree that all contributions to this project are made under the Apache 2.0 license.\r\n",
+        "date": "2020-02-19",
+        "merge_hash": "c8f8a19ffdc797a27ee7098b7b584ed5e99f9488",
+        "files": [
+            {
+                "sha": "b9952c68d21e3f3e75965655bca84ad8014a8444",
+                "filename": "lib/streamlit/DeltaGenerator.py",
+                "status": "modified",
+                "additions": 13,
+                "deletions": 5,
+                "changes": 18,
+                "blob_url": "https://github.com/streamlit/streamlit/blob/c8f8a19ffdc797a27ee7098b7b584ed5e99f9488/lib/streamlit/DeltaGenerator.py",
+                "raw_url": "https://github.com/streamlit/streamlit/raw/c8f8a19ffdc797a27ee7098b7b584ed5e99f9488/lib/streamlit/DeltaGenerator.py",
+                "contents_url": "https://api.github.com/repos/streamlit/streamlit/contents/lib/streamlit/DeltaGenerator.py?ref=c8f8a19ffdc797a27ee7098b7b584ed5e99f9488"
+            },
+            {
+                "sha": "a80cdc9af86ce33106a16d34f4d13345ee449393",
+                "filename": "lib/tests/streamlit/streamlit_test.py",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 0,
+                "changes": 10,
+                "blob_url": "https://github.com/streamlit/streamlit/blob/c8f8a19ffdc797a27ee7098b7b584ed5e99f9488/lib/tests/streamlit/streamlit_test.py",
+                "raw_url": "https://github.com/streamlit/streamlit/raw/c8f8a19ffdc797a27ee7098b7b584ed5e99f9488/lib/tests/streamlit/streamlit_test.py",
+                "contents_url": "https://api.github.com/repos/streamlit/streamlit/contents/lib/tests/streamlit/streamlit_test.py?ref=c8f8a19ffdc797a27ee7098b7b584ed5e99f9488"
+            }
+        ]
+    }
+]

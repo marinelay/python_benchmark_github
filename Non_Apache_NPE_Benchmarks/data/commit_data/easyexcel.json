@@ -1,0 +1,134 @@
+[
+    {
+        "commit": "https://github.com/alibaba/easyexcel/commit/927f6b410f6e76f8cd967192676dc6bb75a4a837",
+        "repo": "easyexcel",
+        "parent": "https://github.com/alibaba/easyexcel/commit/58fdceb2c0891e7f0cea579f73cbc6a4e6389719",
+        "message": "\u4fee\u590dxls\u76f4\u63a5\u8bfb\u53d6\u7b2c2\u9875 `NPE` \u7684bug #1280",
+        "commit_id": "927f6b4",
+        "date": "2020-05-25",
+        "bug_id": "easyexcel_927f6b4",
+        "files": [
+            {
+                "sha": "ee559813f7541d292b210ded0af76b796e282e45",
+                "filename": "src/main/java/com/alibaba/excel/analysis/v03/handlers/BofRecordHandler.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 4,
+                "changes": 9,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/927f6b410f6e76f8cd967192676dc6bb75a4a837/src/main/java/com/alibaba/excel/analysis/v03/handlers/BofRecordHandler.java",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/927f6b410f6e76f8cd967192676dc6bb75a4a837/src/main/java/com/alibaba/excel/analysis/v03/handlers/BofRecordHandler.java",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/src/main/java/com/alibaba/excel/analysis/v03/handlers/BofRecordHandler.java?ref=927f6b410f6e76f8cd967192676dc6bb75a4a837"
+            },
+            {
+                "sha": "29aa216a51dd3be3f46fa87d85229d91d0847b8e",
+                "filename": "src/test/java/com/alibaba/easyexcel/test/temp/Lock2Test.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/927f6b410f6e76f8cd967192676dc6bb75a4a837/src/test/java/com/alibaba/easyexcel/test/temp/Lock2Test.java",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/927f6b410f6e76f8cd967192676dc6bb75a4a837/src/test/java/com/alibaba/easyexcel/test/temp/Lock2Test.java",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/src/test/java/com/alibaba/easyexcel/test/temp/Lock2Test.java?ref=927f6b410f6e76f8cd967192676dc6bb75a4a837"
+            },
+            {
+                "sha": "33584c9b0e240399a2f0cc7918959a9a7d232a12",
+                "filename": "update.md",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/927f6b410f6e76f8cd967192676dc6bb75a4a837/update.md",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/927f6b410f6e76f8cd967192676dc6bb75a4a837/update.md",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/update.md?ref=927f6b410f6e76f8cd967192676dc6bb75a4a837"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/alibaba/easyexcel/commit/33e994e5312932fcdc0bc464cbbb80887b97afd3",
+        "repo": "easyexcel",
+        "parent": "https://github.com/alibaba/easyexcel/commit/f69ebda8d2df5da5c1047a77a9e16447357beb2e",
+        "message": "\u4fee\u590d07\u7248\u6574\u4e2aexcel\u4ec5\u5b58\u5728\u6570\u5b57\u65f6\u4f1a\u51fa\u73b0\u7684NPE",
+        "commit_id": "33e994e",
+        "date": "2019-09-25",
+        "bug_id": "easyexcel_33e994e",
+        "files": [
+            {
+                "sha": "52bfae04ec44a47cc8617858b0f6985cd5ec2174",
+                "filename": "pom.xml",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/pom.xml",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/pom.xml",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/pom.xml?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            },
+            {
+                "sha": "ecee7607d9be972b578bd791c160e763a5931ead",
+                "filename": "quickstart.md",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/quickstart.md",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/quickstart.md",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/quickstart.md?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            },
+            {
+                "sha": "2a8b36ecbb89dea0424c7ecee518fa2e9a866403",
+                "filename": "src/main/java/com/alibaba/excel/analysis/v07/XlsxSaxAnalyser.java",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 6,
+                "changes": 17,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/main/java/com/alibaba/excel/analysis/v07/XlsxSaxAnalyser.java",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/main/java/com/alibaba/excel/analysis/v07/XlsxSaxAnalyser.java",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/src/main/java/com/alibaba/excel/analysis/v07/XlsxSaxAnalyser.java?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            },
+            {
+                "sha": "0d44a95be7adb1e09efdcc1be68b072fe0a0c293",
+                "filename": "src/main/java/com/alibaba/excel/analysis/v07/handlers/DefaultCellHandler.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 2,
+                "changes": 3,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/main/java/com/alibaba/excel/analysis/v07/handlers/DefaultCellHandler.java",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/main/java/com/alibaba/excel/analysis/v07/handlers/DefaultCellHandler.java",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/src/main/java/com/alibaba/excel/analysis/v07/handlers/DefaultCellHandler.java?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            },
+            {
+                "sha": "e687fbfc13f83c79ef289b648281e24fd9c38e7e",
+                "filename": "src/main/java/com/alibaba/excel/util/NumberUtils.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 1,
+                "changes": 6,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/main/java/com/alibaba/excel/util/NumberUtils.java",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/main/java/com/alibaba/excel/util/NumberUtils.java",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/src/main/java/com/alibaba/excel/util/NumberUtils.java?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            },
+            {
+                "sha": "eed6f92ec51c7c7a817fbdd21f646289a110f1a2",
+                "filename": "src/test/java/com/alibaba/easyexcel/test/temp/simple/HgTest.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/test/java/com/alibaba/easyexcel/test/temp/simple/HgTest.java",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/src/test/java/com/alibaba/easyexcel/test/temp/simple/HgTest.java",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/src/test/java/com/alibaba/easyexcel/test/temp/simple/HgTest.java?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            },
+            {
+                "sha": "9d91b9f157dbd955edd3f6f64c994ca66b678bd6",
+                "filename": "update.md",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/alibaba/easyexcel/blob/33e994e5312932fcdc0bc464cbbb80887b97afd3/update.md",
+                "raw_url": "https://github.com/alibaba/easyexcel/raw/33e994e5312932fcdc0bc464cbbb80887b97afd3/update.md",
+                "contents_url": "https://api.github.com/repos/alibaba/easyexcel/contents/update.md?ref=33e994e5312932fcdc0bc464cbbb80887b97afd3"
+            }
+        ]
+    }
+]

@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/mock-server/mockserver/commit/a82a49fcabda80ee0774848b3e9bfc3ce02d01d3",
+        "repo": "mockserver",
+        "parent": "https://github.com/mock-server/mockserver/commit/9089742aea44e4fd26c3f038499739291e0bd433",
+        "message": "#688 fixed NullPointerException in log events",
+        "commit_id": "a82a49f",
+        "date": "2019-11-15",
+        "bug_id": "mockserver_a82a49f",
+        "files": [
+            {
+                "sha": "e2a53fbd4807fbb1da7d18f9d07ffa9600ce68cc",
+                "filename": "mockserver-core/src/main/java/org/mockserver/log/model/LogEntry.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 1,
+                "changes": 6,
+                "blob_url": "https://github.com/mock-server/mockserver/blob/a82a49fcabda80ee0774848b3e9bfc3ce02d01d3/mockserver-core/src/main/java/org/mockserver/log/model/LogEntry.java",
+                "raw_url": "https://github.com/mock-server/mockserver/raw/a82a49fcabda80ee0774848b3e9bfc3ce02d01d3/mockserver-core/src/main/java/org/mockserver/log/model/LogEntry.java",
+                "contents_url": "https://api.github.com/repos/mock-server/mockserver/contents/mockserver-core/src/main/java/org/mockserver/log/model/LogEntry.java?ref=a82a49fcabda80ee0774848b3e9bfc3ce02d01d3"
+            },
+            {
+                "sha": "00fa5f9ab73e17c273ecc4ee27a1950824d224df",
+                "filename": "mockserver-core/src/test/java/org/mockserver/log/MockServerEventLogTest.java",
+                "status": "modified",
+                "additions": 38,
+                "deletions": 0,
+                "changes": 38,
+                "blob_url": "https://github.com/mock-server/mockserver/blob/a82a49fcabda80ee0774848b3e9bfc3ce02d01d3/mockserver-core/src/test/java/org/mockserver/log/MockServerEventLogTest.java",
+                "raw_url": "https://github.com/mock-server/mockserver/raw/a82a49fcabda80ee0774848b3e9bfc3ce02d01d3/mockserver-core/src/test/java/org/mockserver/log/MockServerEventLogTest.java",
+                "contents_url": "https://api.github.com/repos/mock-server/mockserver/contents/mockserver-core/src/test/java/org/mockserver/log/MockServerEventLogTest.java?ref=a82a49fcabda80ee0774848b3e9bfc3ce02d01d3"
+            }
+        ]
+    }
+]

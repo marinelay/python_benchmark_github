@@ -1,0 +1,103 @@
+[
+    {
+        "pr": "https://github.com/beetbox/beets/pull/3360",
+        "repo": "beets",
+        "number": 3360,
+        "bug_id": "beets_3360",
+        "title": "fix bug with pathlib",
+        "body": "Hi,\r\n\r\nThe `thumbnails` plugin was failing for me. The following patch fixed it.\r\n\r\n```\r\n$ python --version\r\nPython 3.5.7\r\njojo at jojo-mini in ~/code/beets (master\u25cf)\r\n$ beet thumbnails\r\nTraceback (most recent call last):\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/bin/beet\", line 11, in <module>\r\n    load_entry_point('beets==1.4.9', 'console_scripts', 'beet')()\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beets/ui/__init__.py\", line 1266, in main\r\n    _raw_main(args)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beets/ui/__init__.py\", line 1253, in _raw_main\r\n    subcommand.func(lib, suboptions, subargs)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beetsplug/thumbnails.py\", line 78, in process_query\r\n    self.process_album(album)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beetsplug/thumbnails.py\", line 133, in process_album\r\n    wrote &= self.make_cover_thumbnail(album, 128, NORMAL_DIR)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beetsplug/thumbnails.py\", line 144, in make_cover_thumbnail\r\n    target = os.path.join(target_dir, self.thumbnail_file_name(album.path))\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beetsplug/thumbnails.py\", line 165, in thumbnail_file_name\r\n    uri = self.get_uri(path)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/site-packages/beetsplug/thumbnails.py\", line 227, in uri\r\n    return PurePosixPath(path).as_uri()\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/pathlib.py\", line 622, in __new__\r\n    return cls._from_parts(args)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/pathlib.py\", line 651, in _from_parts\r\n    drv, root, parts = self._parse_args(args)\r\n  File \"/Users/jojo/.asdf/installs/python/3.5.7/lib/python3.5/pathlib.py\", line 643, in _parse_args\r\n    % type(a))\r\nTypeError: argument should be a path or str object, not <class 'bytes'>\r\n```",
+        "date": "2020-07-16",
+        "merge_hash": "dc7e4337680f7166167e5f08814fb2aee99ae155",
+        "files": [
+            {
+                "sha": "1b262eca540a7d4fe3e4bf224177f79480935113",
+                "filename": "beetsplug/thumbnails.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/beetbox/beets/blob/dc7e4337680f7166167e5f08814fb2aee99ae155/beetsplug/thumbnails.py",
+                "raw_url": "https://github.com/beetbox/beets/raw/dc7e4337680f7166167e5f08814fb2aee99ae155/beetsplug/thumbnails.py",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/beetsplug/thumbnails.py?ref=dc7e4337680f7166167e5f08814fb2aee99ae155"
+            },
+            {
+                "sha": "0f41c38ec1b217026804c6a1ceed3125dfe67d31",
+                "filename": "docs/changelog.rst",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 0,
+                "changes": 3,
+                "blob_url": "https://github.com/beetbox/beets/blob/dc7e4337680f7166167e5f08814fb2aee99ae155/docs/changelog.rst",
+                "raw_url": "https://github.com/beetbox/beets/raw/dc7e4337680f7166167e5f08814fb2aee99ae155/docs/changelog.rst",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/docs/changelog.rst?ref=dc7e4337680f7166167e5f08814fb2aee99ae155"
+            },
+            {
+                "sha": "dbbc032f7320bb3ee7c236082e57f26884f1f47f",
+                "filename": "test/test_thumbnails.py",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/beetbox/beets/blob/dc7e4337680f7166167e5f08814fb2aee99ae155/test/test_thumbnails.py",
+                "raw_url": "https://github.com/beetbox/beets/raw/dc7e4337680f7166167e5f08814fb2aee99ae155/test/test_thumbnails.py",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/test/test_thumbnails.py?ref=dc7e4337680f7166167e5f08814fb2aee99ae155"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/beetbox/beets/pull/2523",
+        "repo": "beets",
+        "number": 2523,
+        "bug_id": "beets_2523",
+        "title": "Rename error",
+        "body": "As discussed at https://github.com/beetbox/beets/pull/2517#issuecomment-294300430, the way we use `InvalidQueryArgumentTypeError` is more akin to a `ValueError` than a `TypeError`. For example, we try to parse a string as an int, float, or date, but the parsing fails - there was nothing wrong with the Type of the variable (string), but its contents were not parseable into the type we wanted - there was a problem with the value of the string.\r\n\r\nThus `InvalidQueryArgumentTypeError` is renamed to `InvalidQueryArgumentValueError` in this pull request.",
+        "date": "2017-05-01",
+        "merge_hash": "84febb13c1c8e6c7dcc305b2498d9e5f55b370b7",
+        "files": [
+            {
+                "sha": "e532ed41955cac513ad624688b323946500b1296",
+                "filename": "beets/dbcore/query.py",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 10,
+                "changes": 20,
+                "blob_url": "https://github.com/beetbox/beets/blob/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/beets/dbcore/query.py",
+                "raw_url": "https://github.com/beetbox/beets/raw/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/beets/dbcore/query.py",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/beets/dbcore/query.py?ref=84febb13c1c8e6c7dcc305b2498d9e5f55b370b7"
+            },
+            {
+                "sha": "56fd8f65b7a97788c715f063d7d5750df3fafe3f",
+                "filename": "beets/library.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/beetbox/beets/blob/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/beets/library.py",
+                "raw_url": "https://github.com/beetbox/beets/raw/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/beets/library.py",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/beets/library.py?ref=84febb13c1c8e6c7dcc305b2498d9e5f55b370b7"
+            },
+            {
+                "sha": "8ca5680c6815b460befde109e8d066a6fc8a47c3",
+                "filename": "test/test_datequery.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 4,
+                "changes": 8,
+                "blob_url": "https://github.com/beetbox/beets/blob/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/test/test_datequery.py",
+                "raw_url": "https://github.com/beetbox/beets/raw/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/test/test_datequery.py",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/test/test_datequery.py?ref=84febb13c1c8e6c7dcc305b2498d9e5f55b370b7"
+            },
+            {
+                "sha": "61df3ca101b2c2442e493dfed23e210e512f69d7",
+                "filename": "test/test_query.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/beetbox/beets/blob/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/test/test_query.py",
+                "raw_url": "https://github.com/beetbox/beets/raw/84febb13c1c8e6c7dcc305b2498d9e5f55b370b7/test/test_query.py",
+                "contents_url": "https://api.github.com/repos/beetbox/beets/contents/test/test_query.py?ref=84febb13c1c8e6c7dcc305b2498d9e5f55b370b7"
+            }
+        ]
+    }
+]

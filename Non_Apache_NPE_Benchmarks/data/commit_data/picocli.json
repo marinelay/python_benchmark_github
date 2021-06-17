@@ -1,0 +1,343 @@
+[
+    {
+        "commit": "https://github.com/remkop/picocli/commit/ac6ce714e7f8062585bfe390c587371cd529447b",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/86b74db3513406ed48cd31f33b1e903961f41c53",
+        "message": "[#1004] Prevent NullPointerException in IParameterConsumer with `@Option` in `@ArgGroup`",
+        "commit_id": "ac6ce71",
+        "date": "2020-04-25",
+        "bug_id": "picocli_ac6ce71",
+        "files": [
+            {
+                "sha": "fd8100a70554cb7050b0fe61124a905924e6065d",
+                "filename": "RELEASE-NOTES.md",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/remkop/picocli/blob/ac6ce714e7f8062585bfe390c587371cd529447b/RELEASE-NOTES.md",
+                "raw_url": "https://github.com/remkop/picocli/raw/ac6ce714e7f8062585bfe390c587371cd529447b/RELEASE-NOTES.md",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/RELEASE-NOTES.md?ref=ac6ce714e7f8062585bfe390c587371cd529447b"
+            },
+            {
+                "sha": "2bd2f058d5618b4a68dba1a3d3defc70c1d5d944",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 2,
+                "changes": 5,
+                "blob_url": "https://github.com/remkop/picocli/blob/ac6ce714e7f8062585bfe390c587371cd529447b/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/ac6ce714e7f8062585bfe390c587371cd529447b/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=ac6ce714e7f8062585bfe390c587371cd529447b"
+            },
+            {
+                "sha": "4209f7822dd2f95e6cbdc5969f77c33d84a1be2a",
+                "filename": "src/test/java/picocli/ParameterConsumerTest.java",
+                "status": "modified",
+                "additions": 28,
+                "deletions": 0,
+                "changes": 28,
+                "blob_url": "https://github.com/remkop/picocli/blob/ac6ce714e7f8062585bfe390c587371cd529447b/src/test/java/picocli/ParameterConsumerTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/ac6ce714e7f8062585bfe390c587371cd529447b/src/test/java/picocli/ParameterConsumerTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/ParameterConsumerTest.java?ref=ac6ce714e7f8062585bfe390c587371cd529447b"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/45a3cdca2a39aee28b6616cb39b40752d1166af7",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/f9d1dc7201f7763d50a60d166c6b3e2fb34244da",
+        "message": "[#1043] Bugfix: NullPointerException thrown in `DefaultParamLabelRenderer.renderParameterLabel` for programmatically built models that have a non-`null` `split` regex and do not have a `splitSynopsisLabel`.",
+        "commit_id": "45a3cdc",
+        "date": "2020-05-14",
+        "bug_id": "picocli_45a3cdc",
+        "files": [
+            {
+                "sha": "f239d36034d217578ea874e46ee9864e8309d30c",
+                "filename": "RELEASE-NOTES.md",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 2,
+                "changes": 8,
+                "blob_url": "https://github.com/remkop/picocli/blob/45a3cdca2a39aee28b6616cb39b40752d1166af7/RELEASE-NOTES.md",
+                "raw_url": "https://github.com/remkop/picocli/raw/45a3cdca2a39aee28b6616cb39b40752d1166af7/RELEASE-NOTES.md",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/RELEASE-NOTES.md?ref=45a3cdca2a39aee28b6616cb39b40752d1166af7"
+            },
+            {
+                "sha": "a693a4d7c07d69f385ec1f3a20401bb01c6d2f1f",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/remkop/picocli/blob/45a3cdca2a39aee28b6616cb39b40752d1166af7/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/45a3cdca2a39aee28b6616cb39b40752d1166af7/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=45a3cdca2a39aee28b6616cb39b40752d1166af7"
+            },
+            {
+                "sha": "ecad73403dd634d3861984f515f5629ae30e68c6",
+                "filename": "src/test/java/picocli/ModelArgSpecTest.java",
+                "status": "modified",
+                "additions": 53,
+                "deletions": 0,
+                "changes": 53,
+                "blob_url": "https://github.com/remkop/picocli/blob/45a3cdca2a39aee28b6616cb39b40752d1166af7/src/test/java/picocli/ModelArgSpecTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/45a3cdca2a39aee28b6616cb39b40752d1166af7/src/test/java/picocli/ModelArgSpecTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/ModelArgSpecTest.java?ref=45a3cdca2a39aee28b6616cb39b40752d1166af7"
+            },
+            {
+                "sha": "2954f9a963259f3351a35629bf09e8753ade8228",
+                "filename": "src/test/java/picocli/ModelCommandSpecTest.java",
+                "status": "modified",
+                "additions": 16,
+                "deletions": 0,
+                "changes": 16,
+                "blob_url": "https://github.com/remkop/picocli/blob/45a3cdca2a39aee28b6616cb39b40752d1166af7/src/test/java/picocli/ModelCommandSpecTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/45a3cdca2a39aee28b6616cb39b40752d1166af7/src/test/java/picocli/ModelCommandSpecTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/ModelCommandSpecTest.java?ref=45a3cdca2a39aee28b6616cb39b40752d1166af7"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/08786c8484154740c289071512ff34738c855311",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/2137e99a8b31db7cd6d808a9d675dea1d12fbadd",
+        "message": "[#940] Bugfix: ArgGroups with a negatable option no longer cause a `NullPointerException` during initialization.",
+        "commit_id": "08786c8",
+        "date": "2020-02-08",
+        "bug_id": "picocli_08786c8",
+        "files": [
+            {
+                "sha": "c8729199d73a4b732f3353e2d9dfe1cc248d447f",
+                "filename": "RELEASE-NOTES.md",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/remkop/picocli/blob/08786c8484154740c289071512ff34738c855311/RELEASE-NOTES.md",
+                "raw_url": "https://github.com/remkop/picocli/raw/08786c8484154740c289071512ff34738c855311/RELEASE-NOTES.md",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/RELEASE-NOTES.md?ref=08786c8484154740c289071512ff34738c855311"
+            },
+            {
+                "sha": "c6f66bfb0ac810356f38226b119a25b5a41486f9",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 1,
+                "changes": 4,
+                "blob_url": "https://github.com/remkop/picocli/blob/08786c8484154740c289071512ff34738c855311/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/08786c8484154740c289071512ff34738c855311/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=08786c8484154740c289071512ff34738c855311"
+            },
+            {
+                "sha": "df2784c6f97c51125495762d0b18bb576be80ab6",
+                "filename": "src/test/java/picocli/ArgGroupTest.java",
+                "status": "modified",
+                "additions": 16,
+                "deletions": 0,
+                "changes": 16,
+                "blob_url": "https://github.com/remkop/picocli/blob/08786c8484154740c289071512ff34738c855311/src/test/java/picocli/ArgGroupTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/08786c8484154740c289071512ff34738c855311/src/test/java/picocli/ArgGroupTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/ArgGroupTest.java?ref=08786c8484154740c289071512ff34738c855311"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/0117fe259ef1b39b62e0b5f49730f13473d3bbf4",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/596d5f0bb638ef907f2a347193ac9c80e1a24518",
+        "message": "TEST prevent NPE",
+        "commit_id": "0117fe2",
+        "date": "2020-01-24",
+        "bug_id": "picocli_0117fe2",
+        "files": [
+            {
+                "sha": "7eafaf880e07d8f70861adb907b536b5361c0ed3",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/remkop/picocli/blob/0117fe259ef1b39b62e0b5f49730f13473d3bbf4/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/0117fe259ef1b39b62e0b5f49730f13473d3bbf4/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=0117fe259ef1b39b62e0b5f49730f13473d3bbf4"
+            },
+            {
+                "sha": "db3239f18730b21c88f90d2944d72451fc98b34f",
+                "filename": "src/test/java/picocli/DefaultProviderTest.java",
+                "status": "modified",
+                "additions": 12,
+                "deletions": 0,
+                "changes": 12,
+                "blob_url": "https://github.com/remkop/picocli/blob/0117fe259ef1b39b62e0b5f49730f13473d3bbf4/src/test/java/picocli/DefaultProviderTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/0117fe259ef1b39b62e0b5f49730f13473d3bbf4/src/test/java/picocli/DefaultProviderTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/DefaultProviderTest.java?ref=0117fe259ef1b39b62e0b5f49730f13473d3bbf4"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/70091a2c56901ed6994f75fdcc4f74379b8500cf",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/2ad859a1668fb7aa454c1c159a8fe34b8e02f4d9",
+        "message": "[#829] (Bugfix) `@ArgGroup` with `@Option` methods fail with `NullPointerException`\n\nCloses #829",
+        "commit_id": "70091a2",
+        "date": "2019-10-09",
+        "bug_id": "picocli_70091a2",
+        "files": [
+            {
+                "sha": "072e80f87ef5d723b2d8f7c854d258cc3da3e394",
+                "filename": "RELEASE-NOTES.md",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/remkop/picocli/blob/70091a2c56901ed6994f75fdcc4f74379b8500cf/RELEASE-NOTES.md",
+                "raw_url": "https://github.com/remkop/picocli/raw/70091a2c56901ed6994f75fdcc4f74379b8500cf/RELEASE-NOTES.md",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/RELEASE-NOTES.md?ref=70091a2c56901ed6994f75fdcc4f74379b8500cf"
+            },
+            {
+                "sha": "0c0b514b9c1f3483534c4e16ca0fba201c486d4d",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/remkop/picocli/blob/70091a2c56901ed6994f75fdcc4f74379b8500cf/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/70091a2c56901ed6994f75fdcc4f74379b8500cf/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=70091a2c56901ed6994f75fdcc4f74379b8500cf"
+            },
+            {
+                "sha": "51ff641ebd47a8cc32e26df46a7ca14f8007e2b5",
+                "filename": "src/test/java/picocli/ArgGroupTest.java",
+                "status": "modified",
+                "additions": 34,
+                "deletions": 0,
+                "changes": 34,
+                "blob_url": "https://github.com/remkop/picocli/blob/70091a2c56901ed6994f75fdcc4f74379b8500cf/src/test/java/picocli/ArgGroupTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/70091a2c56901ed6994f75fdcc4f74379b8500cf/src/test/java/picocli/ArgGroupTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/ArgGroupTest.java?ref=70091a2c56901ed6994f75fdcc4f74379b8500cf"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/644cf2dd3244250dbdae0a47087f97d0c41b97e9",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/546844b94b53362683c931f52608b81b180fb60c",
+        "message": "[#381] Bugfix: Prevent NPE when adding programmatically created subcommands to CommandLine.\n\nCloses #381",
+        "commit_id": "644cf2d",
+        "date": "2018-05-23",
+        "bug_id": "picocli_644cf2d",
+        "files": [
+            {
+                "sha": "bdf6479cf35b9e6271b33038004fad29653a5527",
+                "filename": "RELEASE-NOTES.md",
+                "status": "modified",
+                "additions": 32,
+                "deletions": 0,
+                "changes": 32,
+                "blob_url": "https://github.com/remkop/picocli/blob/644cf2dd3244250dbdae0a47087f97d0c41b97e9/RELEASE-NOTES.md",
+                "raw_url": "https://github.com/remkop/picocli/raw/644cf2dd3244250dbdae0a47087f97d0c41b97e9/RELEASE-NOTES.md",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/RELEASE-NOTES.md?ref=644cf2dd3244250dbdae0a47087f97d0c41b97e9"
+            },
+            {
+                "sha": "72582f63a84cdfec7873032e7ee6fcad9606f795",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/remkop/picocli/blob/644cf2dd3244250dbdae0a47087f97d0c41b97e9/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/644cf2dd3244250dbdae0a47087f97d0c41b97e9/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=644cf2dd3244250dbdae0a47087f97d0c41b97e9"
+            },
+            {
+                "sha": "e60401990eca053fbc0f44e61968824936f27619",
+                "filename": "src/test/java/picocli/CommandLineModelTest.java",
+                "status": "modified",
+                "additions": 20,
+                "deletions": 0,
+                "changes": 20,
+                "blob_url": "https://github.com/remkop/picocli/blob/644cf2dd3244250dbdae0a47087f97d0c41b97e9/src/test/java/picocli/CommandLineModelTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/644cf2dd3244250dbdae0a47087f97d0c41b97e9/src/test/java/picocli/CommandLineModelTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/CommandLineModelTest.java?ref=644cf2dd3244250dbdae0a47087f97d0c41b97e9"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/758f4c0c581b12b9953f5dec2de93b698735d21b",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/06283710c11674f4e5f610cb53c91b3c07f5cc6a",
+        "message": "#141 prevent NPE when sorting required options/parameters. Closes #141",
+        "commit_id": "758f4c0",
+        "date": "2017-06-08",
+        "bug_id": "picocli_758f4c0",
+        "files": [
+            {
+                "sha": "bacefbcb2a4f84e66fea9527441b8c7f89625d72",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 3,
+                "changes": 12,
+                "blob_url": "https://github.com/remkop/picocli/blob/758f4c0c581b12b9953f5dec2de93b698735d21b/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/758f4c0c581b12b9953f5dec2de93b698735d21b/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=758f4c0c581b12b9953f5dec2de93b698735d21b"
+            },
+            {
+                "sha": "e96614042f0496a09820a5fdc660b0f90e5d3833",
+                "filename": "src/test/java/picocli/CommandLineTest.java",
+                "status": "modified",
+                "additions": 20,
+                "deletions": 0,
+                "changes": 20,
+                "blob_url": "https://github.com/remkop/picocli/blob/758f4c0c581b12b9953f5dec2de93b698735d21b/src/test/java/picocli/CommandLineTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/758f4c0c581b12b9953f5dec2de93b698735d21b/src/test/java/picocli/CommandLineTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/CommandLineTest.java?ref=758f4c0c581b12b9953f5dec2de93b698735d21b"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/remkop/picocli/commit/46681457378f79c146bc06e9ab329472d95008c7",
+        "repo": "picocli",
+        "parent": "https://github.com/remkop/picocli/commit/a88129d4b924183a3bb1b81a022ff990ca71de70",
+        "message": "#200 Bugfix: Prevent NPE when command name is set to empty string or spaces. Thanks to [jansohn](https://github.com/jansohn).\nCloses #200.",
+        "commit_id": "4668145",
+        "date": "2017-10-10",
+        "bug_id": "picocli_4668145",
+        "files": [
+            {
+                "sha": "d8c914bc62b89bfc34fe60c5461495615042ae32",
+                "filename": "RELEASE-NOTES.md",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/remkop/picocli/blob/46681457378f79c146bc06e9ab329472d95008c7/RELEASE-NOTES.md",
+                "raw_url": "https://github.com/remkop/picocli/raw/46681457378f79c146bc06e9ab329472d95008c7/RELEASE-NOTES.md",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/RELEASE-NOTES.md?ref=46681457378f79c146bc06e9ab329472d95008c7"
+            },
+            {
+                "sha": "f65d415be199d01ccd421cae387cf987a87bfbc7",
+                "filename": "src/main/java/picocli/CommandLine.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/remkop/picocli/blob/46681457378f79c146bc06e9ab329472d95008c7/src/main/java/picocli/CommandLine.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/46681457378f79c146bc06e9ab329472d95008c7/src/main/java/picocli/CommandLine.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/main/java/picocli/CommandLine.java?ref=46681457378f79c146bc06e9ab329472d95008c7"
+            },
+            {
+                "sha": "979b567e15710377f0d29551d36a8e7689a2b606",
+                "filename": "src/test/java/picocli/CommandLineHelpTest.java",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/remkop/picocli/blob/46681457378f79c146bc06e9ab329472d95008c7/src/test/java/picocli/CommandLineHelpTest.java",
+                "raw_url": "https://github.com/remkop/picocli/raw/46681457378f79c146bc06e9ab329472d95008c7/src/test/java/picocli/CommandLineHelpTest.java",
+                "contents_url": "https://api.github.com/repos/remkop/picocli/contents/src/test/java/picocli/CommandLineHelpTest.java?ref=46681457378f79c146bc06e9ab329472d95008c7"
+            }
+        ]
+    }
+]

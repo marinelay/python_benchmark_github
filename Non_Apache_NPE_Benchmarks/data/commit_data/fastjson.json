@@ -1,0 +1,57 @@
+[
+    {
+        "commit": "https://github.com/alibaba/fastjson/commit/7c05c6ffcb29213b6cb1d02f4907684726cc501b",
+        "repo": "fastjson",
+        "parent": "https://github.com/alibaba/fastjson/commit/650a300f53f17dd5fd72c48b176fae886b191f5d",
+        "message": "fixed issue 2711, Deserializer unwrapped field NPE",
+        "commit_id": "7c05c6f",
+        "date": "2019-09-08",
+        "bug_id": "fastjson_7c05c6f",
+        "files": [
+            {
+                "sha": "0233fab0d2dc95a5fdc139498767db8c5ab0aff6",
+                "filename": "src/main/java/com/alibaba/fastjson/parser/deserializer/JavaBeanDeserializer.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/alibaba/fastjson/blob/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/main/java/com/alibaba/fastjson/parser/deserializer/JavaBeanDeserializer.java",
+                "raw_url": "https://github.com/alibaba/fastjson/raw/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/main/java/com/alibaba/fastjson/parser/deserializer/JavaBeanDeserializer.java",
+                "contents_url": "https://api.github.com/repos/alibaba/fastjson/contents/src/main/java/com/alibaba/fastjson/parser/deserializer/JavaBeanDeserializer.java?ref=7c05c6ffcb29213b6cb1d02f4907684726cc501b"
+            },
+            {
+                "sha": "2d1e17ae664d89dc26b92180db52c4933b88b385",
+                "filename": "src/test/java/com/alibaba/fastjson/deserializer/issue2711/PageRequest.java",
+                "status": "added",
+                "additions": 34,
+                "deletions": 0,
+                "changes": 34,
+                "blob_url": "https://github.com/alibaba/fastjson/blob/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/test/java/com/alibaba/fastjson/deserializer/issue2711/PageRequest.java",
+                "raw_url": "https://github.com/alibaba/fastjson/raw/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/test/java/com/alibaba/fastjson/deserializer/issue2711/PageRequest.java",
+                "contents_url": "https://api.github.com/repos/alibaba/fastjson/contents/src/test/java/com/alibaba/fastjson/deserializer/issue2711/PageRequest.java?ref=7c05c6ffcb29213b6cb1d02f4907684726cc501b"
+            },
+            {
+                "sha": "0038359172ae5e85b36fd66ece4b479b913fd820",
+                "filename": "src/test/java/com/alibaba/fastjson/deserializer/issue2711/TestIssue.java",
+                "status": "added",
+                "additions": 21,
+                "deletions": 0,
+                "changes": 21,
+                "blob_url": "https://github.com/alibaba/fastjson/blob/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/test/java/com/alibaba/fastjson/deserializer/issue2711/TestIssue.java",
+                "raw_url": "https://github.com/alibaba/fastjson/raw/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/test/java/com/alibaba/fastjson/deserializer/issue2711/TestIssue.java",
+                "contents_url": "https://api.github.com/repos/alibaba/fastjson/contents/src/test/java/com/alibaba/fastjson/deserializer/issue2711/TestIssue.java?ref=7c05c6ffcb29213b6cb1d02f4907684726cc501b"
+            },
+            {
+                "sha": "0ee099019f3fcddbdc5f9d624325ba81a6582398",
+                "filename": "src/test/java/com/alibaba/fastjson/deserializer/issue2711/User.java",
+                "status": "added",
+                "additions": 35,
+                "deletions": 0,
+                "changes": 35,
+                "blob_url": "https://github.com/alibaba/fastjson/blob/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/test/java/com/alibaba/fastjson/deserializer/issue2711/User.java",
+                "raw_url": "https://github.com/alibaba/fastjson/raw/7c05c6ffcb29213b6cb1d02f4907684726cc501b/src/test/java/com/alibaba/fastjson/deserializer/issue2711/User.java",
+                "contents_url": "https://api.github.com/repos/alibaba/fastjson/contents/src/test/java/com/alibaba/fastjson/deserializer/issue2711/User.java?ref=7c05c6ffcb29213b6cb1d02f4907684726cc501b"
+            }
+        ]
+    }
+]

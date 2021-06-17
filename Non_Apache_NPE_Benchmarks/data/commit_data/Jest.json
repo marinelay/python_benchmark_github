@@ -1,0 +1,68 @@
+[
+    {
+        "commit": "https://github.com/searchbox-io/Jest/commit/7c4f8cee0b6c905015ab1becfaef8472e198c8bc",
+        "repo": "Jest",
+        "parent": "https://github.com/searchbox-io/Jest/commit/6483126f4117773a91b4775122f96182b8023454",
+        "message": "Fix NPE when bulk item result has \"_id\":null",
+        "commit_id": "7c4f8ce",
+        "date": "2016-04-14",
+        "bug_id": "Jest_7c4f8ce",
+        "files": [
+            {
+                "sha": "12f82b3e53acee2cd8d0d8d23c6e234878ce8f00",
+                "filename": "jest-common/src/main/java/io/searchbox/core/BulkResult.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/searchbox-io/Jest/blob/7c4f8cee0b6c905015ab1becfaef8472e198c8bc/jest-common/src/main/java/io/searchbox/core/BulkResult.java",
+                "raw_url": "https://github.com/searchbox-io/Jest/raw/7c4f8cee0b6c905015ab1becfaef8472e198c8bc/jest-common/src/main/java/io/searchbox/core/BulkResult.java",
+                "contents_url": "https://api.github.com/repos/searchbox-io/Jest/contents/jest-common/src/main/java/io/searchbox/core/BulkResult.java?ref=7c4f8cee0b6c905015ab1becfaef8472e198c8bc"
+            },
+            {
+                "sha": "86645dcff2523f2628d07006a89d1a8739db3680",
+                "filename": "jest-common/src/test/java/io/searchbox/core/BulkResultTest.java",
+                "status": "added",
+                "additions": 40,
+                "deletions": 0,
+                "changes": 40,
+                "blob_url": "https://github.com/searchbox-io/Jest/blob/7c4f8cee0b6c905015ab1becfaef8472e198c8bc/jest-common/src/test/java/io/searchbox/core/BulkResultTest.java",
+                "raw_url": "https://github.com/searchbox-io/Jest/raw/7c4f8cee0b6c905015ab1becfaef8472e198c8bc/jest-common/src/test/java/io/searchbox/core/BulkResultTest.java",
+                "contents_url": "https://api.github.com/repos/searchbox-io/Jest/contents/jest-common/src/test/java/io/searchbox/core/BulkResultTest.java?ref=7c4f8cee0b6c905015ab1becfaef8472e198c8bc"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/searchbox-io/Jest/commit/93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066",
+        "repo": "Jest",
+        "parent": "https://github.com/searchbox-io/Jest/commit/f34fa45e34c9230d58069f8f3e9b86cabfabf603",
+        "message": "Fix NPE in NodeChecker when elasticsearch is down and the node checker\nis run for the first time.",
+        "commit_id": "93f3c48",
+        "date": "2016-06-24",
+        "bug_id": "Jest_93f3c48",
+        "files": [
+            {
+                "sha": "69ed1099077516a6a2e769125912fdab1fb62276",
+                "filename": "jest-common/src/main/java/io/searchbox/client/config/discovery/NodeChecker.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/searchbox-io/Jest/blob/93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066/jest-common/src/main/java/io/searchbox/client/config/discovery/NodeChecker.java",
+                "raw_url": "https://github.com/searchbox-io/Jest/raw/93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066/jest-common/src/main/java/io/searchbox/client/config/discovery/NodeChecker.java",
+                "contents_url": "https://api.github.com/repos/searchbox-io/Jest/contents/jest-common/src/main/java/io/searchbox/client/config/discovery/NodeChecker.java?ref=93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066"
+            },
+            {
+                "sha": "5b191b198acf66925e6b4caffbb38409bbafa7d2",
+                "filename": "jest-common/src/test/java/io/searchbox/client/config/discovery/NodeCheckerTest.java",
+                "status": "modified",
+                "additions": 12,
+                "deletions": 1,
+                "changes": 13,
+                "blob_url": "https://github.com/searchbox-io/Jest/blob/93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066/jest-common/src/test/java/io/searchbox/client/config/discovery/NodeCheckerTest.java",
+                "raw_url": "https://github.com/searchbox-io/Jest/raw/93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066/jest-common/src/test/java/io/searchbox/client/config/discovery/NodeCheckerTest.java",
+                "contents_url": "https://api.github.com/repos/searchbox-io/Jest/contents/jest-common/src/test/java/io/searchbox/client/config/discovery/NodeCheckerTest.java?ref=93f3c481af2e8fa9d7a421d8b4e5e7dbe8cb4066"
+            }
+        ]
+    }
+]

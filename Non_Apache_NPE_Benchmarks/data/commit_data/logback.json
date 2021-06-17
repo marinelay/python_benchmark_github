@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/qos-ch/logback/commit/a3efa52283f0548f0decea54f49f3beba2318f2a",
+        "repo": "logback",
+        "parent": "https://github.com/qos-ch/logback/commit/adf2e71124fea091a1db9dd5d07e4acb262fb951",
+        "message": "Fix NPE on JMX reloadDefaultConfiguration when no configuration file is used",
+        "commit_id": "a3efa52",
+        "date": "2016-02-23",
+        "bug_id": "logback_a3efa52",
+        "files": [
+            {
+                "sha": "c6a4be25d9956ad39299ea40e6322a3ae5783d85",
+                "filename": "logback-classic/src/main/java/ch/qos/logback/classic/jmx/JMXConfigurator.java",
+                "status": "modified",
+                "additions": 16,
+                "deletions": 12,
+                "changes": 28,
+                "blob_url": "https://github.com/qos-ch/logback/blob/a3efa52283f0548f0decea54f49f3beba2318f2a/logback-classic/src/main/java/ch/qos/logback/classic/jmx/JMXConfigurator.java",
+                "raw_url": "https://github.com/qos-ch/logback/raw/a3efa52283f0548f0decea54f49f3beba2318f2a/logback-classic/src/main/java/ch/qos/logback/classic/jmx/JMXConfigurator.java",
+                "contents_url": "https://api.github.com/repos/qos-ch/logback/contents/logback-classic/src/main/java/ch/qos/logback/classic/jmx/JMXConfigurator.java?ref=a3efa52283f0548f0decea54f49f3beba2318f2a"
+            },
+            {
+                "sha": "f5e95625599aff8b640015413e3409c449f65980",
+                "filename": "logback-classic/src/test/java/ch/qos/logback/classic/jmx/JMXConfiguratorTest.java",
+                "status": "modified",
+                "additions": 17,
+                "deletions": 1,
+                "changes": 18,
+                "blob_url": "https://github.com/qos-ch/logback/blob/a3efa52283f0548f0decea54f49f3beba2318f2a/logback-classic/src/test/java/ch/qos/logback/classic/jmx/JMXConfiguratorTest.java",
+                "raw_url": "https://github.com/qos-ch/logback/raw/a3efa52283f0548f0decea54f49f3beba2318f2a/logback-classic/src/test/java/ch/qos/logback/classic/jmx/JMXConfiguratorTest.java",
+                "contents_url": "https://api.github.com/repos/qos-ch/logback/contents/logback-classic/src/test/java/ch/qos/logback/classic/jmx/JMXConfiguratorTest.java?ref=a3efa52283f0548f0decea54f49f3beba2318f2a"
+            }
+        ]
+    }
+]

@@ -1,0 +1,123 @@
+[
+    {
+        "commit": "https://github.com/oracle/helidon/commit/01f55c18e56225c6477d5546bb5075ae0b8f4b20",
+        "repo": "helidon",
+        "parent": "https://github.com/oracle/helidon/commit/8303b87fe33e9b4cbef33522460bb47c0abaae78",
+        "message": "Fix NPE with async Jersey resource (#2911)\n\n* Fix NPE with async Jersey resource\r\n\r\nSigned-off-by: Daniel Kec <daniel.kec@oracle.com>",
+        "commit_id": "01f55c1",
+        "date": "2021-04-06",
+        "bug_id": "helidon_01f55c1",
+        "files": [
+            {
+                "sha": "784129a28ebad9588686240a9176b534ea4d8440",
+                "filename": "microprofile/server/src/test/java/io/helidon/microprofile/server/AsyncResourceTest.java",
+                "status": "added",
+                "additions": 73,
+                "deletions": 0,
+                "changes": 73,
+                "blob_url": "https://github.com/oracle/helidon/blob/01f55c18e56225c6477d5546bb5075ae0b8f4b20/microprofile/server/src/test/java/io/helidon/microprofile/server/AsyncResourceTest.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/01f55c18e56225c6477d5546bb5075ae0b8f4b20/microprofile/server/src/test/java/io/helidon/microprofile/server/AsyncResourceTest.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/microprofile/server/src/test/java/io/helidon/microprofile/server/AsyncResourceTest.java?ref=01f55c18e56225c6477d5546bb5075ae0b8f4b20"
+            },
+            {
+                "sha": "68390d3281ab22dee568134f38a8d4047dc75396",
+                "filename": "webserver/jersey/src/main/java/io/helidon/webserver/jersey/JerseySupport.java",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 3,
+                "changes": 12,
+                "blob_url": "https://github.com/oracle/helidon/blob/01f55c18e56225c6477d5546bb5075ae0b8f4b20/webserver/jersey/src/main/java/io/helidon/webserver/jersey/JerseySupport.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/01f55c18e56225c6477d5546bb5075ae0b8f4b20/webserver/jersey/src/main/java/io/helidon/webserver/jersey/JerseySupport.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/webserver/jersey/src/main/java/io/helidon/webserver/jersey/JerseySupport.java?ref=01f55c18e56225c6477d5546bb5075ae0b8f4b20"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/oracle/helidon/commit/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd",
+        "repo": "helidon",
+        "parent": "https://github.com/oracle/helidon/commit/c369146ffe8a3cb0c6b2891e2aff970a3b9b3ad6",
+        "message": "CORS processing should only be enabled on successful responses. Fixes a problem with a 404 response that resulted in an NPE. Some new tests. (#1683)\n\nSigned-off-by: Santiago Pericasgeertsen <santiago.pericasgeertsen@oracle.com>",
+        "commit_id": "a400ec9",
+        "date": "2020-04-22",
+        "bug_id": "helidon_a400ec9",
+        "files": [
+            {
+                "sha": "afee819a07bdd89332f10c1540e0a994e6f5e0ca",
+                "filename": "microprofile/cors/src/main/java/io/helidon/microprofile/cors/CorsSupportMp.java",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 1,
+                "changes": 10,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/microprofile/cors/src/main/java/io/helidon/microprofile/cors/CorsSupportMp.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/microprofile/cors/src/main/java/io/helidon/microprofile/cors/CorsSupportMp.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/microprofile/cors/src/main/java/io/helidon/microprofile/cors/CorsSupportMp.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            },
+            {
+                "sha": "57545ec77868fdd3c5ca2e577c89b0cc1225c132",
+                "filename": "microprofile/cors/src/main/java/io/helidon/microprofile/cors/CrossOriginFilter.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/microprofile/cors/src/main/java/io/helidon/microprofile/cors/CrossOriginFilter.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/microprofile/cors/src/main/java/io/helidon/microprofile/cors/CrossOriginFilter.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/microprofile/cors/src/main/java/io/helidon/microprofile/cors/CrossOriginFilter.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            },
+            {
+                "sha": "8de00d876e25d07f38b05b0a17855e166b1b3600",
+                "filename": "microprofile/cors/src/test/java/io/helidon/microprofile/cors/CrossOriginTest.java",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 2,
+                "changes": 13,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/microprofile/cors/src/test/java/io/helidon/microprofile/cors/CrossOriginTest.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/microprofile/cors/src/test/java/io/helidon/microprofile/cors/CrossOriginTest.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/microprofile/cors/src/test/java/io/helidon/microprofile/cors/CrossOriginTest.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            },
+            {
+                "sha": "dbc7254344216ff90ed52130db2f9825fa393a39",
+                "filename": "webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportBase.java",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 0,
+                "changes": 7,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportBase.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportBase.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportBase.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            },
+            {
+                "sha": "39bc4ebb0ca16cea08edcd8bbc70f0404d5616b1",
+                "filename": "webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportHelper.java",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 2,
+                "changes": 11,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportHelper.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportHelper.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/webserver/cors/src/main/java/io/helidon/webserver/cors/CorsSupportHelper.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            },
+            {
+                "sha": "c9f25982d7c1088c4c1cd71eca183bd0bc7aa2aa",
+                "filename": "webserver/cors/src/main/java/io/helidon/webserver/cors/ResponseAdapterSe.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/main/java/io/helidon/webserver/cors/ResponseAdapterSe.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/main/java/io/helidon/webserver/cors/ResponseAdapterSe.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/webserver/cors/src/main/java/io/helidon/webserver/cors/ResponseAdapterSe.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            },
+            {
+                "sha": "4fa0ab450b98efc1908149247feb97e9637ef83f",
+                "filename": "webserver/cors/src/test/java/io/helidon/webserver/cors/AbstractCorsTest.java",
+                "status": "modified",
+                "additions": 24,
+                "deletions": 2,
+                "changes": 26,
+                "blob_url": "https://github.com/oracle/helidon/blob/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/test/java/io/helidon/webserver/cors/AbstractCorsTest.java",
+                "raw_url": "https://github.com/oracle/helidon/raw/a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd/webserver/cors/src/test/java/io/helidon/webserver/cors/AbstractCorsTest.java",
+                "contents_url": "https://api.github.com/repos/oracle/helidon/contents/webserver/cors/src/test/java/io/helidon/webserver/cors/AbstractCorsTest.java?ref=a400ec9196a8bc0aeb36b47096ee5d3ec5a1fefd"
+            }
+        ]
+    }
+]

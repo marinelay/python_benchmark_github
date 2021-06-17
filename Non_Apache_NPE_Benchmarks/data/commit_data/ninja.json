@@ -1,0 +1,68 @@
+[
+    {
+        "commit": "https://github.com/ninjaframework/ninja/commit/3e73cb8085f1137e1ea9f7a79a68522ff6833fae",
+        "repo": "ninja",
+        "parent": "https://github.com/ninjaframework/ninja/commit/16aa9c14a65cd1a60efd245d774cfa8d8472d749",
+        "message": "Fix NPE in some cases during routing",
+        "commit_id": "3e73cb8",
+        "date": "2017-02-23",
+        "bug_id": "ninja_3e73cb8",
+        "files": [
+            {
+                "sha": "0c6406756e75bd06dfe95f1ea2e356aa2944d348",
+                "filename": "ninja-core/src/main/java/ninja/Route.java",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 6,
+                "changes": 12,
+                "blob_url": "https://github.com/ninjaframework/ninja/blob/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-core/src/main/java/ninja/Route.java",
+                "raw_url": "https://github.com/ninjaframework/ninja/raw/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-core/src/main/java/ninja/Route.java",
+                "contents_url": "https://api.github.com/repos/ninjaframework/ninja/contents/ninja-core/src/main/java/ninja/Route.java?ref=3e73cb8085f1137e1ea9f7a79a68522ff6833fae"
+            },
+            {
+                "sha": "46169c6e9d26a82c8cc2e8bde8e470d694bb8643",
+                "filename": "ninja-core/src/test/java/ninja/RouterImplTest.java",
+                "status": "modified",
+                "additions": 12,
+                "deletions": 0,
+                "changes": 12,
+                "blob_url": "https://github.com/ninjaframework/ninja/blob/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-core/src/test/java/ninja/RouterImplTest.java",
+                "raw_url": "https://github.com/ninjaframework/ninja/raw/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-core/src/test/java/ninja/RouterImplTest.java",
+                "contents_url": "https://api.github.com/repos/ninjaframework/ninja/contents/ninja-core/src/test/java/ninja/RouterImplTest.java?ref=3e73cb8085f1137e1ea9f7a79a68522ff6833fae"
+            },
+            {
+                "sha": "d8d3f781eee1f5503b1c70b49ab8c0e0d012f89e",
+                "filename": "ninja-servlet-integration-test/src/main/java/assets/robots.txt",
+                "status": "added",
+                "additions": 3,
+                "deletions": 0,
+                "changes": 3,
+                "blob_url": "https://github.com/ninjaframework/ninja/blob/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-servlet-integration-test/src/main/java/assets/robots.txt",
+                "raw_url": "https://github.com/ninjaframework/ninja/raw/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-servlet-integration-test/src/main/java/assets/robots.txt",
+                "contents_url": "https://api.github.com/repos/ninjaframework/ninja/contents/ninja-servlet-integration-test/src/main/java/assets/robots.txt?ref=3e73cb8085f1137e1ea9f7a79a68522ff6833fae"
+            },
+            {
+                "sha": "962264ed327cc9cada5c86af807c4aac1aefe993",
+                "filename": "ninja-servlet-integration-test/src/main/java/conf/Routes.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/ninjaframework/ninja/blob/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-servlet-integration-test/src/main/java/conf/Routes.java",
+                "raw_url": "https://github.com/ninjaframework/ninja/raw/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-servlet-integration-test/src/main/java/conf/Routes.java",
+                "contents_url": "https://api.github.com/repos/ninjaframework/ninja/contents/ninja-servlet-integration-test/src/main/java/conf/Routes.java?ref=3e73cb8085f1137e1ea9f7a79a68522ff6833fae"
+            },
+            {
+                "sha": "afd626f331ed41e67b83dcbf3014c313adb922f1",
+                "filename": "ninja-servlet-integration-test/src/test/java/controllers/AssetsControllerTest.java",
+                "status": "modified",
+                "additions": 13,
+                "deletions": 0,
+                "changes": 13,
+                "blob_url": "https://github.com/ninjaframework/ninja/blob/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-servlet-integration-test/src/test/java/controllers/AssetsControllerTest.java",
+                "raw_url": "https://github.com/ninjaframework/ninja/raw/3e73cb8085f1137e1ea9f7a79a68522ff6833fae/ninja-servlet-integration-test/src/test/java/controllers/AssetsControllerTest.java",
+                "contents_url": "https://api.github.com/repos/ninjaframework/ninja/contents/ninja-servlet-integration-test/src/test/java/controllers/AssetsControllerTest.java?ref=3e73cb8085f1137e1ea9f7a79a68522ff6833fae"
+            }
+        ]
+    }
+]

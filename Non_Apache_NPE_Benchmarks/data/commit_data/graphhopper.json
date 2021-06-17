@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/graphhopper/graphhopper/commit/fa94e4870c2d6042300b727d9aa92e53c40c256e",
+        "repo": "graphhopper",
+        "parent": "https://github.com/graphhopper/graphhopper/commit/776fdb2c6987ef2de303ead1f45f3d28c2361741",
+        "message": "fix NPE in CH preparation with GenericWeighting (#906)",
+        "commit_id": "fa94e48",
+        "date": "2016-12-10",
+        "bug_id": "graphhopper_fa94e48",
+        "files": [
+            {
+                "sha": "1b6c9e226e30442456a8057dcffd4d38b42c5eb7",
+                "filename": "core/src/main/java/com/graphhopper/routing/weighting/GenericWeighting.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/graphhopper/graphhopper/blob/fa94e4870c2d6042300b727d9aa92e53c40c256e/core/src/main/java/com/graphhopper/routing/weighting/GenericWeighting.java",
+                "raw_url": "https://github.com/graphhopper/graphhopper/raw/fa94e4870c2d6042300b727d9aa92e53c40c256e/core/src/main/java/com/graphhopper/routing/weighting/GenericWeighting.java",
+                "contents_url": "https://api.github.com/repos/graphhopper/graphhopper/contents/core/src/main/java/com/graphhopper/routing/weighting/GenericWeighting.java?ref=fa94e4870c2d6042300b727d9aa92e53c40c256e"
+            },
+            {
+                "sha": "02f0ca3d14f4fa84b1157301f3e5b632dffa4399",
+                "filename": "core/src/test/java/com/graphhopper/routing/weighting/GenericWeightingTest.java",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 0,
+                "changes": 7,
+                "blob_url": "https://github.com/graphhopper/graphhopper/blob/fa94e4870c2d6042300b727d9aa92e53c40c256e/core/src/test/java/com/graphhopper/routing/weighting/GenericWeightingTest.java",
+                "raw_url": "https://github.com/graphhopper/graphhopper/raw/fa94e4870c2d6042300b727d9aa92e53c40c256e/core/src/test/java/com/graphhopper/routing/weighting/GenericWeightingTest.java",
+                "contents_url": "https://api.github.com/repos/graphhopper/graphhopper/contents/core/src/test/java/com/graphhopper/routing/weighting/GenericWeightingTest.java?ref=fa94e4870c2d6042300b727d9aa92e53c40c256e"
+            }
+        ]
+    }
+]

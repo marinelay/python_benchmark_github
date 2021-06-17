@@ -1,0 +1,112 @@
+[
+    {
+        "pr": "https://github.com/Miserlou/Zappa/pull/1434",
+        "repo": "Zappa",
+        "number": 1434,
+        "bug_id": "Zappa_1434",
+        "title": "Fix certifying a domain for the first time.",
+        "body": "## Description\r\nIn #1411 I added the route53 kwarg to `core.Zappa.get_domain_name` but when I\r\nactually went to use the arg in `cli.ZappaCLI.certify` I added it to the next\r\nline down... This was because I had originally made the change in my project's\r\nvenv, just to see if it was as simple as it looked, and when it worked I\r\ncloned the Zappa repo and reimplemented it. Obviously I messed that up.\r\n\r\nAs reported by @tamiel on #1411 the call to `core.Zappa.create_domain_name` was\r\nthrowing a TypeError because of the unrecognized keyword argument. This was\r\nnot getting caught in the integration tests around `certify` because the\r\nmocked functions were taking variable arguments.\r\n\r\nThis commit fixes the original mistake and changes the mock in\r\n`tests.TestZappa.test_certify_sanity_checks` to use `mock.create_autospec`\r\ninstead of a custom class so that it actually has the same function signatures\r\nas a real instance would.\r\n\r\n## GitHub Issues\r\nNo issue raised yet but the problem was reported here: https://github.com/Miserlou/Zappa/pull/1411#issuecomment-370967045\r\n\r\n",
+        "date": "2018-03-15",
+        "files": [
+            {
+                "sha": "8199e54be8aa785bd41242b588065dde414edbce",
+                "filename": "tests/tests.py",
+                "status": "modified",
+                "additions": 24,
+                "deletions": 31,
+                "changes": 55,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/2a31b6113e5abbf10c48d03ad558d312cebf913b/tests/tests.py",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/2a31b6113e5abbf10c48d03ad558d312cebf913b/tests/tests.py",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/tests/tests.py?ref=2a31b6113e5abbf10c48d03ad558d312cebf913b"
+            },
+            {
+                "sha": "bac4e40eecceb50872ebedf77f58d9f8d290fd87",
+                "filename": "zappa/cli.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 3,
+                "changes": 5,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/2a31b6113e5abbf10c48d03ad558d312cebf913b/zappa/cli.py",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/2a31b6113e5abbf10c48d03ad558d312cebf913b/zappa/cli.py",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/zappa/cli.py?ref=2a31b6113e5abbf10c48d03ad558d312cebf913b"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/Miserlou/Zappa/pull/396",
+        "repo": "Zappa",
+        "number": 396,
+        "bug_id": "Zappa_396",
+        "title": "make sure that environment variables are strings",
+        "body": "I accidentally set an integer environment variable, and Zappa deployed properly, but failed on request. This showed up in the `tail`:\n\n```\nZappa Event: {}\n[1476408522194] putenv() argument 2 must be string, not int: TypeError\nTraceback (most recent call last):\n  File \"/var/task/handler.py\", line 476, in lambda_handler\n    return LambdaHandler.lambda_handler(event, context)\n  File \"/var/task/handler.py\", line 187, in lambda_handler\n    handler = cls()\n  File \"/var/task/handler.py\", line 109, in __init__\n    os.environ[key] = self.settings.ENVIRONMENT_VARIABLES[key]\n  File \"/usr/lib64/python2.7/os.py\", line 473, in __setitem__\n    putenv(key, item)\nTypeError: putenv() argument 2 must be string, not int\n```\n\nThis PR checks the `environment` for strings and errors out if they're not.\n",
+        "date": "2016-10-14",
+        "files": [
+            {
+                "sha": "b8ab11d769d83108aa9db335a632953c59d38e81",
+                "filename": "tests/test_bad_environment_vars.json",
+                "status": "added",
+                "additions": 19,
+                "deletions": 0,
+                "changes": 19,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94/tests/test_bad_environment_vars.json",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94/tests/test_bad_environment_vars.json",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/tests/test_bad_environment_vars.json?ref=e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94"
+            },
+            {
+                "sha": "b3c4642630690e0d708aa163866f7648ed633e61",
+                "filename": "tests/tests.py",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94/tests/tests.py",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94/tests/tests.py",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/tests/tests.py?ref=e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94"
+            },
+            {
+                "sha": "20d0211968a6562404877feb8bbcdb3f24513b90",
+                "filename": "zappa/cli.py",
+                "status": "modified",
+                "additions": 16,
+                "deletions": 0,
+                "changes": 16,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94/zappa/cli.py",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94/zappa/cli.py",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/zappa/cli.py?ref=e6fe8ef6b26fff2a24e2c2d2d3b049887f455b94"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/Miserlou/Zappa/pull/388",
+        "repo": "Zappa",
+        "number": 388,
+        "bug_id": "Zappa_388",
+        "title": "Adds support for POST/PUT/PATCH requests with an empty request body",
+        "body": "It is valid for HTTP POST/PUT/PATCH requests to provide an empty\nrequest body, and should not raise an exception.\n\nThis PR allows the request body to be empty.\n# Steps to reproduce\n\nDeploy a hello world Flask app:\n\n```\nfrom flask import Flask\n\napp = Flask(__name__)\n\n\n@app.route('/', methods=['GET', 'POST'])\ndef lambda_handler(event=None, context=None):\n    return 'hello from Flask!'\n\nif __name__ == '__main__':\n    app.run(debug=True)\n```\n\nPerform a POST request with an empty body:\n\n```\n$ curl -d '' -i https://k2h8a6sv0e.execute-api.us-east-1.amazonaws.com/dev\nHTTP/1.1 500 Internal Server Error\nContent-Type: application/json\nContent-Length: 530\nConnection: keep-alive\nDate: Fri, 07 Oct 2016 07:24:59 GMT\nx-amzn-RequestId: 2777e78f-8c5f-11e6-b49d-57d543c2d16c\nX-Cache: Error from cloudfront\nVia: 1.1 8b1633b834f6beaa5a2d7797c38cf775.cloudfront.net (CloudFront)\nX-Amz-Cf-Id: eN2I7Zbv2BiBv-sCX9HAXd1bfazI7QfGMMaI_MGNfmgEAL7jfnay0A==\n\n{\n    \"message\": \"An uncaught exception happened while servicing this request. You can investigate this with the `zappa tail` command.\",\n    \"traceback\": [\n        \"Traceback (most recent call last):\\n\",\n        \"  File \\\"/var/task/handler.py\\\", line 396, in handler\\n    trailing_slash=self.trailing_slash\\n\",\n        \"  File \\\"/Users/logan/.pyenv/versions/2.7.11/envs/zappa/lib/python2.7/site-packages/zappa/wsgi.py\\\", line 95, in create_wsgi_request\\n\",\n        \"TypeError: object of type 'NoneType' has no len()\\n\"\n    ]\n}\n```\n",
+        "date": "2016-10-13",
+        "files": [
+            {
+                "sha": "581fc6c0cd7d98eccc28c20ed3dd7b0a474e0c8f",
+                "filename": "tests/tests.py",
+                "status": "modified",
+                "additions": 39,
+                "deletions": 0,
+                "changes": 39,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/c69d667e311aea68cee66217e7ca3ca2672d6209/tests/tests.py",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/c69d667e311aea68cee66217e7ca3ca2672d6209/tests/tests.py",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/tests/tests.py?ref=c69d667e311aea68cee66217e7ca3ca2672d6209"
+            },
+            {
+                "sha": "80372b5d6fc6c0239c1d1120045779249d3dcfc6",
+                "filename": "zappa/wsgi.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 1,
+                "changes": 5,
+                "blob_url": "https://github.com/Miserlou/Zappa/blob/c69d667e311aea68cee66217e7ca3ca2672d6209/zappa/wsgi.py",
+                "raw_url": "https://github.com/Miserlou/Zappa/raw/c69d667e311aea68cee66217e7ca3ca2672d6209/zappa/wsgi.py",
+                "contents_url": "https://api.github.com/repos/Miserlou/Zappa/contents/zappa/wsgi.py?ref=c69d667e311aea68cee66217e7ca3ca2672d6209"
+            }
+        ]
+    }
+]

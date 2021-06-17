@@ -1,0 +1,359 @@
+[
+    {
+        "pr": "https://github.com/ray-project/ray/pull/16120",
+        "repo": "ray",
+        "number": 16120,
+        "bug_id": "ray_16120",
+        "title": "Revert \"Fix tracing bug when actors are defined before connecting to \u2026",
+        "body": "\u2026cluster (#16069)\"\r\n\r\nThis reverts commit 6c1ea6661180e656e83e7e5835d362428654ad8d.\r\n\r\n```\r\n\r\n\r\n\r\nFile \"/ray/python/ray/util/tracing/tracing_helper.py\", line 279, in _function_with_tracing\r\n&nbsp; | return function(*args, **kwargs)\r\n&nbsp; | File \"/tmp/ray_cross_language_test/test_cross_language_invocation.py\", line 56, in py_func_call_java_actor\r\n&nbsp; | java_actor = c.remote(b\"Counter\")\r\n&nbsp; | File \"/ray/python/ray/actor.py\", line 418, in remote\r\n&nbsp; | return self._remote(args=args, kwargs=kwargs)\r\n&nbsp; | File \"/ray/python/ray/util/tracing/tracing_helper.py\", line 317, in _invocation_actor_class_remote_span\r\n&nbsp; | return method(self, args, kwargs, *_args, **_kwargs)\r\n&nbsp; | File \"/ray/python/ray/actor.py\", line 698, in _remote\r\n&nbsp; | creation_args = cross_language.format_args(worker, args, kwargs)\r\n&nbsp; | File \"/ray/python/ray/cross_language.py\", line 29, in format_args\r\n&nbsp; | raise TypeError(\"Cross language remote functions \"\r\n&nbsp; | TypeError: Cross language remote functions does not support kwargs.\r\n&nbsp;\r\n\r\n<br class=\"Apple-interchange-newline\">\r\n```",
+        "date": "2021-05-27",
+        "merge_hash": "9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e",
+        "files": [
+            {
+                "sha": "3ef71ee1ebe04288f724beed5facb5a9a52670c5",
+                "filename": "doc/source/ray-tracing.rst",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 5,
+                "changes": 9,
+                "blob_url": "https://github.com/ray-project/ray/blob/9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e/doc/source/ray-tracing.rst",
+                "raw_url": "https://github.com/ray-project/ray/raw/9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e/doc/source/ray-tracing.rst",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/doc/source/ray-tracing.rst?ref=9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e"
+            },
+            {
+                "sha": "1385c0c1bd3485e3b02208d6bdf08882d66a8898",
+                "filename": "python/ray/tests/test_tracing.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 20,
+                "changes": 21,
+                "blob_url": "https://github.com/ray-project/ray/blob/9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e/python/ray/tests/test_tracing.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e/python/ray/tests/test_tracing.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tests/test_tracing.py?ref=9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e"
+            },
+            {
+                "sha": "f93e63e8a8d247eac66522c86b5dbeac0ab5d202",
+                "filename": "python/ray/util/tracing/tracing_helper.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 4,
+                "changes": 8,
+                "blob_url": "https://github.com/ray-project/ray/blob/9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e/python/ray/util/tracing/tracing_helper.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e/python/ray/util/tracing/tracing_helper.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/util/tracing/tracing_helper.py?ref=9c73591a4e4a8fb1d0b0ef6d023d3f60520d882e"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/ray-project/ray/pull/14378",
+        "repo": "ray",
+        "number": 14378,
+        "bug_id": "ray_14378",
+        "title": "[Dashboard] Fix reporter agent",
+        "body": "<!-- Thank you for your contribution! Please review https://github.com/ray-project/ray/blob/master/CONTRIBUTING.rst before opening a pull request. -->\r\n\r\n<!-- Please add a reviewer to the assignee section when you create a PR. If you don't have the access to it, we will shortly find a reviewer and assign them to your PR. -->\r\n\r\n## Why are these changes needed?\r\n\r\n- Problem\r\n  - The `ReporterAgent._record_stats` may raises exception due to\r\n    - the use of local variables referenced before assignment.\r\n    - The `raylet_stats` may be an empty list, then access the key of `raylet_stats` will raise `TypeError: list indices must be integers or slices, not str`.\r\n- Solution\r\n  - Add metric record to `records_reported` if the record object is generated.\r\n- Other\r\n  - Add a `_get_raylet_proc()` method to get raylet proc object, returns None is the raylet proc is not available.\r\n\r\n<!-- Please give a short summary of the change and the problem this solves. -->\r\n\r\n<!-- For example: \"Closes #1234\" -->\r\n\r\n## Checks\r\n\r\n- [ ] I've run `scripts/format.sh` to lint the changes in this PR.\r\n- [ ] I've included any doc changes needed for https://docs.ray.io/en/master/.\r\n- [ ] I've made sure the tests are passing. Note that there might be a few flaky tests, see the recent failures at https://flakey-tests.ray.io/\r\n- Testing Strategy\r\n   - [ ] Unit tests\r\n   - [ ] Release tests\r\n   - [ ] This PR is not tested :(\r\n",
+        "date": "2021-03-08",
+        "merge_hash": "2da58bb0214644177c3f9a9c59d03cc5fa0d1c47",
+        "files": [
+            {
+                "sha": "d62d987b2f8e8a4397df8795ec13f66237a3cef9",
+                "filename": "dashboard/modules/reporter/reporter_agent.py",
+                "status": "modified",
+                "additions": 136,
+                "deletions": 137,
+                "changes": 273,
+                "blob_url": "https://github.com/ray-project/ray/blob/2da58bb0214644177c3f9a9c59d03cc5fa0d1c47/dashboard/modules/reporter/reporter_agent.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/2da58bb0214644177c3f9a9c59d03cc5fa0d1c47/dashboard/modules/reporter/reporter_agent.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/dashboard/modules/reporter/reporter_agent.py?ref=2da58bb0214644177c3f9a9c59d03cc5fa0d1c47"
+            },
+            {
+                "sha": "dfe164a58415eb7f4746a20325660c239e999cf4",
+                "filename": "dashboard/modules/reporter/tests/test_reporter.py",
+                "status": "modified",
+                "additions": 73,
+                "deletions": 0,
+                "changes": 73,
+                "blob_url": "https://github.com/ray-project/ray/blob/2da58bb0214644177c3f9a9c59d03cc5fa0d1c47/dashboard/modules/reporter/tests/test_reporter.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/2da58bb0214644177c3f9a9c59d03cc5fa0d1c47/dashboard/modules/reporter/tests/test_reporter.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/dashboard/modules/reporter/tests/test_reporter.py?ref=2da58bb0214644177c3f9a9c59d03cc5fa0d1c47"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/ray-project/ray/pull/14698",
+        "repo": "ray",
+        "number": 14698,
+        "bug_id": "ray_14698",
+        "title": "[client] Fix serialization of RayTaskError",
+        "body": "<!-- Thank you for your contribution! Please review https://github.com/ray-project/ray/blob/master/CONTRIBUTING.rst before opening a pull request. -->\r\n\r\n<!-- Please add a reviewer to the assignee section when you create a PR. If you don't have the access to it, we will shortly find a reviewer and assign them to your PR. -->\r\n\r\n## Why are these changes needed?\r\n\r\n\r\nBefore:\r\n```\r\n---------------------------------------------------------------------------\r\nTypeError                                 Traceback (most recent call last)\r\n<ipython-input-1-b34c9e83cb1f> in <module>\r\n     17\r\n     18 # grpc error\r\n---> 19 ray.get(g.remote())\r\n     20\r\n     21 # grpc error\r\n\r\n~/ray/python/ray/_private/client_mode_hook.py in wrapper(*args, **kwargs)\r\n     44     def wrapper(*args, **kwargs):\r\n     45         if client_mode_should_convert():\r\n---> 46             return getattr(ray, func.__name__)(*args, **kwargs)\r\n     47         return func(*args, **kwargs)\r\n     48\r\n\r\n~/ray/python/ray/util/client/api.py in get(self, vals, timeout)\r\n     33             timeout: Optional timeout in milliseconds\r\n     34         \"\"\"\r\n---> 35         return self.worker.get(vals, timeout=timeout)\r\n     36\r\n     37     def put(self, *args, **kwargs):\r\n\r\n~/ray/python/ray/util/client/worker.py in get(self, vals, timeout)\r\n    194                     else:\r\n    195                         op_timeout = MAX_BLOCKING_OPERATION_TIME_S\r\n--> 196                     res = self._get(obj_ref, op_timeout)\r\n    197                     break\r\n    198                 except GetTimeoutError:\r\n\r\n~/ray/python/ray/util/client/worker.py in _get(self, ref, timeout)\r\n    213         if not data.valid:\r\n    214             try:\r\n--> 215                 err = cloudpickle.loads(data.error)\r\n    216             except pickle.UnpicklingError:\r\n    217                 logger.exception(\"Failed to deserialize {}\".format(data.error))\r\n\r\nTypeError: __init__() missing 1 required positional argument: 'cause'\r\n```\r\n\r\nAfter:\r\n```\r\nRayTaskError(PermissionError)             Traceback (most recent call last)\r\n<ipython-input-1-b34c9e83cb1f> in <module>\r\n     17\r\n     18 # grpc error\r\n---> 19 ray.get(g.remote())\r\n     20\r\n     21 # grpc error\r\n\r\n~/ray/python/ray/_private/client_mode_hook.py in wrapper(*args, **kwargs)\r\n     44     def wrapper(*args, **kwargs):\r\n     45         if client_mode_should_convert():\r\n---> 46             return getattr(ray, func.__name__)(*args, **kwargs)\r\n     47         return func(*args, **kwargs)\r\n     48\r\n\r\n~/ray/python/ray/util/client/api.py in get(self, vals, timeout)\r\n     33             timeout: Optional timeout in milliseconds\r\n     34         \"\"\"\r\n---> 35         return self.worker.get(vals, timeout=timeout)\r\n     36\r\n     37     def put(self, *args, **kwargs):\r\n\r\n~/ray/python/ray/util/client/worker.py in get(self, vals, timeout)\r\n    194                     else:\r\n    195                         op_timeout = MAX_BLOCKING_OPERATION_TIME_S\r\n--> 196                     res = self._get(obj_ref, op_timeout)\r\n    197                     break\r\n    198                 except GetTimeoutError:\r\n\r\n~/ray/python/ray/util/client/worker.py in _get(self, ref, timeout)\r\n    217                 logger.exception(\"Failed to deserialize {}\".format(data.error))\r\n    218                 raise\r\n--> 219             raise err\r\n    220         return loads_from_server(data.data)\r\n    221\r\n\r\nRayTaskError(PermissionError): ray::g() (pid=5515, ip=192.168.1.115)\r\n  File \"python/ray/_raylet.pyx\", line 501, in ray._raylet.execute_task\r\n  File \"<ipython-input-1-b34c9e83cb1f>\", line 15, in g\r\nPermissionError: [Errno 1] Operation not permitted: '/dev/asdf'\r\n```\r\n## Related issue number\r\n\r\nCloses https://github.com/ray-project/ray/issues/13842, Closes https://github.com/ray-project/ray/issues/14172.\r\n\r\ncc @yuduber\r\n\r\n## Checks\r\n\r\n- [x] I've run `scripts/format.sh` to lint the changes in this PR.\r\n- [x] I've included any doc changes needed for https://docs.ray.io/en/master/.\r\n- [ ] I've made sure the tests are passing. Note that there might be a few flaky tests, see the recent failures at https://flakey-tests.ray.io/\r\n- Testing Strategy\r\n   - [x] Unit tests\r\n   - [ ] Release tests\r\n   - [ ] This PR is not tested :(",
+        "date": "2021-03-18",
+        "merge_hash": "1d033fb5524ad8e82642033aa8ece22918f4cbb4",
+        "files": [
+            {
+                "sha": "1b63889dfeed762576ca92b7ecace480083b0ae4",
+                "filename": "python/ray/exceptions.py",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/ray-project/ray/blob/1d033fb5524ad8e82642033aa8ece22918f4cbb4/python/ray/exceptions.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/1d033fb5524ad8e82642033aa8ece22918f4cbb4/python/ray/exceptions.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/exceptions.py?ref=1d033fb5524ad8e82642033aa8ece22918f4cbb4"
+            },
+            {
+                "sha": "7a885953bf5b28ea70521069718365440b1c98df",
+                "filename": "python/ray/tests/test_client.py",
+                "status": "modified",
+                "additions": 14,
+                "deletions": 0,
+                "changes": 14,
+                "blob_url": "https://github.com/ray-project/ray/blob/1d033fb5524ad8e82642033aa8ece22918f4cbb4/python/ray/tests/test_client.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/1d033fb5524ad8e82642033aa8ece22918f4cbb4/python/ray/tests/test_client.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tests/test_client.py?ref=1d033fb5524ad8e82642033aa8ece22918f4cbb4"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/ray-project/ray/pull/10966",
+        "repo": "ray",
+        "number": 10966,
+        "bug_id": "ray_10966",
+        "title": "[Autoscaler] Fix k8s command runner when command fails",
+        "body": "<!-- Thank you for your contribution! Please review https://github.com/ray-project/ray/blob/master/CONTRIBUTING.rst before opening a pull request. -->\r\n\r\n<!-- Please add a reviewer to the assignee section when you create a PR. If you don't have the access to it, we will shortly find a reviewer and assign them to your PR. -->\r\n\r\n## Why are these changes needed?\r\n\r\nFix the exception that is raised when the command exits on failure (instead of exiting) when using the k8s command runner. \r\n\r\nFor example, when executing \r\n```bash\r\nray exec cluster.yaml 'command -v foo >/dev/null 2>&1'\r\n``` \r\nThe following exception is raised\r\n\r\n```\r\nTypeError: can only concatenate str (not \"list\") to str\r\n```\r\nLikely related to https://github.com/ray-project/ray/pull/10766.\r\n\r\nTested manually on minikube.\r\n\r\n<!-- Please give a short summary of the change and the problem this solves. -->\r\n\r\n## Related issue number\r\n\r\n<!-- For example: \"Closes #1234\" -->\r\n\r\n## Checks\r\n\r\n- [ ] I've run `scripts/format.sh` to lint the changes in this PR.\r\n- [ ] I've included any doc changes needed for https://docs.ray.io/en/master/.\r\n- [ ] I've made sure the tests are passing. Note that there might be a few flaky tests, see the recent failures at https://flakey-tests.ray.io/\r\n- Testing Strategy\r\n   - [ ] Unit tests\r\n   - [ ] Release tests\r\n   - [ ] This PR is not tested :(\r\n",
+        "date": "2020-09-23",
+        "merge_hash": "567009d5fd5b191d3d249ac43e86235ac15f7186",
+        "files": [
+            {
+                "sha": "6da60fbb16381f2c511daf777b444b1eb33bd731",
+                "filename": "python/ray/autoscaler/_private/command_runner.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/ray-project/ray/blob/567009d5fd5b191d3d249ac43e86235ac15f7186/python/ray/autoscaler/_private/command_runner.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/567009d5fd5b191d3d249ac43e86235ac15f7186/python/ray/autoscaler/_private/command_runner.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/autoscaler/_private/command_runner.py?ref=567009d5fd5b191d3d249ac43e86235ac15f7186"
+            },
+            {
+                "sha": "f09fe07025e06e83c63a4049ef4208f35a125de6",
+                "filename": "python/ray/tests/test_autoscaler.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 1,
+                "changes": 4,
+                "blob_url": "https://github.com/ray-project/ray/blob/567009d5fd5b191d3d249ac43e86235ac15f7186/python/ray/tests/test_autoscaler.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/567009d5fd5b191d3d249ac43e86235ac15f7186/python/ray/tests/test_autoscaler.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tests/test_autoscaler.py?ref=567009d5fd5b191d3d249ac43e86235ac15f7186"
+            },
+            {
+                "sha": "7944c792b1a85d0114adaefa01045a460346c017",
+                "filename": "python/ray/tests/test_command_runner.py",
+                "status": "modified",
+                "additions": 14,
+                "deletions": 1,
+                "changes": 15,
+                "blob_url": "https://github.com/ray-project/ray/blob/567009d5fd5b191d3d249ac43e86235ac15f7186/python/ray/tests/test_command_runner.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/567009d5fd5b191d3d249ac43e86235ac15f7186/python/ray/tests/test_command_runner.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tests/test_command_runner.py?ref=567009d5fd5b191d3d249ac43e86235ac15f7186"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/ray-project/ray/pull/2889",
+        "repo": "ray",
+        "number": 2889,
+        "bug_id": "ray_2889",
+        "title": "[tune] Tweaks to Trainable and Verbosity",
+        "body": "Fix HyperOpt verbosity (hopefully), and tweak Trainable.\r\n\r\n\r\nTODOs:\r\n\r\n - [x] when I had a dict of state, I still had to write file saving/restoring code\r\n - [x] the semantics of checkpoint_dir vs checkpoint_path was unclear, perhaps it could use an example in the interface class\r\n - [x] it wasn't super clear that self.config was automatically set, perhaps it should be an argument for _setup()\r\n - [x] the error message for when you return None / the wrong thing from _train() is hard to understand\r\n\r\nFrom Ray-dev discussion: We should increase the clarity on the docs.\r\nhttps://groups.google.com/forum/#!topic/ray-dev/wx5zdzbgMfs\r\n\r\n\r\n- [x] \"Suggestion Algorithms like HyperOpt don't extend the VariantGenerator so `lambda spec: ...`\"\r\n\r\n- [x] Clean up HyperOptSearch (don't expose `add_configurations`)\r\n\r\n- [x] Clean up HyperBand documentation\r\n\r\n- [x] Provide a better error when a config is mis-specified.\r\n\r\n```\r\n  File \"<PROJECT_HOME>/env_27/lib/python2.7/site-packages/ray/tune/trial_runner.py\", line 199, in has_resources\r\n    return self.trial_executor.has_resources(resources)\r\n  File \"<PROJECT_HOME>/env_27/lib/python2.7/site-packages/ray/tune/ray_trial_executor.py\", line 206, in has_resources\r\n    have_space = (resources.cpu_total() <= cpu_avail\r\n  File \"<PROJECT_HOME>/env_27/lib/python2.7/site-packages/ray/tune/trial.py\", line 55, in cpu_total\r\n    return self.cpu + self.extra_cpu\r\nTypeError: unsupported operand type(s) for +: 'function' and 'int'\r\n```\r\n\r\n#2870 #2888.",
+        "date": "2018-10-12",
+        "merge_hash": "f9b58d7b0252f312e7b0983ffefabf68d3e7a939",
+        "files": [
+            {
+                "sha": "e8e5b0fa672efad276585ec02f005adb61cc161f",
+                "filename": "doc/source/tune-searchalg.rst",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 2,
+                "changes": 6,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/doc/source/tune-searchalg.rst",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/doc/source/tune-searchalg.rst",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/doc/source/tune-searchalg.rst?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "b52241f039ede85708cf40673616f965688a3369",
+                "filename": "doc/source/tune-usage.rst",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/doc/source/tune-usage.rst",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/doc/source/tune-usage.rst",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/doc/source/tune-usage.rst?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "80685b7d31544dbdc2e86fc3bb25b87790ceb1ea",
+                "filename": "docker/examples/Dockerfile",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/docker/examples/Dockerfile",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/docker/examples/Dockerfile",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/docker/examples/Dockerfile?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "8041eba06b88313e54f062085b010a0483f09f62",
+                "filename": "python/ray/rllib/agents/agent.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/rllib/agents/agent.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/rllib/agents/agent.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/rllib/agents/agent.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "e07f11b325a8199317d550663c9b69a25f083664",
+                "filename": "python/ray/tune/examples/async_hyperband_example.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/async_hyperband_example.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/async_hyperband_example.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/examples/async_hyperband_example.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "baf133b411bf6707c4d009093cf111758ae89edc",
+                "filename": "python/ray/tune/examples/hyperband_example.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/hyperband_example.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/hyperband_example.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/examples/hyperband_example.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "2c0c68bceb8bc1d46f4b7b3dc805045d7e668419",
+                "filename": "python/ray/tune/examples/mnist_pytorch_trainable.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/mnist_pytorch_trainable.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/mnist_pytorch_trainable.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/examples/mnist_pytorch_trainable.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "3433e82f94eed5f9ca346284e13d0ffb93ef227e",
+                "filename": "python/ray/tune/examples/pbt_example.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/pbt_example.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/pbt_example.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/examples/pbt_example.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "63e3d00e8d1fd10f85c875bcacb59ee42111e853",
+                "filename": "python/ray/tune/examples/pbt_tune_cifar10_with_keras.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/pbt_tune_cifar10_with_keras.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/pbt_tune_cifar10_with_keras.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/examples/pbt_tune_cifar10_with_keras.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "9dbc467752326817abb9fdf1d42906781bff612a",
+                "filename": "python/ray/tune/examples/tune_mnist_ray_hyperband.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/tune_mnist_ray_hyperband.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/examples/tune_mnist_ray_hyperband.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/examples/tune_mnist_ray_hyperband.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "1b93d3b6c300c98f8c4aef3cb4a718bf1bc987ac",
+                "filename": "python/ray/tune/function_runner.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/function_runner.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/function_runner.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/function_runner.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "5b7ade11fe0e44c0628d555aadf02378f77a7ff3",
+                "filename": "python/ray/tune/result.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/result.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/result.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/result.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "71c69b3063a2b449ef1b6e9a60a4c221ae7ba347",
+                "filename": "python/ray/tune/schedulers/hyperband.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 1,
+                "changes": 5,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/schedulers/hyperband.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/schedulers/hyperband.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/schedulers/hyperband.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "9173b56cc3722cb09ac2ea50ba8c4b7100ec650b",
+                "filename": "python/ray/tune/suggest/hyperopt.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 1,
+                "changes": 5,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/suggest/hyperopt.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/suggest/hyperopt.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/suggest/hyperopt.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "65b8fbe36f62119e23f2a2b18f97161c9acb1207",
+                "filename": "python/ray/tune/test/trial_runner_test.py",
+                "status": "modified",
+                "additions": 65,
+                "deletions": 0,
+                "changes": 65,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/test/trial_runner_test.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/test/trial_runner_test.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/test/trial_runner_test.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "6c8b02cf0afa0265b7301ff436b3e596a4da6242",
+                "filename": "python/ray/tune/trainable.py",
+                "status": "modified",
+                "additions": 52,
+                "deletions": 20,
+                "changes": 72,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/trainable.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/trainable.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/trainable.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            },
+            {
+                "sha": "59559ebbe2c291ff99ee17c2887a97e5f49ace75",
+                "filename": "python/ray/tune/trial.py",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 4,
+                "changes": 14,
+                "blob_url": "https://github.com/ray-project/ray/blob/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/trial.py",
+                "raw_url": "https://github.com/ray-project/ray/raw/f9b58d7b0252f312e7b0983ffefabf68d3e7a939/python/ray/tune/trial.py",
+                "contents_url": "https://api.github.com/repos/ray-project/ray/contents/python/ray/tune/trial.py?ref=f9b58d7b0252f312e7b0983ffefabf68d3e7a939"
+            }
+        ]
+    }
+]

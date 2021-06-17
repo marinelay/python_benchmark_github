@@ -1,0 +1,123 @@
+[
+    {
+        "commit": "https://github.com/jacoco/jacoco/commit/3b95f61698e0e2c2db71a313f0f959a8b6f0377e",
+        "repo": "jacoco",
+        "parent": "https://github.com/jacoco/jacoco/commit/23c2ca75261ee3d39a00b7080664ebd0e9b9f6c8",
+        "message": "Fix NPE (#1020)",
+        "commit_id": "3b95f61",
+        "date": "2020-02-20",
+        "bug_id": "jacoco_3b95f61",
+        "files": [
+            {
+                "sha": "6424a98cf63b7ca1a53e79fcc0b2a9e74f8a65ca",
+                "filename": "org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/AbstractMatcherTest.java",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/3b95f61698e0e2c2db71a313f0f959a8b6f0377e/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/AbstractMatcherTest.java",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/3b95f61698e0e2c2db71a313f0f959a8b6f0377e/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/AbstractMatcherTest.java",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/AbstractMatcherTest.java?ref=3b95f61698e0e2c2db71a313f0f959a8b6f0377e"
+            },
+            {
+                "sha": "a3520acd83d6db244388fe054d2d9f29f7fda9a2",
+                "filename": "org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/AbstractMatcher.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/3b95f61698e0e2c2db71a313f0f959a8b6f0377e/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/AbstractMatcher.java",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/3b95f61698e0e2c2db71a313f0f959a8b6f0377e/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/AbstractMatcher.java",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/AbstractMatcher.java?ref=3b95f61698e0e2c2db71a313f0f959a8b6f0377e"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/jacoco/jacoco/commit/18f571a764a9879bb8ceb95f7a23efa373a5a89c",
+        "repo": "jacoco",
+        "parent": "https://github.com/jacoco/jacoco/commit/19ef126cf9f3d57bd7a6a147ef745531c751422a",
+        "message": "Fix NPE in StringSwitchEcjFilter (#944)",
+        "commit_id": "18f571a",
+        "date": "2019-09-22",
+        "bug_id": "jacoco_18f571a",
+        "files": [
+            {
+                "sha": "a13ea8f047837dbd2dbbca8356be9ad14791d3b8",
+                "filename": "org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilterTest.java",
+                "status": "modified",
+                "additions": 18,
+                "deletions": 0,
+                "changes": 18,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/18f571a764a9879bb8ceb95f7a23efa373a5a89c/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilterTest.java",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/18f571a764a9879bb8ceb95f7a23efa373a5a89c/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilterTest.java",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilterTest.java?ref=18f571a764a9879bb8ceb95f7a23efa373a5a89c"
+            },
+            {
+                "sha": "0e2c1e4d72274fa2cdec2c0e08e6bce6dc150622",
+                "filename": "org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilter.java",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/18f571a764a9879bb8ceb95f7a23efa373a5a89c/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilter.java",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/18f571a764a9879bb8ceb95f7a23efa373a5a89c/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilter.java",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/StringSwitchEcjFilter.java?ref=18f571a764a9879bb8ceb95f7a23efa373a5a89c"
+            },
+            {
+                "sha": "6197c56d99a9f1d02fc25b760acb09388c4e7b5e",
+                "filename": "org.jacoco.doc/docroot/doc/changes.html",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/18f571a764a9879bb8ceb95f7a23efa373a5a89c/org.jacoco.doc/docroot/doc/changes.html",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/18f571a764a9879bb8ceb95f7a23efa373a5a89c/org.jacoco.doc/docroot/doc/changes.html",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.doc/docroot/doc/changes.html?ref=18f571a764a9879bb8ceb95f7a23efa373a5a89c"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/jacoco/jacoco/commit/19ef126cf9f3d57bd7a6a147ef745531c751422a",
+        "repo": "jacoco",
+        "parent": "https://github.com/jacoco/jacoco/commit/d0a73edd41a29f4c0ffabae15d7c023a37df976f",
+        "message": "Fix NPE in KotlinWhenStringFilter (#942)",
+        "commit_id": "19ef126",
+        "date": "2019-09-22",
+        "bug_id": "jacoco_19ef126",
+        "files": [
+            {
+                "sha": "4408ef3d2e55f8cc4c45f660d886d8056190eedf",
+                "filename": "org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilterTest.java",
+                "status": "modified",
+                "additions": 17,
+                "deletions": 0,
+                "changes": 17,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/19ef126cf9f3d57bd7a6a147ef745531c751422a/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilterTest.java",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/19ef126cf9f3d57bd7a6a147ef745531c751422a/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilterTest.java",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.core.test/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilterTest.java?ref=19ef126cf9f3d57bd7a6a147ef745531c751422a"
+            },
+            {
+                "sha": "864473f27f00914a35ebf9cd418031f0f4861a6e",
+                "filename": "org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilter.java",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/19ef126cf9f3d57bd7a6a147ef745531c751422a/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilter.java",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/19ef126cf9f3d57bd7a6a147ef745531c751422a/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilter.java",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.core/src/org/jacoco/core/internal/analysis/filter/KotlinWhenStringFilter.java?ref=19ef126cf9f3d57bd7a6a147ef745531c751422a"
+            },
+            {
+                "sha": "c1f5bf722c6264aa4e3ec588cec6eaff9f30e041",
+                "filename": "org.jacoco.doc/docroot/doc/changes.html",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/jacoco/jacoco/blob/19ef126cf9f3d57bd7a6a147ef745531c751422a/org.jacoco.doc/docroot/doc/changes.html",
+                "raw_url": "https://github.com/jacoco/jacoco/raw/19ef126cf9f3d57bd7a6a147ef745531c751422a/org.jacoco.doc/docroot/doc/changes.html",
+                "contents_url": "https://api.github.com/repos/jacoco/jacoco/contents/org.jacoco.doc/docroot/doc/changes.html?ref=19ef126cf9f3d57bd7a6a147ef745531c751422a"
+            }
+        ]
+    }
+]

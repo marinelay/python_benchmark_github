@@ -1,0 +1,35 @@
+[
+    {
+        "pr": "https://github.com/zulip/zulip/pull/14430",
+        "repo": "zulip",
+        "number": 14430,
+        "bug_id": "zulip_14430",
+        "title": "validation: Use JsonableError for extractors.",
+        "body": "The distinction between ValueError and TypeError\r\nis not useful in these functions:\r\n\r\n    - extract_stream_indicator\r\n    - extract_private_recipients (or its callees)\r\n\r\nThese are always invoked in views to validate\r\nuser input.\r\n\r\nWhen we use REQ to wrap the validators, any\r\nException gets turned into a JsonableError, so\r\nthe distinction is not important.\r\n\r\nAnd if we don't use REQ to wrap the validators,\r\nthe errors aren't caught.\r\n\r\nNow we just let these functions directly produce\r\nthe desired end result for both codepaths.\r\n\r\n<!-- What's this PR for?  (Just a link to an issue is fine.) -->\r\n\r\n\r\n**Testing Plan:** <!-- How have you tested? -->\r\n\r\n\r\n**GIFs or Screenshots:** <!-- If a UI change.  See:\r\n  https://zulip.readthedocs.io/en/latest/tutorials/screenshot-and-gif-software.html\r\n  -->\r\n\r\n\r\n<!-- Also be sure to make clear, coherent commits:\r\n  https://zulip.readthedocs.io/en/latest/contributing/version-control.html\r\n  -->\r\n",
+        "date": "2020-04-01",
+        "files": [
+            {
+                "sha": "8cf02334d8eae7b8b805460e4229f25da61f0a46",
+                "filename": "zerver/lib/actions.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 6,
+                "changes": 12,
+                "blob_url": "https://github.com/zulip/zulip/blob/f6503a40616d86927287725055c50bb27d309769/zerver/lib/actions.py",
+                "raw_url": "https://github.com/zulip/zulip/raw/f6503a40616d86927287725055c50bb27d309769/zerver/lib/actions.py",
+                "contents_url": "https://api.github.com/repos/zulip/zulip/contents/zerver/lib/actions.py?ref=f6503a40616d86927287725055c50bb27d309769"
+            },
+            {
+                "sha": "034c94be53b8f3e41836ff439725a83fd30c3145",
+                "filename": "zerver/tests/test_messages.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 8,
+                "changes": 16,
+                "blob_url": "https://github.com/zulip/zulip/blob/f6503a40616d86927287725055c50bb27d309769/zerver/tests/test_messages.py",
+                "raw_url": "https://github.com/zulip/zulip/raw/f6503a40616d86927287725055c50bb27d309769/zerver/tests/test_messages.py",
+                "contents_url": "https://api.github.com/repos/zulip/zulip/contents/zerver/tests/test_messages.py?ref=f6503a40616d86927287725055c50bb27d309769"
+            }
+        ]
+    }
+]

@@ -1,0 +1,36 @@
+[
+    {
+        "pr": "https://github.com/locustio/locust/pull/972",
+        "repo": "locust",
+        "number": 972,
+        "bug_id": "locust_972",
+        "title": "fix inconsistency in zmqrpc",
+        "body": "From zmqrpc.py, there're two new added methods send_to_client and recv_from_client for the messaging with client.\r\nhttps://github.com/locustio/locust/blob/87a9aa1cb937c68e4456cafd23f3c42f25023931/locust/rpc/zmqrpc.py#L14-L27\r\n\r\nIn method send_to_client **msg.node_id** is supposed to be a str object, while in the context of zmqrpc **msg.node_id** will be assigned with the **addr** from the return tuple of recv_from_client, which was a bytes object.\r\n\r\nThis consistency will cause the encoding issue of **addr** where it's referenced, including the example below            https://github.com/locustio/locust/blob/87a9aa1cb937c68e4456cafd23f3c42f25023931/locust/web.py#L126-L134 \r\nthe **slave.id** is also assigned with **addr** and it will be a bytes object which will cause an exception thrown from jsonify: \"TypeError: Object of type 'bytes' is not JSON serializable\".\r\n",
+        "date": "2019-03-14",
+        "merge_hash": "885f380fb4a1da85aff12ce58ff42dca754597d8",
+        "files": [
+            {
+                "sha": "5eb400ed964ca2fe5f3e8652ee12ab4f7ced8679",
+                "filename": "locust/rpc/zmqrpc.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/locustio/locust/blob/885f380fb4a1da85aff12ce58ff42dca754597d8/locust/rpc/zmqrpc.py",
+                "raw_url": "https://github.com/locustio/locust/raw/885f380fb4a1da85aff12ce58ff42dca754597d8/locust/rpc/zmqrpc.py",
+                "contents_url": "https://api.github.com/repos/locustio/locust/contents/locust/rpc/zmqrpc.py?ref=885f380fb4a1da85aff12ce58ff42dca754597d8"
+            },
+            {
+                "sha": "23eab59b8b265a1548416ad5dc5cc17edc522d1b",
+                "filename": "locust/test/test_zmqrpc.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/locustio/locust/blob/885f380fb4a1da85aff12ce58ff42dca754597d8/locust/test/test_zmqrpc.py",
+                "raw_url": "https://github.com/locustio/locust/raw/885f380fb4a1da85aff12ce58ff42dca754597d8/locust/test/test_zmqrpc.py",
+                "contents_url": "https://api.github.com/repos/locustio/locust/contents/locust/test/test_zmqrpc.py?ref=885f380fb4a1da85aff12ce58ff42dca754597d8"
+            }
+        ]
+    }
+]

@@ -1,0 +1,68 @@
+[
+    {
+        "commit": "https://github.com/google/gson/commit/74e37110e5edf38d1c9ec1b46f42670340a0c6c7",
+        "repo": "gson",
+        "parent": "https://github.com/google/gson/commit/3090a7ed2af4d6d2e6bd3647d12839bb4ad404e8",
+        "message": "Avoid NPE in PostConstructAdapterFactory (#1103)\n\n* Avoid NPE in PostConstructAdapterFactory\r\n\r\nThe RawType's Superclass might be null. This happens, for example, when the type is a collection.\r\n\r\n* Add test case for NPE in PostConstructAdapterFactory\r\n\r\n* Improve the code quality of PostConstructAdapterFactoryTest\r\n\r\n* Improve the code quality of PostConstructAdapterFactoryTest\r\n\r\n* Improve the code quality of PostConstructAdapterFactoryTest",
+        "commit_id": "74e3711",
+        "date": "2017-06-20",
+        "bug_id": "gson_74e3711",
+        "files": [
+            {
+                "sha": "36e06da20fe2655efeb70e7b7a051625f5c6dbc1",
+                "filename": "extras/src/main/java/com/google/gson/typeadapters/PostConstructAdapterFactory.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/google/gson/blob/74e37110e5edf38d1c9ec1b46f42670340a0c6c7/extras/src/main/java/com/google/gson/typeadapters/PostConstructAdapterFactory.java",
+                "raw_url": "https://github.com/google/gson/raw/74e37110e5edf38d1c9ec1b46f42670340a0c6c7/extras/src/main/java/com/google/gson/typeadapters/PostConstructAdapterFactory.java",
+                "contents_url": "https://api.github.com/repos/google/gson/contents/extras/src/main/java/com/google/gson/typeadapters/PostConstructAdapterFactory.java?ref=74e37110e5edf38d1c9ec1b46f42670340a0c6c7"
+            },
+            {
+                "sha": "2f88e1e4ff0f5a6eaa40b2ce2598840ad64644cd",
+                "filename": "extras/src/test/java/com/google/gson/typeadapters/PostConstructAdapterFactoryTest.java",
+                "status": "modified",
+                "additions": 66,
+                "deletions": 3,
+                "changes": 69,
+                "blob_url": "https://github.com/google/gson/blob/74e37110e5edf38d1c9ec1b46f42670340a0c6c7/extras/src/test/java/com/google/gson/typeadapters/PostConstructAdapterFactoryTest.java",
+                "raw_url": "https://github.com/google/gson/raw/74e37110e5edf38d1c9ec1b46f42670340a0c6c7/extras/src/test/java/com/google/gson/typeadapters/PostConstructAdapterFactoryTest.java",
+                "contents_url": "https://api.github.com/repos/google/gson/contents/extras/src/test/java/com/google/gson/typeadapters/PostConstructAdapterFactoryTest.java?ref=74e37110e5edf38d1c9ec1b46f42670340a0c6c7"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/google/gson/commit/c731abb293e79b26e53db3264306768fb86ef4c4",
+        "repo": "gson",
+        "parent": "https://github.com/google/gson/commit/67bd3a2cf6f9c9c6e7f615969b1918f68e03932d",
+        "message": "Fixed a regression in Gson 2.6 where Gson caused NPE if the TypeAdapterFactory.create() returned null.",
+        "commit_id": "c731abb",
+        "date": "2016-02-25",
+        "bug_id": "gson_c731abb",
+        "files": [
+            {
+                "sha": "b52e15734a1704e4c83002dae5dd8bb89a474eea",
+                "filename": "gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 3,
+                "changes": 8,
+                "blob_url": "https://github.com/google/gson/blob/c731abb293e79b26e53db3264306768fb86ef4c4/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+                "raw_url": "https://github.com/google/gson/raw/c731abb293e79b26e53db3264306768fb86ef4c4/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java",
+                "contents_url": "https://api.github.com/repos/google/gson/contents/gson/src/main/java/com/google/gson/internal/bind/JsonAdapterAnnotationTypeAdapterFactory.java?ref=c731abb293e79b26e53db3264306768fb86ef4c4"
+            },
+            {
+                "sha": "236a4bc91865d6c9b4c0fb8c47f13a0e0811d089",
+                "filename": "gson/src/test/java/com/google/gson/regression/JsonAdapterNullSafeTest.java",
+                "status": "added",
+                "additions": 186,
+                "deletions": 0,
+                "changes": 186,
+                "blob_url": "https://github.com/google/gson/blob/c731abb293e79b26e53db3264306768fb86ef4c4/gson/src/test/java/com/google/gson/regression/JsonAdapterNullSafeTest.java",
+                "raw_url": "https://github.com/google/gson/raw/c731abb293e79b26e53db3264306768fb86ef4c4/gson/src/test/java/com/google/gson/regression/JsonAdapterNullSafeTest.java",
+                "contents_url": "https://api.github.com/repos/google/gson/contents/gson/src/test/java/com/google/gson/regression/JsonAdapterNullSafeTest.java?ref=c731abb293e79b26e53db3264306768fb86ef4c4"
+            }
+        ]
+    }
+]

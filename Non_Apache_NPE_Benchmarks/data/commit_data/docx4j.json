@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/plutext/docx4j/commit/8ca1d517a602ec93080858d987e14a929e82a04a",
+        "repo": "docx4j",
+        "parent": "https://github.com/plutext/docx4j/commit/83185028f882f879bbe7785e49e8d1bcfb74f659",
+        "message": "Fix #344 (NPE)",
+        "commit_id": "8ca1d51",
+        "date": "2019-02-27",
+        "bug_id": "docx4j_8ca1d51",
+        "files": [
+            {
+                "sha": "62a149f7c0af1128b1e4593343cc77d3b0df4d49",
+                "filename": "src/main/java/org/docx4j/TraversalUtil.java",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 3,
+                "changes": 14,
+                "blob_url": "https://github.com/plutext/docx4j/blob/8ca1d517a602ec93080858d987e14a929e82a04a/src/main/java/org/docx4j/TraversalUtil.java",
+                "raw_url": "https://github.com/plutext/docx4j/raw/8ca1d517a602ec93080858d987e14a929e82a04a/src/main/java/org/docx4j/TraversalUtil.java",
+                "contents_url": "https://api.github.com/repos/plutext/docx4j/contents/src/main/java/org/docx4j/TraversalUtil.java?ref=8ca1d517a602ec93080858d987e14a929e82a04a"
+            },
+            {
+                "sha": "8ca69535646cd7e0803f3d8bbd21ba617a859b41",
+                "filename": "src/test/java/org/docx4j/TraversalUtilTest.java",
+                "status": "added",
+                "additions": 97,
+                "deletions": 0,
+                "changes": 97,
+                "blob_url": "https://github.com/plutext/docx4j/blob/8ca1d517a602ec93080858d987e14a929e82a04a/src/test/java/org/docx4j/TraversalUtilTest.java",
+                "raw_url": "https://github.com/plutext/docx4j/raw/8ca1d517a602ec93080858d987e14a929e82a04a/src/test/java/org/docx4j/TraversalUtilTest.java",
+                "contents_url": "https://api.github.com/repos/plutext/docx4j/contents/src/test/java/org/docx4j/TraversalUtilTest.java?ref=8ca1d517a602ec93080858d987e14a929e82a04a"
+            }
+        ]
+    }
+]

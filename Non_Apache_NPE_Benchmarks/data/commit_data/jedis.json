@@ -1,0 +1,68 @@
+[
+    {
+        "commit": "https://github.com/redis/jedis/commit/cf31202ff193a454f4f47efca281f4fbb72a45c8",
+        "repo": "jedis",
+        "parent": "https://github.com/redis/jedis/commit/c0b8ac0744f043ef5c34f2136b22554a6533ce72",
+        "message": "JedisClusterCRC16.getSlot() wraps NullPointerException (#1774)\n\n* This is similar to SafeEncoder.encode(String).\r\n* This helps JedisClusterCommand specially in case of multi key operations.\r\n\r\nAlso includes,\r\n* Move CRC16 tests in one place.\r\n* Fix a wrong usage of DEFAULT_REDIRECTIONS.",
+        "commit_id": "cf31202",
+        "date": "2018-08-13",
+        "bug_id": "jedis_cf31202",
+        "files": [
+            {
+                "sha": "2bec1839f5217fe1db59b4802088c381e753a5e5",
+                "filename": "src/main/java/redis/clients/jedis/JedisClusterCommand.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 12,
+                "changes": 14,
+                "blob_url": "https://github.com/redis/jedis/blob/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/main/java/redis/clients/jedis/JedisClusterCommand.java",
+                "raw_url": "https://github.com/redis/jedis/raw/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/main/java/redis/clients/jedis/JedisClusterCommand.java",
+                "contents_url": "https://api.github.com/repos/redis/jedis/contents/src/main/java/redis/clients/jedis/JedisClusterCommand.java?ref=cf31202ff193a454f4f47efca281f4fbb72a45c8"
+            },
+            {
+                "sha": "3e3a1c2a38134c6a1331580190fbdcd959ee0d41",
+                "filename": "src/main/java/redis/clients/jedis/util/JedisClusterCRC16.java",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 2,
+                "changes": 13,
+                "blob_url": "https://github.com/redis/jedis/blob/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/main/java/redis/clients/jedis/util/JedisClusterCRC16.java",
+                "raw_url": "https://github.com/redis/jedis/raw/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/main/java/redis/clients/jedis/util/JedisClusterCRC16.java",
+                "contents_url": "https://api.github.com/repos/redis/jedis/contents/src/main/java/redis/clients/jedis/util/JedisClusterCRC16.java?ref=cf31202ff193a454f4f47efca281f4fbb72a45c8"
+            },
+            {
+                "sha": "6b32636f7cc74a329ad7d30bd540031e97070510",
+                "filename": "src/test/java/redis/clients/jedis/tests/JedisClusterTest.java",
+                "status": "modified",
+                "additions": 53,
+                "deletions": 11,
+                "changes": 64,
+                "blob_url": "https://github.com/redis/jedis/blob/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/test/java/redis/clients/jedis/tests/JedisClusterTest.java",
+                "raw_url": "https://github.com/redis/jedis/raw/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/test/java/redis/clients/jedis/tests/JedisClusterTest.java",
+                "contents_url": "https://api.github.com/repos/redis/jedis/contents/src/test/java/redis/clients/jedis/tests/JedisClusterTest.java?ref=cf31202ff193a454f4f47efca281f4fbb72a45c8"
+            },
+            {
+                "sha": "5b0af00483bdf1fda784b2dcb22f85adde3b646d",
+                "filename": "src/test/java/redis/clients/jedis/tests/commands/ClusterBinaryJedisCommandsTest.java",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 15,
+                "changes": 15,
+                "blob_url": "https://github.com/redis/jedis/blob/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/test/java/redis/clients/jedis/tests/commands/ClusterBinaryJedisCommandsTest.java",
+                "raw_url": "https://github.com/redis/jedis/raw/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/test/java/redis/clients/jedis/tests/commands/ClusterBinaryJedisCommandsTest.java",
+                "contents_url": "https://api.github.com/repos/redis/jedis/contents/src/test/java/redis/clients/jedis/tests/commands/ClusterBinaryJedisCommandsTest.java?ref=cf31202ff193a454f4f47efca281f4fbb72a45c8"
+            },
+            {
+                "sha": "c3a60678f2089d8922f8969b875f7fdf9abfcc19",
+                "filename": "src/test/java/redis/clients/jedis/tests/utils/JedisClusterCRC16Test.java",
+                "status": "modified",
+                "additions": 22,
+                "deletions": 0,
+                "changes": 22,
+                "blob_url": "https://github.com/redis/jedis/blob/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/test/java/redis/clients/jedis/tests/utils/JedisClusterCRC16Test.java",
+                "raw_url": "https://github.com/redis/jedis/raw/cf31202ff193a454f4f47efca281f4fbb72a45c8/src/test/java/redis/clients/jedis/tests/utils/JedisClusterCRC16Test.java",
+                "contents_url": "https://api.github.com/repos/redis/jedis/contents/src/test/java/redis/clients/jedis/tests/utils/JedisClusterCRC16Test.java?ref=cf31202ff193a454f4f47efca281f4fbb72a45c8"
+            }
+        ]
+    }
+]

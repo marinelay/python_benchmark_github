@@ -1,0 +1,217 @@
+[
+    {
+        "pr": "https://github.com/psf/requests/pull/4723",
+        "repo": "requests",
+        "number": 4723,
+        "bug_id": "requests_4723",
+        "title": "Fix assumed hostname when using a 'file' URI scheme adapter",
+        "body": "Commit 2255c34a65b5b1353004dc8d49cc397cd794ec15 in https://github.com/requests/requests/pull/4427 makes the assumption that all URLs have hostnames.  Or perhaps the assumption was that `urlparse()` returns an empty string for the `hostname` attribute rather than `None`.  Either way, the assumption blows up both for `is_ipv4_address(parsed.hostname)` and also for\r\n\r\n```python\r\nhost_with_port = parsed.hostname\r\nif parsed.port:\r\n    host_with_port += ':{0}'.format(parsed.port)\r\n```\r\n\r\nwhen `parsed.hostname` is `None`.  Example circumstances of where this all blows up is when a `NO_PROXY` environment variable is set during use of something like conda's [adapter](https://github.com/conda/conda/blob/4.5.5/conda/gateways/connection/adapters/localfs.py) to handle `file:///` urls.  It results in a stack trace like\r\n\r\n```\r\nTraceback (most recent call last):\r\n  File \"/home/circleci/conda/tests/gateways/test_connection.py\", line 62, in test_local_file_adapter_200\r\n    r = session.get(test_url)\r\n  File \"/opt/conda/lib/python3.6/site-packages/requests/sessions.py\", line 525, in get\r\n    return self.request('GET', url, **kwargs)\r\n  File \"/opt/conda/lib/python3.6/site-packages/requests/sessions.py\", line 503, in request\r\n    prep.url, proxies, stream, verify, cert\r\n  File \"/opt/conda/lib/python3.6/site-packages/requests/sessions.py\", line 676, in merge_environment_settings\r\n    env_proxies = get_environ_proxies(url, no_proxy=no_proxy)\r\n  File \"/opt/conda/lib/python3.6/site-packages/requests/utils.py\", line 760, in get_environ_proxies\r\n    if should_bypass_proxies(url, no_proxy=no_proxy):\r\n  File \"/opt/conda/lib/python3.6/site-packages/requests/utils.py\", line 716, in should_bypass_proxies\r\n    if is_ipv4_address(parsed.hostname):\r\n  File \"/opt/conda/lib/python3.6/site-packages/requests/utils.py\", line 640, in is_ipv4_address\r\n    socket.inet_aton(string_ip)\r\nTypeError: inet_aton() argument 1 must be str, not None\r\n```\r\n\r\nI *think* the correct solution here is to just return `True` in the `should_bypass_proxies()` function when there is no hostname in the URL.  Definitely know that sending `None` to `inet_aton(string_ip)` or trying to add `None` to a port string definitely isn't correct.",
+        "date": "2018-08-13",
+        "merge_hash": "9cfd292da33f3b8324ce2c20e01db0e2f8b9210b",
+        "files": [
+            {
+                "sha": "6892713a3d1b9ebf89366156c59ec99fc0c9364c",
+                "filename": "requests/utils.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/psf/requests/blob/9cfd292da33f3b8324ce2c20e01db0e2f8b9210b/requests/utils.py",
+                "raw_url": "https://github.com/psf/requests/raw/9cfd292da33f3b8324ce2c20e01db0e2f8b9210b/requests/utils.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/requests/utils.py?ref=9cfd292da33f3b8324ce2c20e01db0e2f8b9210b"
+            },
+            {
+                "sha": "f34c630f07357e8a6c1f6154d50da2940fae94fc",
+                "filename": "tests/test_utils.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/psf/requests/blob/9cfd292da33f3b8324ce2c20e01db0e2f8b9210b/tests/test_utils.py",
+                "raw_url": "https://github.com/psf/requests/raw/9cfd292da33f3b8324ce2c20e01db0e2f8b9210b/tests/test_utils.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/tests/test_utils.py?ref=9cfd292da33f3b8324ce2c20e01db0e2f8b9210b"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/psf/requests/pull/4240",
+        "repo": "requests",
+        "number": 4240,
+        "bug_id": "requests_4240",
+        "title": "Adding header name to exception",
+        "body": "Adds the name of the header to the invalid header exception raised on TypeError.\r\n\r\nFixes #4239 ",
+        "date": "2017-08-12",
+        "merge_hash": "3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44",
+        "files": [
+            {
+                "sha": "4d77d189c34f32256b26a91fdeba78a4fbca1833",
+                "filename": "HISTORY.rst",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/psf/requests/blob/3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44/HISTORY.rst",
+                "raw_url": "https://github.com/psf/requests/raw/3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44/HISTORY.rst",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/HISTORY.rst?ref=3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44"
+            },
+            {
+                "sha": "5c47de98931adfe6412d9f66f28252cd3ab2e5b9",
+                "filename": "requests/utils.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/psf/requests/blob/3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44/requests/utils.py",
+                "raw_url": "https://github.com/psf/requests/raw/3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44/requests/utils.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/requests/utils.py?ref=3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44"
+            },
+            {
+                "sha": "a2b2213f56ca8afa8a14b9ecc0f500229aa8096e",
+                "filename": "tests/test_requests.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 3,
+                "changes": 9,
+                "blob_url": "https://github.com/psf/requests/blob/3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44/tests/test_requests.py",
+                "raw_url": "https://github.com/psf/requests/raw/3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44/tests/test_requests.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/tests/test_requests.py?ref=3c5ecfc9f5f6fd29536a45f8c9f1b54ef637df44"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/psf/requests/pull/3873",
+        "repo": "requests",
+        "number": 3873,
+        "bug_id": "requests_3873",
+        "title": "properly handled failed seek",
+        "body": "This is a minor bug in the way we're handling exceptions for `super_len` in `prepare_body`. The mocked `seek` method wasn't created with the optional `whence` parameter and was failing with a `TypeError` when called. A legacy exception block for the older version of `super_len` caught this and made it appear the test was passing.\r\n\r\nThis commit will wrap the seek->tell->seek process in the appropriate exceptions and fix the test.\r\n\r\nI think there's two things that may need further discussion though. The first minor one being, we've been using `super_len` in `prepare_content_length` without this broad exception block from `prepare_body` for two releases without issue. I'm going to suggest we remove it from `prepare_body` because I don't think these exceptions can be raised from `super_len` any longer, except in cases we probably don't want them caught.\r\n\r\nThe second is, if we seek to the end of a file and fail on the `tell` or `seek` back to the original position, do we want to actually send the request? At that point, we'd probably want to raise an exception, right? This probably is something for 3.0.0 since it will be breaking, but wanted to address it before we merge this.",
+        "date": "2017-02-14",
+        "merge_hash": "2414fa82c84db39dedb6e78c54cd5bfef423d89f",
+        "files": [
+            {
+                "sha": "6365034ca5f78b1b5f9369f1eb4084075b15f84d",
+                "filename": "requests/utils.py",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 8,
+                "changes": 18,
+                "blob_url": "https://github.com/psf/requests/blob/2414fa82c84db39dedb6e78c54cd5bfef423d89f/requests/utils.py",
+                "raw_url": "https://github.com/psf/requests/raw/2414fa82c84db39dedb6e78c54cd5bfef423d89f/requests/utils.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/requests/utils.py?ref=2414fa82c84db39dedb6e78c54cd5bfef423d89f"
+            },
+            {
+                "sha": "26d4951ee763efaf08189264e488091020d4f1fb",
+                "filename": "tests/test_requests.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/psf/requests/blob/2414fa82c84db39dedb6e78c54cd5bfef423d89f/tests/test_requests.py",
+                "raw_url": "https://github.com/psf/requests/raw/2414fa82c84db39dedb6e78c54cd5bfef423d89f/tests/test_requests.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/tests/test_requests.py?ref=2414fa82c84db39dedb6e78c54cd5bfef423d89f"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/psf/requests/pull/3390",
+        "repo": "requests",
+        "number": 3390,
+        "bug_id": "requests_3390",
+        "title": "Defining header value type requirements and tests",
+        "body": "Currently a non-string/bytes value will cause `pat.match(value)` to raise a TypeError from `re`. I'm proposing catching this exception and raising it as a more descriptive `InvalidHeader` instead, so that it's clear we're intending this to happen.\n",
+        "date": "2016-07-07",
+        "merge_hash": "425962cb13236e02d3809ee893c68e6c2135f5e2",
+        "files": [
+            {
+                "sha": "397a655e39dd260f407b2779af9fa6f260e70bbb",
+                "filename": "requests/utils.py",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 4,
+                "changes": 13,
+                "blob_url": "https://github.com/psf/requests/blob/425962cb13236e02d3809ee893c68e6c2135f5e2/requests/utils.py",
+                "raw_url": "https://github.com/psf/requests/raw/425962cb13236e02d3809ee893c68e6c2135f5e2/requests/utils.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/requests/utils.py?ref=425962cb13236e02d3809ee893c68e6c2135f5e2"
+            },
+            {
+                "sha": "a7d3a75b18b575b2e0dd394b4a9ce4fb52885c80",
+                "filename": "tests/test_requests.py",
+                "status": "modified",
+                "additions": 21,
+                "deletions": 3,
+                "changes": 24,
+                "blob_url": "https://github.com/psf/requests/blob/425962cb13236e02d3809ee893c68e6c2135f5e2/tests/test_requests.py",
+                "raw_url": "https://github.com/psf/requests/raw/425962cb13236e02d3809ee893c68e6c2135f5e2/tests/test_requests.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/tests/test_requests.py?ref=425962cb13236e02d3809ee893c68e6c2135f5e2"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/psf/requests/pull/3368",
+        "repo": "requests",
+        "number": 3368,
+        "bug_id": "requests_3368",
+        "title": "Allow None value for chunk_size again",
+        "body": "Passing in `chunk_size=None` used to be fine, but started raising a `TypeError` following the addition of the type check (#3365)\n",
+        "date": "2016-07-01",
+        "merge_hash": "0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23",
+        "files": [
+            {
+                "sha": "50b7f5da91cbae86b70be5140528863a4f7b7928",
+                "filename": "requests/models.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/psf/requests/blob/0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23/requests/models.py",
+                "raw_url": "https://github.com/psf/requests/raw/0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23/requests/models.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/requests/models.py?ref=0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23"
+            },
+            {
+                "sha": "4a16f469f3ab60d9989b57c158a363a6b308922c",
+                "filename": "tests/test_requests.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 2,
+                "changes": 9,
+                "blob_url": "https://github.com/psf/requests/blob/0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23/tests/test_requests.py",
+                "raw_url": "https://github.com/psf/requests/raw/0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23/tests/test_requests.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/tests/test_requests.py?ref=0bcf634135e7038c2aa8b4b8b2490ad5c1db5c23"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/psf/requests/pull/3179",
+        "repo": "requests",
+        "number": 3179,
+        "bug_id": "requests_3179",
+        "title": "Fix TypeError when get json-encoded content of a response",
+        "body": "[`self.content`](https://github.com/kennethreitz/requests/blob/master/requests/models.py#L728) could be `None`, so `len(self.content)` may raise `TypeError: object of type 'NoneType' has no len()`\n",
+        "date": "2016-05-06",
+        "merge_hash": "87704105af65b382b86f168f6a54192eab91faf2",
+        "files": [
+            {
+                "sha": "0c10eef166e6973121537c868f1833918b5ebd85",
+                "filename": "requests/models.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/psf/requests/blob/87704105af65b382b86f168f6a54192eab91faf2/requests/models.py",
+                "raw_url": "https://github.com/psf/requests/raw/87704105af65b382b86f168f6a54192eab91faf2/requests/models.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/requests/models.py?ref=87704105af65b382b86f168f6a54192eab91faf2"
+            },
+            {
+                "sha": "d01749d2950483e2b15b3fab60623a593f93f0db",
+                "filename": "tests/test_requests.py",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 0,
+                "changes": 11,
+                "blob_url": "https://github.com/psf/requests/blob/87704105af65b382b86f168f6a54192eab91faf2/tests/test_requests.py",
+                "raw_url": "https://github.com/psf/requests/raw/87704105af65b382b86f168f6a54192eab91faf2/tests/test_requests.py",
+                "contents_url": "https://api.github.com/repos/psf/requests/contents/tests/test_requests.py?ref=87704105af65b382b86f168f6a54192eab91faf2"
+            }
+        ]
+    }
+]

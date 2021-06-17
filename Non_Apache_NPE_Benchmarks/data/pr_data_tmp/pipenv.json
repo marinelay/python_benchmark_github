@@ -1,0 +1,134 @@
+[
+    {
+        "pr": "https://github.com/pypa/pipenv/pull/36",
+        "repo": "pipenv",
+        "number": 36,
+        "bug_id": "pipenv_36",
+        "title": "Don't throw a TypeError for requirements.txt in Python 3",
+        "body": "Opening the file as `r` instead or `rb` ensures that we don't have\r\nany implicit encoding/decoding of strings (so Python 3 is happy).\r\nIncludes a test that passes on both Python 2 and Python 3 which\r\nchecks this works correctly.\r\n\r\n~This fixes #27.~\r\n\r\nI can\u2019t distinguish numbers, it fixes **#25**.",
+        "date": "2017-01-23",
+        "files": [
+            {
+                "sha": "266cd39626ac02a6fb5b571421e7975ba89ab9cd",
+                "filename": "pipenv/cli.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/pypa/pipenv/blob/753f65a48395eb6f39b4a88f2f365f84d21dd171/pipenv/cli.py",
+                "raw_url": "https://github.com/pypa/pipenv/raw/753f65a48395eb6f39b4a88f2f365f84d21dd171/pipenv/cli.py",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/pipenv/cli.py?ref=753f65a48395eb6f39b4a88f2f365f84d21dd171"
+            },
+            {
+                "sha": "cf187833f2f3954072bb0ab067741a20eb114adb",
+                "filename": "test_pipenv.py",
+                "status": "modified",
+                "additions": 17,
+                "deletions": 0,
+                "changes": 17,
+                "blob_url": "https://github.com/pypa/pipenv/blob/753f65a48395eb6f39b4a88f2f365f84d21dd171/test_pipenv.py",
+                "raw_url": "https://github.com/pypa/pipenv/raw/753f65a48395eb6f39b4a88f2f365f84d21dd171/test_pipenv.py",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/test_pipenv.py?ref=753f65a48395eb6f39b4a88f2f365f84d21dd171"
+            },
+            {
+                "sha": "1efacc539ec59f5c62c79adf5cde20a8752fad62",
+                "filename": "tests/requirements_django.txt",
+                "status": "added",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/pypa/pipenv/blob/753f65a48395eb6f39b4a88f2f365f84d21dd171/tests/requirements_django.txt",
+                "raw_url": "https://github.com/pypa/pipenv/raw/753f65a48395eb6f39b4a88f2f365f84d21dd171/tests/requirements_django.txt",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/tests/requirements_django.txt?ref=753f65a48395eb6f39b4a88f2f365f84d21dd171"
+            },
+            {
+                "sha": "f2293605cf1b01dca72aad0a15c45b72ed5429a2",
+                "filename": "tests/requirements_requests.txt",
+                "status": "added",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/pypa/pipenv/blob/753f65a48395eb6f39b4a88f2f365f84d21dd171/tests/requirements_requests.txt",
+                "raw_url": "https://github.com/pypa/pipenv/raw/753f65a48395eb6f39b4a88f2f365f84d21dd171/tests/requirements_requests.txt",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/tests/requirements_requests.txt?ref=753f65a48395eb6f39b4a88f2f365f84d21dd171"
+            },
+            {
+                "sha": "c16af99cd903ef22ca032c7f7b3f449e49dcdd37",
+                "filename": "tests/requirements_requests_socks.txt",
+                "status": "added",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/pypa/pipenv/blob/753f65a48395eb6f39b4a88f2f365f84d21dd171/tests/requirements_requests_socks.txt",
+                "raw_url": "https://github.com/pypa/pipenv/raw/753f65a48395eb6f39b4a88f2f365f84d21dd171/tests/requirements_requests_socks.txt",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/tests/requirements_requests_socks.txt?ref=753f65a48395eb6f39b4a88f2f365f84d21dd171"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/pypa/pipenv/pull/1244",
+        "repo": "pipenv",
+        "number": 1244,
+        "bug_id": "pipenv_1244",
+        "title": "Fix ensure_project bug on windows when missing pipfile",
+        "body": "- New bug introduced by #1221 throws an error when running `pipenv install` on windows in a directory with no pipfile\r\n- This also updates the relevant tests to normalize paths for assertions to pass on appveyor\r\n- I just set up my own appveyor with a webhook so test failures caught this\r\n\r\n\r\n`Project.pipfile_location` is calling `utils.normalize_drive(loc)` even when `loc = None`, which throws the following error:\r\n\r\n```python\r\nFile \"C:\\projects\\pipenv-jqd6x\\pipenv\\cli.py\", line 1766, in install\r\n    ensure_project(three=three, python=python, system=system, warn=True, deploy=deploy)\r\n  File \"C:\\projects\\pipenv-jqd6x\\pipenv\\cli.py\", line 607, in ensure_project\r\n    if not project.pipfile_exists:\r\n  File \"C:\\projects\\pipenv-jqd6x\\pipenv\\project.py\", line 99, in pipfile_exists\r\n    return bool(self.pipfile_location)\r\n  File \"C:\\projects\\pipenv-jqd6x\\pipenv\\project.py\", line 227, in pipfile_location\r\n    self._pipfile_location = normalize_drive(loc)\r\n  File \"C:\\projects\\pipenv-jqd6x\\pipenv\\utils.py\", line 1200, in normalize_drive\r\n    drive, tail = os.path.splitdrive(path)\r\n  File \"c:\\python27-x64\\lib\\ntpath.py\", line 115, in splitdrive\r\n    if len(p) > 1:\r\nTypeError: object of type 'NoneType' has no len()\r\n```",
+        "date": "2018-01-11",
+        "files": [
+            {
+                "sha": "e09c87e2e91fc234931ae1ad8a215f848f0423a8",
+                "filename": "pipenv/utils.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/pypa/pipenv/blob/d8dc25b2894614b9ca7610d55f59b4998d3be789/pipenv/utils.py",
+                "raw_url": "https://github.com/pypa/pipenv/raw/d8dc25b2894614b9ca7610d55f59b4998d3be789/pipenv/utils.py",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/pipenv/utils.py?ref=d8dc25b2894614b9ca7610d55f59b4998d3be789"
+            },
+            {
+                "sha": "cabdf4cfe901de36a98c003c8771bf35d379cf66",
+                "filename": "tests/test_pipenv.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 4,
+                "changes": 8,
+                "blob_url": "https://github.com/pypa/pipenv/blob/d8dc25b2894614b9ca7610d55f59b4998d3be789/tests/test_pipenv.py",
+                "raw_url": "https://github.com/pypa/pipenv/raw/d8dc25b2894614b9ca7610d55f59b4998d3be789/tests/test_pipenv.py",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/tests/test_pipenv.py?ref=d8dc25b2894614b9ca7610d55f59b4998d3be789"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/pypa/pipenv/pull/2018",
+        "repo": "pipenv",
+        "number": 2018,
+        "bug_id": "pipenv_2018",
+        "title": "Parse pypy3 version string containing multiple lines",
+        "body": "Thanks for this great tool. It makes using python much more fun.\r\n\r\nI ran into the following issue when attempting to use it with pypy3.\r\n\r\n```\r\n$ pipenv --python /usr/local/bin/pypy3\r\nCreating a virtualenv for this project\u2026\r\nTraceback (most recent call last):\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/bin/pipenv\", line 11, in <module>\r\n    load_entry_point('pipenv==11.10.0', 'console_scripts', 'pipenv')()\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/vendor/click/core.py\", line 722, in __call__\r\n    return self.main(*args, **kwargs)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/vendor/click/core.py\", line 697, in main\r\n    rv = self.invoke(ctx)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/vendor/click/core.py\", line 1043, in invoke\r\n    return Command.invoke(self, ctx)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/vendor/click/core.py\", line 895, in invoke\r\n    return ctx.invoke(self.callback, **ctx.params)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/vendor/click/core.py\", line 535, in invoke\r\n    return callback(*args, **kwargs)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/vendor/click/decorators.py\", line 17, in new_func\r\n    return f(get_current_context(), *args, **kwargs)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/cli.py\", line 235, in cli\r\n    three=three, python=python, warn=True, site_packages=site_packages\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/core.py\", line 604, in ensure_project\r\n    three=three, python=python, site_packages=site_packages\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/core.py\", line 553, in ensure_virtualenv\r\n    do_create_virtualenv(python=python, site_packages=site_packages)\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/core.py\", line 901, in do_create_virtualenv\r\n    crayons.green('({0})'.format(python_version(python))),\r\n  File \"/usr/local/Cellar/pipenv/11.10.0/libexec/lib/python3.6/site-packages/pipenv/utils.py\", line 218, in python_version\r\n    return u'{major}.{minor}.{micro}'.format(**version)\r\nTypeError: format() argument after ** must be a mapping, not NoneType\r\n```\r\n\r\nIt looks like the version string generated from pypy3 is unexpected because it contains multiple lines.\r\n\r\n```\r\n$ /usr/local/bin/pypy3 --version\r\nPython 3.5.3 (3f6eaa010fce78cc7973bdc1dfdb95970f08fed2, Jan 13 2018, 18:14:01)\r\n[PyPy 5.10.1 with GCC 4.2.1 Compatible Apple LLVM 9.0.0 (clang-900.0.39.2)]\r\n```\r\n\r\nPEP 440 at https://www.python.org/dev/peps/pep-0440/ is not very specific when it comes to the question of having more than one line as the version string, but we can just consider the first line only.",
+        "date": "2018-04-18",
+        "files": [
+            {
+                "sha": "a418b22029271aaaed1722c0a324d59e347afa9b",
+                "filename": "pipenv/utils.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/pypa/pipenv/blob/09fb7d0a6f509a6f8d93279cb5458101a0d54521/pipenv/utils.py",
+                "raw_url": "https://github.com/pypa/pipenv/raw/09fb7d0a6f509a6f8d93279cb5458101a0d54521/pipenv/utils.py",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/pipenv/utils.py?ref=09fb7d0a6f509a6f8d93279cb5458101a0d54521"
+            },
+            {
+                "sha": "b10e273f2fcd2180c316ef39e457a36a9a1edd4f",
+                "filename": "tests/unit/test_utils.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/pypa/pipenv/blob/09fb7d0a6f509a6f8d93279cb5458101a0d54521/tests/unit/test_utils.py",
+                "raw_url": "https://github.com/pypa/pipenv/raw/09fb7d0a6f509a6f8d93279cb5458101a0d54521/tests/unit/test_utils.py",
+                "contents_url": "https://api.github.com/repos/pypa/pipenv/contents/tests/unit/test_utils.py?ref=09fb7d0a6f509a6f8d93279cb5458101a0d54521"
+            }
+        ]
+    }
+]

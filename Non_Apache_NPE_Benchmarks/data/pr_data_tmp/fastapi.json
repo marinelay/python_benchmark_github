@@ -1,0 +1,35 @@
+[
+    {
+        "pr": "https://github.com/tiangolo/fastapi/pull/422",
+        "repo": "fastapi",
+        "number": 422,
+        "bug_id": "fastapi_422",
+        "title": "Fix unskipped defaults",
+        "body": "Addresses https://github.com/tiangolo/fastapi/issues/421\r\n\r\nCurrently, if you return a `BaseModel` instance in a route with a `BaseModel` response_type, the `skip_defaults` value does not influence the result. This PR fixes this.\r\n\r\n-----\r\n**Details**\r\n\r\nThe source of the problem is that calling `field.validate` on a model results in a new model with the fields set. I dug in on the pydantic side and it looks like this is due to the recent change to re-parse the model with a non-subclass type when response_model is set. If you look in `BaseModel.validate` (which is ultimately called if you follow it deep enough), you can see the precise spot where defaults aren't being skipped:\r\n\r\n```python\r\n@classmethod\r\n    def validate(cls: Type['Model'], value: Any) -> 'Model':\r\n        if isinstance(value, dict):\r\n            return cls.parse_obj(value)\r\n        elif isinstance(value, cls):\r\n            return value.copy()\r\n        elif cls.__config__.orm_mode:\r\n            return cls.from_orm(value)\r\n        else:\r\n            with change_exception(DictError, TypeError, ValueError):\r\n                return cls.parse_obj(value)\r\n```\r\n\r\nIt calls into `parse_obj` on the last line, which subsequently calls `dict` on the object and then parses the dict. Unfortunately, this means defaults don't get skipped.\r\n\r\n**I don't think it makes sense to change this on the pydantic side** because otherwise you'd run into problems parsing models with default values into non-subclass models with required values. So, if we want to stick with this approach of creating a new class to force a reparse, we probably need to handle the \r\n\r\n----\r\n\r\nThat said, I would also be in favor of a larger refactor if we could come up with a way to get the desired field safely without another round of parsing/dumping \ud83d\ude2c. But that does seem hard.",
+        "date": "2019-08-26",
+        "files": [
+            {
+                "sha": "930cbe001ff1d4e6db92fbc187455ad80a12b57e",
+                "filename": "fastapi/routing.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/tiangolo/fastapi/blob/38495fffa560fa57a8f0e6437d8e43c36c8e5612/fastapi/routing.py",
+                "raw_url": "https://github.com/tiangolo/fastapi/raw/38495fffa560fa57a8f0e6437d8e43c36c8e5612/fastapi/routing.py",
+                "contents_url": "https://api.github.com/repos/tiangolo/fastapi/contents/fastapi/routing.py?ref=38495fffa560fa57a8f0e6437d8e43c36c8e5612"
+            },
+            {
+                "sha": "8579b50ea560a678369283a76d63699f6153dc8e",
+                "filename": "tests/test_skip_defaults.py",
+                "status": "added",
+                "additions": 29,
+                "deletions": 0,
+                "changes": 29,
+                "blob_url": "https://github.com/tiangolo/fastapi/blob/38495fffa560fa57a8f0e6437d8e43c36c8e5612/tests/test_skip_defaults.py",
+                "raw_url": "https://github.com/tiangolo/fastapi/raw/38495fffa560fa57a8f0e6437d8e43c36c8e5612/tests/test_skip_defaults.py",
+                "contents_url": "https://api.github.com/repos/tiangolo/fastapi/contents/tests/test_skip_defaults.py?ref=38495fffa560fa57a8f0e6437d8e43c36c8e5612"
+            }
+        ]
+    }
+]

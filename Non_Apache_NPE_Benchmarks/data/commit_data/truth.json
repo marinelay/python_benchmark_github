@@ -1,0 +1,101 @@
+[
+    {
+        "commit": "https://github.com/google/truth/commit/7d043755b33012c0274fc14fb2a2f84c1ec30631",
+        "repo": "truth",
+        "parent": "https://github.com/google/truth/commit/039bc7b35ebb3d04ad5903e2668f3f1baa9351e3",
+        "message": "Avoid NullPointerException when asserting about a null array.\n\nRELNOTES=n/a\n\n-------------\nCreated by MOE: https://github.com/google/moe\nMOE_MIGRATED_REVID=180276030",
+        "commit_id": "7d04375",
+        "date": "2017-12-28",
+        "bug_id": "truth_7d04375",
+        "files": [
+            {
+                "sha": "250e9bfbc59ca09e67b1de89b8ef78fb0d2c8106",
+                "filename": "core/src/main/java/com/google/common/truth/AbstractArraySubject.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/google/truth/blob/7d043755b33012c0274fc14fb2a2f84c1ec30631/core/src/main/java/com/google/common/truth/AbstractArraySubject.java",
+                "raw_url": "https://github.com/google/truth/raw/7d043755b33012c0274fc14fb2a2f84c1ec30631/core/src/main/java/com/google/common/truth/AbstractArraySubject.java",
+                "contents_url": "https://api.github.com/repos/google/truth/contents/core/src/main/java/com/google/common/truth/AbstractArraySubject.java?ref=7d043755b33012c0274fc14fb2a2f84c1ec30631"
+            },
+            {
+                "sha": "786f585c813e4f85a6302b3413ca355b69646151",
+                "filename": "core/src/test/java/com/google/common/truth/SubjectTest.java",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 0,
+                "changes": 7,
+                "blob_url": "https://github.com/google/truth/blob/7d043755b33012c0274fc14fb2a2f84c1ec30631/core/src/test/java/com/google/common/truth/SubjectTest.java",
+                "raw_url": "https://github.com/google/truth/raw/7d043755b33012c0274fc14fb2a2f84c1ec30631/core/src/test/java/com/google/common/truth/SubjectTest.java",
+                "contents_url": "https://api.github.com/repos/google/truth/contents/core/src/test/java/com/google/common/truth/SubjectTest.java?ref=7d043755b33012c0274fc14fb2a2f84c1ec30631"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/google/truth/commit/bf2cc0dce08c1246023ba7808c59a9352cd0fb20",
+        "repo": "truth",
+        "parent": "https://github.com/google/truth/commit/b974c819fe2f4776fa5a2f8a54e544540a07dbab",
+        "message": "Fix NPE in MapSubject.containsExactly et al when a key is present with the wrong value, and the actual or expected value is null.\n\nRELNOTES=n/a\n\n-------------\nCreated by MOE: https://github.com/google/moe\nMOE_MIGRATED_REVID=201697457",
+        "commit_id": "bf2cc0d",
+        "date": "2018-06-22",
+        "bug_id": "truth_bf2cc0d",
+        "files": [
+            {
+                "sha": "31528aa8bd4537bda3feab8da3060a8a82eee997",
+                "filename": "core/src/main/java/com/google/common/truth/MapSubject.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 1,
+                "changes": 3,
+                "blob_url": "https://github.com/google/truth/blob/bf2cc0dce08c1246023ba7808c59a9352cd0fb20/core/src/main/java/com/google/common/truth/MapSubject.java",
+                "raw_url": "https://github.com/google/truth/raw/bf2cc0dce08c1246023ba7808c59a9352cd0fb20/core/src/main/java/com/google/common/truth/MapSubject.java",
+                "contents_url": "https://api.github.com/repos/google/truth/contents/core/src/main/java/com/google/common/truth/MapSubject.java?ref=bf2cc0dce08c1246023ba7808c59a9352cd0fb20"
+            },
+            {
+                "sha": "6e1492e580a9edf32f4b0d1b918ba7d42201deab",
+                "filename": "core/src/test/java/com/google/common/truth/MapSubjectTest.java",
+                "status": "modified",
+                "additions": 13,
+                "deletions": 0,
+                "changes": 13,
+                "blob_url": "https://github.com/google/truth/blob/bf2cc0dce08c1246023ba7808c59a9352cd0fb20/core/src/test/java/com/google/common/truth/MapSubjectTest.java",
+                "raw_url": "https://github.com/google/truth/raw/bf2cc0dce08c1246023ba7808c59a9352cd0fb20/core/src/test/java/com/google/common/truth/MapSubjectTest.java",
+                "contents_url": "https://api.github.com/repos/google/truth/contents/core/src/test/java/com/google/common/truth/MapSubjectTest.java?ref=bf2cc0dce08c1246023ba7808c59a9352cd0fb20"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/google/truth/commit/4899422f15b76543870dd9777d9bde3ec5c5fe0d",
+        "repo": "truth",
+        "parent": "https://github.com/google/truth/commit/f8b8bc50151646756d9e110941bc1f9c53dab349",
+        "message": "Fix a NPE bug in Fuzzy Truth.\n\nIf the actual array contains extra elements, and Smart Diffing is active (either because it was explicitly invoked or because there is exactly one missing element), but the Correspondence.diffFormat method was returning null, we were calling extra.toString(), which is no good because extra could legitimately be null.\n\nRELNOTES=n/a\n\n-------------\nCreated by MOE: https://github.com/google/moe\nMOE_MIGRATED_REVID=220285904",
+        "commit_id": "4899422",
+        "date": "2018-11-06",
+        "bug_id": "truth_4899422",
+        "files": [
+            {
+                "sha": "f1ce19233cbd02766997be256e847d07417c113a",
+                "filename": "core/src/main/java/com/google/common/truth/IterableSubject.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/google/truth/blob/4899422f15b76543870dd9777d9bde3ec5c5fe0d/core/src/main/java/com/google/common/truth/IterableSubject.java",
+                "raw_url": "https://github.com/google/truth/raw/4899422f15b76543870dd9777d9bde3ec5c5fe0d/core/src/main/java/com/google/common/truth/IterableSubject.java",
+                "contents_url": "https://api.github.com/repos/google/truth/contents/core/src/main/java/com/google/common/truth/IterableSubject.java?ref=4899422f15b76543870dd9777d9bde3ec5c5fe0d"
+            },
+            {
+                "sha": "ae5c1cfafd8fa81f6a30b7b060ad4f7618fd8438",
+                "filename": "core/src/test/java/com/google/common/truth/IterableSubjectCorrespondenceTest.java",
+                "status": "modified",
+                "additions": 40,
+                "deletions": 0,
+                "changes": 40,
+                "blob_url": "https://github.com/google/truth/blob/4899422f15b76543870dd9777d9bde3ec5c5fe0d/core/src/test/java/com/google/common/truth/IterableSubjectCorrespondenceTest.java",
+                "raw_url": "https://github.com/google/truth/raw/4899422f15b76543870dd9777d9bde3ec5c5fe0d/core/src/test/java/com/google/common/truth/IterableSubjectCorrespondenceTest.java",
+                "contents_url": "https://api.github.com/repos/google/truth/contents/core/src/test/java/com/google/common/truth/IterableSubjectCorrespondenceTest.java?ref=4899422f15b76543870dd9777d9bde3ec5c5fe0d"
+            }
+        ]
+    }
+]

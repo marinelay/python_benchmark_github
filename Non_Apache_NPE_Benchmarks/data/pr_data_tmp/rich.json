@@ -1,0 +1,57 @@
+[
+    {
+        "pr": "https://github.com/willmcgugan/rich/pull/919",
+        "repo": "rich",
+        "number": 919,
+        "bug_id": "rich_919",
+        "title": "fix TypeError in inspect",
+        "body": "Fixed https://github.com/willmcgugan/rich/issues/916\r\n\r\n## Type of changes\r\n\r\n- [ ] Bug fix\r\n- [ ] New feature\r\n- [ ] Documentation / docstrings\r\n- [ ] Tests\r\n- [ ] Other\r\n\r\n## Checklist\r\n\r\n- [ ] I've run the latest [black](https://github.com/psf/black) with default args on new code.\r\n- [ ] I've updated CHANGELOG.md and CONTRIBUTORS.md where appropriate.\r\n- [ ] I've added tests for new code.\r\n- [ ] I accept that @willmcgugan may be pedantic in the code review.\r\n\r\n## Description\r\n\r\nPlease describe your changes here. If this fixes a bug, please link to the issue, if possible.\r\n",
+        "date": "2021-01-13",
+        "files": [
+            {
+                "sha": "24c1a41fa7e715be53289ff96265b6928e1d62b9",
+                "filename": "CHANGELOG.md",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 0,
+                "changes": 6,
+                "blob_url": "https://github.com/willmcgugan/rich/blob/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/CHANGELOG.md",
+                "raw_url": "https://github.com/willmcgugan/rich/raw/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/CHANGELOG.md",
+                "contents_url": "https://api.github.com/repos/willmcgugan/rich/contents/CHANGELOG.md?ref=170e8ffec7c98acbf7c74de8a1316eb8166ad0a1"
+            },
+            {
+                "sha": "5dd452529abb62ff52a24f98354c94da4e766bcd",
+                "filename": "pyproject.toml",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/willmcgugan/rich/blob/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/pyproject.toml",
+                "raw_url": "https://github.com/willmcgugan/rich/raw/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/pyproject.toml",
+                "contents_url": "https://api.github.com/repos/willmcgugan/rich/contents/pyproject.toml?ref=170e8ffec7c98acbf7c74de8a1316eb8166ad0a1"
+            },
+            {
+                "sha": "c1c9eecff04bd597faeb6290947ec3240953e299",
+                "filename": "rich/_inspect.py",
+                "status": "modified",
+                "additions": 23,
+                "deletions": 16,
+                "changes": 39,
+                "blob_url": "https://github.com/willmcgugan/rich/blob/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/rich/_inspect.py",
+                "raw_url": "https://github.com/willmcgugan/rich/raw/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/rich/_inspect.py",
+                "contents_url": "https://api.github.com/repos/willmcgugan/rich/contents/rich/_inspect.py?ref=170e8ffec7c98acbf7c74de8a1316eb8166ad0a1"
+            },
+            {
+                "sha": "0ffc313acff8d8b5f2171f07f5b942448e290f73",
+                "filename": "tests/test_inspect.py",
+                "status": "modified",
+                "additions": 22,
+                "deletions": 2,
+                "changes": 24,
+                "blob_url": "https://github.com/willmcgugan/rich/blob/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/tests/test_inspect.py",
+                "raw_url": "https://github.com/willmcgugan/rich/raw/170e8ffec7c98acbf7c74de8a1316eb8166ad0a1/tests/test_inspect.py",
+                "contents_url": "https://api.github.com/repos/willmcgugan/rich/contents/tests/test_inspect.py?ref=170e8ffec7c98acbf7c74de8a1316eb8166ad0a1"
+            }
+        ]
+    }
+]

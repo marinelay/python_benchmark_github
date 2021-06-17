@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/mabe02/lanterna/commit/af966055ab7c9e3e2e400d68b513d768b30c4987",
+        "repo": "lanterna",
+        "parent": "https://github.com/mabe02/lanterna/commit/c8466f59012dcb7b617f2916b3a989ce280db209",
+        "message": "Issue #473: Fixing NPE and modifying test",
+        "commit_id": "af96605",
+        "date": "2020-06-21",
+        "bug_id": "lanterna_af96605",
+        "files": [
+            {
+                "sha": "615e6aa8854ff0c56651d48a1424ce92eef34337",
+                "filename": "src/main/java/com/googlecode/lanterna/gui2/LinearLayout.java",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 18,
+                "changes": 25,
+                "blob_url": "https://github.com/mabe02/lanterna/blob/af966055ab7c9e3e2e400d68b513d768b30c4987/src/main/java/com/googlecode/lanterna/gui2/LinearLayout.java",
+                "raw_url": "https://github.com/mabe02/lanterna/raw/af966055ab7c9e3e2e400d68b513d768b30c4987/src/main/java/com/googlecode/lanterna/gui2/LinearLayout.java",
+                "contents_url": "https://api.github.com/repos/mabe02/lanterna/contents/src/main/java/com/googlecode/lanterna/gui2/LinearLayout.java?ref=af966055ab7c9e3e2e400d68b513d768b30c4987"
+            },
+            {
+                "sha": "c8868d4041381853e3fe5790d5cb74c3f102584e",
+                "filename": "src/test/java/com/googlecode/lanterna/gui2/LinearLayoutTest.java",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 0,
+                "changes": 10,
+                "blob_url": "https://github.com/mabe02/lanterna/blob/af966055ab7c9e3e2e400d68b513d768b30c4987/src/test/java/com/googlecode/lanterna/gui2/LinearLayoutTest.java",
+                "raw_url": "https://github.com/mabe02/lanterna/raw/af966055ab7c9e3e2e400d68b513d768b30c4987/src/test/java/com/googlecode/lanterna/gui2/LinearLayoutTest.java",
+                "contents_url": "https://api.github.com/repos/mabe02/lanterna/contents/src/test/java/com/googlecode/lanterna/gui2/LinearLayoutTest.java?ref=af966055ab7c9e3e2e400d68b513d768b30c4987"
+            }
+        ]
+    }
+]

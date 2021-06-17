@@ -1,0 +1,35 @@
+[
+    {
+        "commit": "https://github.com/bytedeco/javacv/commit/c3379fe8ec89b600c3522f34b55e480c419cf513",
+        "repo": "javacv",
+        "parent": "https://github.com/bytedeco/javacv/commit/5868333caf49e9aabed6d0a60993f8052ff1bc4a",
+        "message": "Fix `NullPointerException` when calling `FFmpegFrameFilter.push(null)` (issue #1315)",
+        "commit_id": "c3379fe",
+        "date": "2019-10-23",
+        "bug_id": "javacv_c3379fe",
+        "files": [
+            {
+                "sha": "605a7eca3742b0bed29ddd7de1f7e9a77aedd13a",
+                "filename": "platform/src/test/java/org/bytedeco/javacv/FrameFilterTest.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/bytedeco/javacv/blob/c3379fe8ec89b600c3522f34b55e480c419cf513/platform/src/test/java/org/bytedeco/javacv/FrameFilterTest.java",
+                "raw_url": "https://github.com/bytedeco/javacv/raw/c3379fe8ec89b600c3522f34b55e480c419cf513/platform/src/test/java/org/bytedeco/javacv/FrameFilterTest.java",
+                "contents_url": "https://api.github.com/repos/bytedeco/javacv/contents/platform/src/test/java/org/bytedeco/javacv/FrameFilterTest.java?ref=c3379fe8ec89b600c3522f34b55e480c419cf513"
+            },
+            {
+                "sha": "a4004bc0166a78a13d6ad133cce7844d83ac74c8",
+                "filename": "src/main/java/org/bytedeco/javacv/FFmpegFrameFilter.java",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/bytedeco/javacv/blob/c3379fe8ec89b600c3522f34b55e480c419cf513/src/main/java/org/bytedeco/javacv/FFmpegFrameFilter.java",
+                "raw_url": "https://github.com/bytedeco/javacv/raw/c3379fe8ec89b600c3522f34b55e480c419cf513/src/main/java/org/bytedeco/javacv/FFmpegFrameFilter.java",
+                "contents_url": "https://api.github.com/repos/bytedeco/javacv/contents/src/main/java/org/bytedeco/javacv/FFmpegFrameFilter.java?ref=c3379fe8ec89b600c3522f34b55e480c419cf513"
+            }
+        ]
+    }
+]

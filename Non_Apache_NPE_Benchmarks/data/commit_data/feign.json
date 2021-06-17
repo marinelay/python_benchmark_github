@@ -1,0 +1,167 @@
+[
+    {
+        "commit": "https://github.com/OpenFeign/feign/commit/6b8ed38ef5e8310bc5d93e7b2293d15762312d09",
+        "repo": "feign",
+        "parent": "https://github.com/OpenFeign/feign/commit/089a59f98076d64b3086b98366ebbf0d2114769b",
+        "message": "Fixes NullPointerException when accessing a FeignException's content (#914)\n\nFixes NullPointerException when accessing a FeignException's content\r\n\r\nFixes #912 \r\n\r\nIf the content of a FeignException is null, `contentUTF8()` now returns an empty string rather than throwing a NullPointerException.",
+        "commit_id": "6b8ed38",
+        "date": "2019-03-08",
+        "bug_id": "feign_6b8ed38",
+        "files": [
+            {
+                "sha": "4cba68baad30805be39ec77dbbf99831bce71329",
+                "filename": "core/src/main/java/feign/FeignException.java",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 1,
+                "changes": 6,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/6b8ed38ef5e8310bc5d93e7b2293d15762312d09/core/src/main/java/feign/FeignException.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/6b8ed38ef5e8310bc5d93e7b2293d15762312d09/core/src/main/java/feign/FeignException.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/main/java/feign/FeignException.java?ref=6b8ed38ef5e8310bc5d93e7b2293d15762312d09"
+            },
+            {
+                "sha": "50adcd480773a7d9c4172cb5e004ce50f9b5c8ca",
+                "filename": "core/src/test/java/feign/FeignTest.java",
+                "status": "modified",
+                "additions": 22,
+                "deletions": 0,
+                "changes": 22,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/6b8ed38ef5e8310bc5d93e7b2293d15762312d09/core/src/test/java/feign/FeignTest.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/6b8ed38ef5e8310bc5d93e7b2293d15762312d09/core/src/test/java/feign/FeignTest.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/test/java/feign/FeignTest.java?ref=6b8ed38ef5e8310bc5d93e7b2293d15762312d09"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/OpenFeign/feign/commit/4da6d5cad674e4eeae5b56035ac1f94992499449",
+        "repo": "feign",
+        "parent": "https://github.com/OpenFeign/feign/commit/4b2a48ee6ae7cf25a9ba515ac5a198db076217d3",
+        "message": "NPE when resolving a template with binary body (#821)\n\n* NPE when resolving a template with binary body\r\n\r\n* Initial change to introduce body object to Request's",
+        "commit_id": "4da6d5c",
+        "date": "2018-10-27",
+        "bug_id": "feign_4da6d5c",
+        "files": [
+            {
+                "sha": "81fe898b6a48792e42f47454cab2d79d99e20a69",
+                "filename": "core/src/main/java/feign/Request.java",
+                "status": "modified",
+                "additions": 89,
+                "deletions": 11,
+                "changes": 100,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/core/src/main/java/feign/Request.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/core/src/main/java/feign/Request.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/main/java/feign/Request.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "d1c276f7f5d327daf1ce5651eacd168cf8c236c5",
+                "filename": "core/src/main/java/feign/RequestTemplate.java",
+                "status": "modified",
+                "additions": 41,
+                "deletions": 32,
+                "changes": 73,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/core/src/main/java/feign/RequestTemplate.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/core/src/main/java/feign/RequestTemplate.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/main/java/feign/RequestTemplate.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "220a94ef848dca057e0f68db5abebffe90142e19",
+                "filename": "core/src/test/java/feign/RequestTemplateTest.java",
+                "status": "modified",
+                "additions": 12,
+                "deletions": 0,
+                "changes": 12,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/core/src/test/java/feign/RequestTemplateTest.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/core/src/test/java/feign/RequestTemplateTest.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/test/java/feign/RequestTemplateTest.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "62accd4b6993bf9073726280cc7fbf1ea7278611",
+                "filename": "jaxb/src/test/java/feign/jaxb/examples/AWSSignatureVersion4.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 3,
+                "changes": 4,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/jaxb/src/test/java/feign/jaxb/examples/AWSSignatureVersion4.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/jaxb/src/test/java/feign/jaxb/examples/AWSSignatureVersion4.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/jaxb/src/test/java/feign/jaxb/examples/AWSSignatureVersion4.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "9f258b32d74ae38f0588ccb072b0ace630c904ca",
+                "filename": "mock/src/main/java/feign/mock/MockClient.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/mock/src/main/java/feign/mock/MockClient.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/mock/src/main/java/feign/mock/MockClient.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/mock/src/main/java/feign/mock/MockClient.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "8bb23ac58669ac1019f3a026970e1cc65a9d7d14",
+                "filename": "mock/src/test/java/feign/mock/MockClientSequentialTest.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/mock/src/test/java/feign/mock/MockClientSequentialTest.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/mock/src/test/java/feign/mock/MockClientSequentialTest.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/mock/src/test/java/feign/mock/MockClientSequentialTest.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "c4828cadd8b9c14c6da830b82425666069baccd8",
+                "filename": "ribbon/src/test/java/feign/ribbon/LBClientTest.java",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/ribbon/src/test/java/feign/ribbon/LBClientTest.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/ribbon/src/test/java/feign/ribbon/LBClientTest.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/ribbon/src/test/java/feign/ribbon/LBClientTest.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            },
+            {
+                "sha": "68a8ad10d976b1c878a0427b0d0d13bd1c3aca07",
+                "filename": "sax/src/test/java/feign/sax/examples/AWSSignatureVersion4.java",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 3,
+                "changes": 4,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/4da6d5cad674e4eeae5b56035ac1f94992499449/sax/src/test/java/feign/sax/examples/AWSSignatureVersion4.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/4da6d5cad674e4eeae5b56035ac1f94992499449/sax/src/test/java/feign/sax/examples/AWSSignatureVersion4.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/sax/src/test/java/feign/sax/examples/AWSSignatureVersion4.java?ref=4da6d5cad674e4eeae5b56035ac1f94992499449"
+            }
+        ]
+    },
+    {
+        "commit": "https://github.com/OpenFeign/feign/commit/cf31cd1abd7787a923f3052db2ec76a2d1a441ad",
+        "repo": "feign",
+        "parent": "https://github.com/OpenFeign/feign/commit/9c5a52d627d91f9d6190dc7ac567620341358acc",
+        "message": "Fixes NPE when a Response does not provide headers (#855)\n\nFixes #853\r\n\r\nThere are some scenarios reported where a server does\r\nnot provide headers with the response.  While this is\r\nnot typically expected, it's simple enough for Feign to\r\nbe resilient to it.  This change checks the headers provided\r\nin the builder and if none are provided, an empty map is\r\nused in it's place.",
+        "commit_id": "cf31cd1",
+        "date": "2018-12-10",
+        "bug_id": "feign_cf31cd1",
+        "files": [
+            {
+                "sha": "bb4b60cd9082aa719d160d972b1b0ebd8b1fd4ce",
+                "filename": "core/src/main/java/feign/Response.java",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 1,
+                "changes": 5,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/cf31cd1abd7787a923f3052db2ec76a2d1a441ad/core/src/main/java/feign/Response.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/cf31cd1abd7787a923f3052db2ec76a2d1a441ad/core/src/main/java/feign/Response.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/main/java/feign/Response.java?ref=cf31cd1abd7787a923f3052db2ec76a2d1a441ad"
+            },
+            {
+                "sha": "e43d04ae798a55a1b2d715ffeff74d18821dc928",
+                "filename": "core/src/test/java/feign/ResponseTest.java",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 0,
+                "changes": 10,
+                "blob_url": "https://github.com/OpenFeign/feign/blob/cf31cd1abd7787a923f3052db2ec76a2d1a441ad/core/src/test/java/feign/ResponseTest.java",
+                "raw_url": "https://github.com/OpenFeign/feign/raw/cf31cd1abd7787a923f3052db2ec76a2d1a441ad/core/src/test/java/feign/ResponseTest.java",
+                "contents_url": "https://api.github.com/repos/OpenFeign/feign/contents/core/src/test/java/feign/ResponseTest.java?ref=cf31cd1abd7787a923f3052db2ec76a2d1a441ad"
+            }
+        ]
+    }
+]
