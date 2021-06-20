@@ -1,0 +1,3 @@
+python -m unittest tests.unit.config.config_test.ConfigTest.test_merge_service_dicts_heterogeneous
+
+python -m unittest tests.unit.config.config_test.ConfigTest.test_merge_service_dicts_heterogeneous_2
