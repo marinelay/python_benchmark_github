@@ -9,8 +9,8 @@ from functools import partial
 from config_crawl import *
 from config import *
 
-repo_search_url = "https://api.github.com/search/repositories?q=python"
-search = "language:python+license:Apache-2.0+license:MIT&sort=stars"
+repo_search_url = "https://api.github.com/search/repositories?q=" #q=python"
+search = "language:python+license:Apache-2.0+license:MIT+license:BSD-3-Clause&sort=stars"
 backoff = 2.05
 
 if __name__ == '__main__':

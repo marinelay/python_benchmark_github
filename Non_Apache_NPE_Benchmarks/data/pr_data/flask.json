@@ -1,0 +1,92 @@
+[
+    {
+        "pr": "https://github.com/pallets/flask/pull/2256",
+        "repo": "flask",
+        "number": 2256,
+        "bug_id": "flask_2256",
+        "title": "refactor make_response to be easier to follow",
+        "body": "* be explicit about how tuples are unpacked\r\n* allow `bytes` for status value\r\n* allow `Headers` for headers value\r\n* use `TypeError` instead of `ValueError`\r\n* errors are more descriptive\r\n* document that view must not return `None`\r\n* update documentation about return values\r\n* test more response types\r\n* test error messages\r\n\r\ncloses #1676\r\n\r\n`TypeError` is more correct by definition (wrong type to function), and I don't think anyone should be catching that error anyway (what would it mean to do that?), so I'm ok if this somehow breaks some code. This is also consistent with what `force_type` returns for bad input.\r\n\r\nI had to get a bit creative with displaying the error from `force_type` while injecting a new descriptive message. It would be nice if we could just use `raise new_error from original_error`, but that's Python 3 only.\r\n\r\nThese error messages will hopefully help avoid a class of questions that are frequently asked on Stack Overflow. In particular, there was no error about incorrect types that made it to `force_type`, so users trying to return JSON with something like `return True` would get a mysterious \"bool object is not callable\" error.",
+        "date": "2017-04-25",
+        "merge_hash": "970a8009f1842d6be8c04f3adea3c2ec97d7eff5",
+        "files": [
+            {
+                "sha": "11ac64307efe2554dc16230d5a4596b4c5d60527",
+                "filename": "CHANGES",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/pallets/flask/blob/970a8009f1842d6be8c04f3adea3c2ec97d7eff5/CHANGES",
+                "raw_url": "https://github.com/pallets/flask/raw/970a8009f1842d6be8c04f3adea3c2ec97d7eff5/CHANGES",
+                "contents_url": "https://api.github.com/repos/pallets/flask/contents/CHANGES?ref=970a8009f1842d6be8c04f3adea3c2ec97d7eff5"
+            },
+            {
+                "sha": "a938344bb88c7b1f52330e1fee653d5c87d7c9a0",
+                "filename": "flask/app.py",
+                "status": "modified",
+                "additions": 107,
+                "deletions": 63,
+                "changes": 170,
+                "blob_url": "https://github.com/pallets/flask/blob/970a8009f1842d6be8c04f3adea3c2ec97d7eff5/flask/app.py",
+                "raw_url": "https://github.com/pallets/flask/raw/970a8009f1842d6be8c04f3adea3c2ec97d7eff5/flask/app.py",
+                "contents_url": "https://api.github.com/repos/pallets/flask/contents/flask/app.py?ref=970a8009f1842d6be8c04f3adea3c2ec97d7eff5"
+            },
+            {
+                "sha": "163b83cfa34ec78eb1c4c55a7c7d95cfb1d0e55d",
+                "filename": "tests/test_basic.py",
+                "status": "modified",
+                "additions": 96,
+                "deletions": 47,
+                "changes": 143,
+                "blob_url": "https://github.com/pallets/flask/blob/970a8009f1842d6be8c04f3adea3c2ec97d7eff5/tests/test_basic.py",
+                "raw_url": "https://github.com/pallets/flask/raw/970a8009f1842d6be8c04f3adea3c2ec97d7eff5/tests/test_basic.py",
+                "contents_url": "https://api.github.com/repos/pallets/flask/contents/tests/test_basic.py?ref=970a8009f1842d6be8c04f3adea3c2ec97d7eff5"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/pallets/flask/pull/3235",
+        "repo": "flask",
+        "number": 3235,
+        "bug_id": "flask_3235",
+        "title": "Better error message when view return type is not supported",
+        "body": "Before, returning a `bool` from a route caused the error\r\n\r\n```\r\n[2019-05-31 10:08:42,216] ERROR in app: Exception on / [GET]\r\nTraceback (most recent call last):\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 2070, in make_response\r\n    rv = self.response_class.force_type(rv, request.environ)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/env/lib/python3.7/site-packages/werkzeug/wrappers/base_response.py\", line 269, in force_type\r\n    response = BaseResponse(*_run_wsgi_app(response, environ))\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/env/lib/python3.7/site-packages/werkzeug/wrappers/base_response.py\", line 26, in _run_wsgi_app\r\n    return _run_wsgi_app(*args)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/env/lib/python3.7/site-packages/werkzeug/test.py\", line 1119, in run_wsgi_app\r\n    app_rv = app(environ, start_response)\r\nTypeError: 'bool' object is not callable\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 2393, in wsgi_app\r\n    response = self.full_dispatch_request()\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 1906, in full_dispatch_request\r\n    return self.finalize_request(rv)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 1921, in finalize_request\r\n    response = self.make_response(rv)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 2078, in make_response\r\n    reraise(TypeError, new_error, sys.exc_info()[2])\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/_compat.py\", line 39, in reraise\r\n    raise value.with_traceback(tb)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 2070, in make_response\r\n    rv = self.response_class.force_type(rv, request.environ)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/env/lib/python3.7/site-packages/werkzeug/wrappers/base_response.py\", line 269, in force_type\r\n    response = BaseResponse(*_run_wsgi_app(response, environ))\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/env/lib/python3.7/site-packages/werkzeug/wrappers/base_response.py\", line 26, in _run_wsgi_app\r\n    return _run_wsgi_app(*args)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/env/lib/python3.7/site-packages/werkzeug/test.py\", line 1119, in run_wsgi_app\r\n    app_rv = app(environ, start_response)\r\nTypeError: 'bool' object is not callable\r\nThe view function did not return a valid response. The return type must be a string, tuple, Response instance, or WSGI callable, but it was a bool.\r\n```\r\n\r\nNow, it returns the more readable\r\n\r\n```\r\n[2019-05-31 10:36:19,500] ERROR in app: Exception on / [GET]\r\nTraceback (most recent call last):\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 2400, in wsgi_app\r\n    response = self.full_dispatch_request()\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 1907, in full_dispatch_request\r\n    return self.finalize_request(rv)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 1922, in finalize_request\r\n    response = self.make_response(rv)\r\n  File \"/Users/johnzeringue/Documents/ts-open/flask/flask/app.py\", line 2085, in make_response\r\n    \" {rv.__class__.__name__}.\".format(rv=rv))\r\nTypeError: The view function did not return a valid response. The return type must be a string, dict, tuple, Response instance, or WSGI callable, but it was a bool.\r\n```\r\n\r\nFixes #3214\r\n\r\n<!--\r\nCommit checklist:\r\n\r\n* add tests that fail without the patch\r\n* ensure all tests pass with ``pytest``\r\n* add documentation to the relevant docstrings or pages\r\n* add ``versionadded`` or ``versionchanged`` directives to relevant docstrings\r\n* add a changelog entry if this patch changes code\r\n\r\nTests, coverage, and docs will be run automatically when you submit the pull\r\nrequest, but running them yourself can save time.\r\n-->\r\n",
+        "date": "2019-05-31",
+        "merge_hash": "52f9aa7ed6ceee6b416eab39a4f785d958245937",
+        "files": [
+            {
+                "sha": "f70461bac46b42e8eeffc6abee015b23a871c7dd",
+                "filename": "CHANGES.rst",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/pallets/flask/blob/52f9aa7ed6ceee6b416eab39a4f785d958245937/CHANGES.rst",
+                "raw_url": "https://github.com/pallets/flask/raw/52f9aa7ed6ceee6b416eab39a4f785d958245937/CHANGES.rst",
+                "contents_url": "https://api.github.com/repos/pallets/flask/contents/CHANGES.rst?ref=52f9aa7ed6ceee6b416eab39a4f785d958245937"
+            },
+            {
+                "sha": "654ee963cc736f9f451ee13f1bf1eb781f4cef71",
+                "filename": "flask/app.py",
+                "status": "modified",
+                "additions": 10,
+                "deletions": 2,
+                "changes": 12,
+                "blob_url": "https://github.com/pallets/flask/blob/52f9aa7ed6ceee6b416eab39a4f785d958245937/flask/app.py",
+                "raw_url": "https://github.com/pallets/flask/raw/52f9aa7ed6ceee6b416eab39a4f785d958245937/flask/app.py",
+                "contents_url": "https://api.github.com/repos/pallets/flask/contents/flask/app.py?ref=52f9aa7ed6ceee6b416eab39a4f785d958245937"
+            },
+            {
+                "sha": "3351380bf9cf908333bc0ebb22ddb0fdb216d1a9",
+                "filename": "tests/test_basic.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 3,
+                "changes": 10,
+                "blob_url": "https://github.com/pallets/flask/blob/52f9aa7ed6ceee6b416eab39a4f785d958245937/tests/test_basic.py",
+                "raw_url": "https://github.com/pallets/flask/raw/52f9aa7ed6ceee6b416eab39a4f785d958245937/tests/test_basic.py",
+                "contents_url": "https://api.github.com/repos/pallets/flask/contents/tests/test_basic.py?ref=52f9aa7ed6ceee6b416eab39a4f785d958245937"
+            }
+        ]
+    }
+]

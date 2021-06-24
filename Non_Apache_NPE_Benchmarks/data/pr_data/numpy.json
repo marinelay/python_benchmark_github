@@ -1,0 +1,1051 @@
+[
+    {
+        "pr": "https://github.com/numpy/numpy/pull/19135",
+        "repo": "numpy",
+        "number": 19135,
+        "bug_id": "numpy_19135",
+        "title": "BUG: Remove complex floor divide",
+        "body": "### Changes:\r\n1. Removed `floor_divide` for all complex types\r\n2. Modified UFuncs `floor_divde` TC to check for `TypeError`. Added same for divmod and remainder.\r\n3. Modified `test_core` to check `TypeError` raised for unsupported types.\r\n4. Removed Typing Tests\r\n\r\n### TODO:\r\n- [x] Add release note (Need PR number for this) \r\n\r\ncloses: #13236\r\nfinishes: #13245 (work done by @kaivu1999)",
+        "date": "2021-06-23",
+        "merge_hash": "a79a913efd9bd7b7d8f8fc8619768dd2b30067f7",
+        "files": [
+            {
+                "sha": "0b900a16acc1703081ce47f933869f2c2290c7c6",
+                "filename": "doc/release/upcoming_changes/19135.change.rst",
+                "status": "added",
+                "additions": 10,
+                "deletions": 0,
+                "changes": 10,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/doc/release/upcoming_changes/19135.change.rst",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/doc/release/upcoming_changes/19135.change.rst",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/doc/release/upcoming_changes/19135.change.rst?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "826bbcb3cb08cd7ce914621308176049effedb2c",
+                "filename": "numpy/__init__.pyi",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 6,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/__init__.pyi",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/__init__.pyi",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/__init__.pyi?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "1b6917ebc960d3889569594e7ddba14ea583fb8b",
+                "filename": "numpy/core/code_generators/generate_umath.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/code_generators/generate_umath.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/code_generators/generate_umath.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/code_generators/generate_umath.py?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "b1afa69a7b808a67f48aa926a8180ab8b8766926",
+                "filename": "numpy/core/src/umath/loops.c.src",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 36,
+                "changes": 36,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/src/umath/loops.c.src",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/src/umath/loops.c.src",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/src/umath/loops.c.src?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "02d749a5eb5bd0326d7a94284cc1476ee9d11940",
+                "filename": "numpy/core/src/umath/loops.h.src",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 3,
+                "changes": 3,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/src/umath/loops.h.src",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/src/umath/loops.h.src",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/src/umath/loops.h.src?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "e6fcf5bd44e2eec02d07f1a2e6457d31cd82ad0c",
+                "filename": "numpy/core/tests/test_umath.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 9,
+                "changes": 16,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/tests/test_umath.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/core/tests/test_umath.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/tests/test_umath.py?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "15ed26470dea28b31f46a250da4df7fec2e30fb1",
+                "filename": "numpy/ma/tests/test_core.py",
+                "status": "modified",
+                "additions": 27,
+                "deletions": 15,
+                "changes": 42,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/ma/tests/test_core.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/ma/tests/test_core.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/ma/tests/test_core.py?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "fe1612906e01a7fb7811b23eb93168ebd758f86f",
+                "filename": "numpy/typing/tests/data/pass/arithmetic.py",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 22,
+                "changes": 22,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/typing/tests/data/pass/arithmetic.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/typing/tests/data/pass/arithmetic.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/tests/data/pass/arithmetic.py?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            },
+            {
+                "sha": "0d9132e5becf0f55a0697ae523ebc5d7b1dc5629",
+                "filename": "numpy/typing/tests/data/reveal/arithmetic.py",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 24,
+                "changes": 24,
+                "blob_url": "https://github.com/numpy/numpy/blob/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/typing/tests/data/reveal/arithmetic.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/a79a913efd9bd7b7d8f8fc8619768dd2b30067f7/numpy/typing/tests/data/reveal/arithmetic.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/tests/data/reveal/arithmetic.py?ref=a79a913efd9bd7b7d8f8fc8619768dd2b30067f7"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/19094",
+        "repo": "numpy",
+        "number": 19094,
+        "bug_id": "numpy_19094",
+        "title": "BUG: Fixed an issue wherein `_GenericAlias.__getitem__` would raise for types with >1 parameters",
+        "body": "Backport of https://github.com/numpy/numpy/pull/19092.\r\n\r\nFound and fixed a minor bug wherein `_GenericAlias` could raise under certain circumstances.\r\n\r\nThe issue was that only a single parameter was passed to underlying generic types, \r\neven if aforementioned types would demand more than 1 parameter.\r\n\r\nExamples\r\n----------\r\nThe behavior prior to this PR:\r\n``` python\r\nIn [1]: from typing import TypeVar, Union\r\n   ...: \r\n   ...: import numpy as np\r\n   ...: import numpy.typing as npt\r\n   ...: \r\n   ...: T1 = TypeVar(\"T1\", bound=np.generic)\r\n   ...: T2 = TypeVar(\"T2\", bound=np.generic)\r\n   ...: \r\n   ...: NDArray_A_or_B = npt.NDArray[Union[T1, T2]]\r\n\r\nIn [2]: NDArray_A_or_B[np.float32, np.float64]\r\n  ...\r\nTypeError: Too few parameters for typing.Union[~T1, ~T2]; actual 1, expected 2\r\n```",
+        "date": "2021-05-25",
+        "merge_hash": "080faad7a2a0f778e85e3af7e85d313dcf1e5bc3",
+        "files": [
+            {
+                "sha": "56ef41cfdb3cf4cf6ede5832f72f23a5627d804d",
+                "filename": "numpy/typing/_add_docstring.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/numpy/numpy/blob/080faad7a2a0f778e85e3af7e85d313dcf1e5bc3/numpy/typing/_add_docstring.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/080faad7a2a0f778e85e3af7e85d313dcf1e5bc3/numpy/typing/_add_docstring.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/_add_docstring.py?ref=080faad7a2a0f778e85e3af7e85d313dcf1e5bc3"
+            },
+            {
+                "sha": "68523827a71aee567382e2dbc7df63bee8e979e4",
+                "filename": "numpy/typing/_generic_alias.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 2,
+                "changes": 5,
+                "blob_url": "https://github.com/numpy/numpy/blob/080faad7a2a0f778e85e3af7e85d313dcf1e5bc3/numpy/typing/_generic_alias.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/080faad7a2a0f778e85e3af7e85d313dcf1e5bc3/numpy/typing/_generic_alias.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/_generic_alias.py?ref=080faad7a2a0f778e85e3af7e85d313dcf1e5bc3"
+            },
+            {
+                "sha": "0b99174392f039b0dc77c016c19d408343a123f9",
+                "filename": "numpy/typing/tests/test_generic_alias.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 1,
+                "changes": 5,
+                "blob_url": "https://github.com/numpy/numpy/blob/080faad7a2a0f778e85e3af7e85d313dcf1e5bc3/numpy/typing/tests/test_generic_alias.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/080faad7a2a0f778e85e3af7e85d313dcf1e5bc3/numpy/typing/tests/test_generic_alias.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/tests/test_generic_alias.py?ref=080faad7a2a0f778e85e3af7e85d313dcf1e5bc3"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/19092",
+        "repo": "numpy",
+        "number": 19092,
+        "bug_id": "numpy_19092",
+        "title": "BUG: Fixed an issue wherein `_GenericAlias.__getitem__` would raise for types with >1 parameters",
+        "body": "Found and fixed a minor bug wherein `_GenericAlias` could raise under certain circumstances.\r\n\r\nThe issue was that only a single parameter was passed to underlying generic types, \r\neven if aforementioned types would demand more than 1 parameter.\r\n\r\nExamples\r\n----------\r\nThe behavior prior to this PR:\r\n``` python\r\nIn [1]: from typing import TypeVar, Union\r\n   ...: \r\n   ...: import numpy as np\r\n   ...: import numpy.typing as npt\r\n   ...: \r\n   ...: T1 = TypeVar(\"T1\", bound=np.generic)\r\n   ...: T2 = TypeVar(\"T2\", bound=np.generic)\r\n   ...: \r\n   ...: NDArray_A_or_B = npt.NDArray[Union[T1, T2]]\r\n\r\nIn [2]: NDArray_A_or_B[np.float32, np.float64]\r\n  ...\r\nTypeError: Too few parameters for typing.Union[~T1, ~T2]; actual 1, expected 2\r\n```",
+        "date": "2021-05-25",
+        "merge_hash": "5520a1757e4476bc6526973ad46c46b82637ae1c",
+        "files": [
+            {
+                "sha": "56ef41cfdb3cf4cf6ede5832f72f23a5627d804d",
+                "filename": "numpy/typing/_add_docstring.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/numpy/numpy/blob/5520a1757e4476bc6526973ad46c46b82637ae1c/numpy/typing/_add_docstring.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/5520a1757e4476bc6526973ad46c46b82637ae1c/numpy/typing/_add_docstring.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/_add_docstring.py?ref=5520a1757e4476bc6526973ad46c46b82637ae1c"
+            },
+            {
+                "sha": "68523827a71aee567382e2dbc7df63bee8e979e4",
+                "filename": "numpy/typing/_generic_alias.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 2,
+                "changes": 5,
+                "blob_url": "https://github.com/numpy/numpy/blob/5520a1757e4476bc6526973ad46c46b82637ae1c/numpy/typing/_generic_alias.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/5520a1757e4476bc6526973ad46c46b82637ae1c/numpy/typing/_generic_alias.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/_generic_alias.py?ref=5520a1757e4476bc6526973ad46c46b82637ae1c"
+            },
+            {
+                "sha": "0b99174392f039b0dc77c016c19d408343a123f9",
+                "filename": "numpy/typing/tests/test_generic_alias.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 1,
+                "changes": 5,
+                "blob_url": "https://github.com/numpy/numpy/blob/5520a1757e4476bc6526973ad46c46b82637ae1c/numpy/typing/tests/test_generic_alias.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/5520a1757e4476bc6526973ad46c46b82637ae1c/numpy/typing/tests/test_generic_alias.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/typing/tests/test_generic_alias.py?ref=5520a1757e4476bc6526973ad46c46b82637ae1c"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/15802",
+        "repo": "numpy",
+        "number": 15802,
+        "bug_id": "numpy_15802",
+        "title": "DEP: Make `np.insert` and `np.delete` on 0d arrays with an axis an error",
+        "body": "Before this change, the following code worked:\r\n\r\n```python\r\n>>> some_0d = np.array(1)\r\n>>> np.insert(some_0d, \"some nonsense\", 10, axis=0)\r\narray(10)\r\n>>> np.insert(some_0d, \"some nonsense\", 42, axis=\"some nonsense\")\r\narray(42)\r\n```\r\n\r\nNow these raise AxisError and TypeError, respectively.\r\n\r\n`delete` is exactly the same.\r\n\r\n<!-- Please be sure you are following the instructions in the dev guidelines\r\nhttp://www.numpy.org/devdocs/dev/development_workflow.html\r\n-->\r\n\r\n<!-- We'd appreciate it if your commit message is properly formatted\r\nhttp://www.numpy.org/devdocs/dev/development_workflow.html#writing-the-commit-message\r\n-->\r\n",
+        "date": "2020-03-24",
+        "merge_hash": "7d0b3efe4b38fb5b5ba7367741b55d7655037ad0",
+        "files": [
+            {
+                "sha": "1a1b373a77f9d5e4da4b21b951e76b6179b8065b",
+                "filename": "doc/release/upcoming_changes/15802.expired.rst",
+                "status": "added",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/numpy/numpy/blob/7d0b3efe4b38fb5b5ba7367741b55d7655037ad0/doc/release/upcoming_changes/15802.expired.rst",
+                "raw_url": "https://github.com/numpy/numpy/raw/7d0b3efe4b38fb5b5ba7367741b55d7655037ad0/doc/release/upcoming_changes/15802.expired.rst",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/doc/release/upcoming_changes/15802.expired.rst?ref=7d0b3efe4b38fb5b5ba7367741b55d7655037ad0"
+            },
+            {
+                "sha": "7211b68cf9dffb9a8ca8eaf2dd6304490c0d75f0",
+                "filename": "numpy/lib/function_base.py",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 20,
+                "changes": 20,
+                "blob_url": "https://github.com/numpy/numpy/blob/7d0b3efe4b38fb5b5ba7367741b55d7655037ad0/numpy/lib/function_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/7d0b3efe4b38fb5b5ba7367741b55d7655037ad0/numpy/lib/function_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/function_base.py?ref=7d0b3efe4b38fb5b5ba7367741b55d7655037ad0"
+            },
+            {
+                "sha": "fb10205d4288c53071d3868659707c6c1b0efef9",
+                "filename": "numpy/lib/tests/test_function_base.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 9,
+                "changes": 17,
+                "blob_url": "https://github.com/numpy/numpy/blob/7d0b3efe4b38fb5b5ba7367741b55d7655037ad0/numpy/lib/tests/test_function_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/7d0b3efe4b38fb5b5ba7367741b55d7655037ad0/numpy/lib/tests/test_function_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test_function_base.py?ref=7d0b3efe4b38fb5b5ba7367741b55d7655037ad0"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/13648",
+        "repo": "numpy",
+        "number": 13648,
+        "bug_id": "numpy_13648",
+        "title": "BUG: ensure that casting to/from structured is properly checked.",
+        "body": "As noted in #11114, currently the following clearly wrong things happen:\r\n```\r\nnp.can_cast(1., 'i2,i2', casting='safe')\r\n# True\r\n# while\r\nnp.can_cast(1., 'i2', casting='safe')\r\n# False\r\nnp.array(1000.).astype('i1,i1', casting='safe')\r\n# array((-24, -24), dtype=[('f0', 'i1'), ('f1', 'i1')])\r\n# while\r\nnp.array(1000.).astype('i1', casting='safe')\r\n# TypeError: Cannot cast array from dtype('float64') to dtype('int8') according to the rule 'safe'\r\n```\r\nThe present PR fixes it, and has some elementary tests. In particular, it allows casting from simple to structured (EDIT) in unsafe mode, and from structured to simple only in unsafe mode *and* when the structured dtype has only a single field.\r\n\r\nfixes #11114\r\n\r\np.s. Replaces #13646, which confused the general void type with structured.",
+        "date": "2019-06-12",
+        "merge_hash": "6420e7f528a6c42422966544e453bdb2805ff620",
+        "files": [
+            {
+                "sha": "297dbbf2d1d6ab32561df39f009b5e4c87e70a5f",
+                "filename": "doc/release/1.17.0-notes.rst",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 0,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/doc/release/1.17.0-notes.rst",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/doc/release/1.17.0-notes.rst",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/doc/release/1.17.0-notes.rst?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            },
+            {
+                "sha": "0b4bf334250362d9f0f6433c2a3fa618cc0f5703",
+                "filename": "numpy/core/_add_newdocs.py",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 4,
+                "changes": 13,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/_add_newdocs.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/_add_newdocs.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/_add_newdocs.py?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            },
+            {
+                "sha": "118562c895737ae82a250a3bceef8812cab0cec9",
+                "filename": "numpy/core/multiarray.py",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 5,
+                "changes": 14,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/multiarray.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/multiarray.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/multiarray.py?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            },
+            {
+                "sha": "8e24d63616e13f77c0ad139eab0c9dd04e99b348",
+                "filename": "numpy/core/src/multiarray/convert_datatype.c",
+                "status": "modified",
+                "additions": 74,
+                "deletions": 7,
+                "changes": 81,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/src/multiarray/convert_datatype.c",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/src/multiarray/convert_datatype.c",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/src/multiarray/convert_datatype.c?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            },
+            {
+                "sha": "cf66751f81110b90afde924b7a3a67eb81330db3",
+                "filename": "numpy/core/tests/test_nditer.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/tests/test_nditer.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/tests/test_nditer.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/tests/test_nditer.py?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            },
+            {
+                "sha": "1db89e81fb68c57f08baafd88f943b5b62da7150",
+                "filename": "numpy/core/tests/test_numeric.py",
+                "status": "modified",
+                "additions": 36,
+                "deletions": 1,
+                "changes": 37,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/tests/test_numeric.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/numpy/core/tests/test_numeric.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/tests/test_numeric.py?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            },
+            {
+                "sha": "1343d2adc1f963546db3bc06c3ba32737517e8e8",
+                "filename": "numpy/doc/structured_arrays.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 5,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/6420e7f528a6c42422966544e453bdb2805ff620/numpy/doc/structured_arrays.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/6420e7f528a6c42422966544e453bdb2805ff620/numpy/doc/structured_arrays.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/doc/structured_arrays.py?ref=6420e7f528a6c42422966544e453bdb2805ff620"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/13298",
+        "repo": "numpy",
+        "number": 13298,
+        "bug_id": "numpy_13298",
+        "title": "ENH: Added clearer exception for np.diff on 0-dimensional ndarray",
+        "body": "<!-- Please be sure you are following the instructions in the dev guidelines\r\nhttp://www.numpy.org/devdocs/dev/gitwash/development_workflow.html\r\n-->\r\n\r\nReferencing #13296 \r\n\r\nAdded TypeError message in np.diff for handling 0-dimensional ndarrays.\r\n\r\n<!-- We'd appreciate it if your commit message is properly formatted\r\nhttp://www.numpy.org/devdocs/dev/gitwash/development_workflow.html#writing-the-commit-message\r\n-->\r\n",
+        "date": "2019-05-03",
+        "merge_hash": "f64ec0ca21466d3d461b88e232451c750982e9e6",
+        "files": [
+            {
+                "sha": "7fa51d683cae8570f955c949916b0738a8e4c2d6",
+                "filename": "numpy/lib/function_base.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/f64ec0ca21466d3d461b88e232451c750982e9e6/numpy/lib/function_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f64ec0ca21466d3d461b88e232451c750982e9e6/numpy/lib/function_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/function_base.py?ref=f64ec0ca21466d3d461b88e232451c750982e9e6"
+            },
+            {
+                "sha": "a5ae2eeed6715447b456a70a0f2b752a2242814f",
+                "filename": "numpy/lib/tests/test_function_base.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 0,
+                "changes": 3,
+                "blob_url": "https://github.com/numpy/numpy/blob/f64ec0ca21466d3d461b88e232451c750982e9e6/numpy/lib/tests/test_function_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f64ec0ca21466d3d461b88e232451c750982e9e6/numpy/lib/tests/test_function_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test_function_base.py?ref=f64ec0ca21466d3d461b88e232451c750982e9e6"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/13126",
+        "repo": "numpy",
+        "number": 13126,
+        "bug_id": "numpy_13126",
+        "title": "DEP: polynomial: Be stricter about integral arguments",
+        "body": "This changes the behavior for:\r\n* The `deg`  and `axis` arguments of `<type>der`\r\n* The `deg`  and `axis` arguments of `<type>int`\r\n* The `deg`  argument of `<type>gauss`\r\n* The `deg`  argument of `<type>vander2d`\r\n* The `deg`  argument of `<type>vander3d`\r\n\r\nThe old behavior was:\r\n* Raise `ValueError` if the argument is a float, but not an integral one\r\n* Allow a float like `1.0` to mean `1`.\r\n\r\nThis is inconsistent with most other integer-accepting APIs in numpy, which require these to be actual integers, and raise TypeError when they are not.\r\n\r\nThe new behavior is:\r\n* Raise `TypeError` if the argument is a float, but not an integral one\r\n* Emit a `DeprecationWarning` if a float like `1.0` is passed, continuing to allow it its old meaning.\r\n\r\n<!-- Please be sure you are following the instructions in the dev guidelines\r\nhttp://www.numpy.org/devdocs/dev/gitwash/development_workflow.html\r\n-->\r\n\r\n<!-- We'd appreciate it if your commit message is properly formatted\r\nhttp://www.numpy.org/devdocs/dev/gitwash/development_workflow.html#writing-the-commit-message\r\n-->\r\n",
+        "date": "2019-03-16",
+        "merge_hash": "f12758396ad4a9dbae7d656b25fe189f75224a6d",
+        "files": [
+            {
+                "sha": "b9b27da7924ec8d1df630cb37c9121ea1c878e9e",
+                "filename": "doc/release/1.17.0-notes.rst",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/doc/release/1.17.0-notes.rst",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/doc/release/1.17.0-notes.rst",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/doc/release/1.17.0-notes.rst?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "475582fdc1deec7fbf713b6a7b364ebef630f2e0",
+                "filename": "numpy/polynomial/chebyshev.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 18,
+                "changes": 26,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/chebyshev.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/chebyshev.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/chebyshev.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "6dee0b35928492ea8b2c89f74e9df35a60fe4dbd",
+                "filename": "numpy/polynomial/hermite.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 18,
+                "changes": 26,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/hermite.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/hermite.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/hermite.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "8ae8c7f95a74de291effd5085bf2eb55248f274c",
+                "filename": "numpy/polynomial/hermite_e.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 18,
+                "changes": 26,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/hermite_e.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/hermite_e.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/hermite_e.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "89e053ffa64d0198cbe310369a2beff6aa28ee2c",
+                "filename": "numpy/polynomial/laguerre.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 17,
+                "changes": 25,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/laguerre.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/laguerre.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/laguerre.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "4b56f82f412d2c00420f136721575746e95bd84b",
+                "filename": "numpy/polynomial/legendre.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 18,
+                "changes": 26,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/legendre.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/legendre.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/legendre.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "44e1cbb3f3749456207f0cd3cde177aa34c3957b",
+                "filename": "numpy/polynomial/polynomial.py",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 15,
+                "changes": 20,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/polynomial.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/polynomial.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/polynomial.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "1a73f47d81e3fa87ff8c7ad053f17fff7e6c7ec0",
+                "filename": "numpy/polynomial/polyutils.py",
+                "status": "modified",
+                "additions": 48,
+                "deletions": 10,
+                "changes": 58,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/polyutils.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/polyutils.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/polyutils.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "c8d2d6dbaae0aef8ddd330d4a5ccbd520f30c891",
+                "filename": "numpy/polynomial/tests/test_chebyshev.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_chebyshev.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_chebyshev.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/tests/test_chebyshev.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "271c1964b0931ddec20cde3a46eb947be39cd317",
+                "filename": "numpy/polynomial/tests/test_hermite.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_hermite.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_hermite.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/tests/test_hermite.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "434b30e7bb284d4c54f13dee534f2e6c16265954",
+                "filename": "numpy/polynomial/tests/test_hermite_e.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_hermite_e.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_hermite_e.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/tests/test_hermite_e.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "4b9b2863757bc5d0180320c821f0fa71ce8e0c45",
+                "filename": "numpy/polynomial/tests/test_laguerre.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_laguerre.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_laguerre.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/tests/test_laguerre.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "917a7e03afdf97e0a02a3e28b2e8678dd46127e7",
+                "filename": "numpy/polynomial/tests/test_legendre.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_legendre.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_legendre.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/tests/test_legendre.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            },
+            {
+                "sha": "08b73da15d81357de5ecc9cc8b80982822350085",
+                "filename": "numpy/polynomial/tests/test_polynomial.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_polynomial.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/f12758396ad4a9dbae7d656b25fe189f75224a6d/numpy/polynomial/tests/test_polynomial.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/polynomial/tests/test_polynomial.py?ref=f12758396ad4a9dbae7d656b25fe189f75224a6d"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/12593",
+        "repo": "numpy",
+        "number": 12593,
+        "bug_id": "numpy_12593",
+        "title": "ENH,WIP: Use richer exception types for ufunc type resolution errors",
+        "body": "This might make it easier for users to implement `__array_ufunc__` with custom casting behavior.\r\n\r\nThe motivation for this was to be able to deprecate the broken casting behavior in `np.clip`, without resorting to inspecting error strings.\r\nThis also removes the need for gh-12178\r\nBefore:\r\n```\r\n>>> np.add(1, 1, out=np.empty((), str), casting='safe')\r\nTypeError: Cannot cast ufunc add output from dtype('<U1') to dtype('int32') with casting rule 'safe'\r\n>>> np.less(1, 'a', dtype=int)\r\nTypeError: Cannot cast ufunc less input from dtype('<U1') to dtype('int32') with casting rule 'same_kind'\r\n>>> np.add(1, 'a')\r\nTypeError: ufunc 'add' did not contain a loop with signature matching types dtype('<U11') dtype('<U11') dtype('<U11')\r\n```\r\nAfter, showing types, input/output argument numbers, and `->` in the signature:\r\n```\r\n>>> np.add(1, 1, out=np.empty((), str), casting='safe')\r\nUFuncOutputCastingTypeError: Cannot cast ufunc 'add' output from dtype('<U1') to dtype('int32') with casting rule 'safe'\r\n>>> np.less(1, 'a', dtype=int)\r\nUFuncInputCastingTypeError: Cannot cast ufunc 'less' input 1 from dtype('<U1') to dtype('int32') with casting rule 'same_kind'\r\n>>> np.add(1, 'a')\r\nUFuncNoLoopTypeError: ufunc 'add' did not contain a loop with signature matching types (dtype('<U11'), dtype('<U11')) -> dtype('<U11')\r\n```\r\n\r\nNeeds some more thought about the distinction between these error types.\r\n\r\nOne option would be to pretend that all the types are `TypeError` by setting `__name__`.\r\n\r\n---\r\n\r\n[Mailing list discussion](http://numpy-discussion.10968.n7.nabble.com/Adding-more-detailed-exception-types-to-numpy-td46591.html)",
+        "date": "2019-01-20",
+        "merge_hash": "99953e494aa3be5ae8385d8461b9e4dfbeec43ec",
+        "files": [
+            {
+                "sha": "5e0105beb4209c6c5b89fd97fb9f2f5075f62a52",
+                "filename": "numpy/core/_exceptions.py",
+                "status": "added",
+                "additions": 100,
+                "deletions": 0,
+                "changes": 100,
+                "blob_url": "https://github.com/numpy/numpy/blob/99953e494aa3be5ae8385d8461b9e4dfbeec43ec/numpy/core/_exceptions.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/99953e494aa3be5ae8385d8461b9e4dfbeec43ec/numpy/core/_exceptions.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/_exceptions.py?ref=99953e494aa3be5ae8385d8461b9e4dfbeec43ec"
+            },
+            {
+                "sha": "e2f4d800540e9cb9890c4b7e6b2a3cea5eb1797d",
+                "filename": "numpy/core/src/umath/ufunc_type_resolution.c",
+                "status": "modified",
+                "additions": 150,
+                "deletions": 49,
+                "changes": 199,
+                "blob_url": "https://github.com/numpy/numpy/blob/99953e494aa3be5ae8385d8461b9e4dfbeec43ec/numpy/core/src/umath/ufunc_type_resolution.c",
+                "raw_url": "https://github.com/numpy/numpy/raw/99953e494aa3be5ae8385d8461b9e4dfbeec43ec/numpy/core/src/umath/ufunc_type_resolution.c",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/src/umath/ufunc_type_resolution.c?ref=99953e494aa3be5ae8385d8461b9e4dfbeec43ec"
+            },
+            {
+                "sha": "a67a291029fa4e74a8b36d9e619ea2b207119039",
+                "filename": "numpy/core/tests/test_multiarray.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/99953e494aa3be5ae8385d8461b9e4dfbeec43ec/numpy/core/tests/test_multiarray.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/99953e494aa3be5ae8385d8461b9e4dfbeec43ec/numpy/core/tests/test_multiarray.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/tests/test_multiarray.py?ref=99953e494aa3be5ae8385d8461b9e4dfbeec43ec"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/12251",
+        "repo": "numpy",
+        "number": 12251,
+        "bug_id": "numpy_12251",
+        "title": "MAINT: improved error message when no `__array_function__` implementation found",
+        "body": "Fixes #12213\r\n\r\nBefore:\r\n```\r\nIn [1]: import numpy as np\r\n\r\nIn [2]: class MyArray:\r\n   ...:     def __array_function__(*args, **kwargs):\r\n   ...:         return NotImplemented\r\n   ...:\r\n\r\nIn [3]: np.sum(MyArray())\r\n---------------------------------------------------------------------------\r\nTypeError                                 Traceback (most recent call last)\r\n<ipython-input-3-c8a80bb1d37e> in <module>()\r\n----> 1 np.sum(MyArray())\r\n\r\n~/dev/numpy/numpy/core/overrides.py in public_api(*args, **kwargs)\r\n    149             relevant_args = dispatcher(*args, **kwargs)\r\n    150             return array_function_implementation_or_override(\r\n--> 151                 implementation, public_api, relevant_args, args, kwargs)\r\n    152\r\n    153         # TODO: remove this when we drop Python 2 support (functools.wraps\r\n\r\n~/dev/numpy/numpy/core/overrides.py in array_function_implementation_or_override(implementation, public_api, relevant_args, args, kwargs)\r\n    108     raise TypeError('no implementation found for {} on types that implement '\r\n    109                     '__array_function__: {}'\r\n--> 110                     .format(public_api, list(map(type, overloaded_args))))\r\n    111\r\n    112\r\n\r\nTypeError: no implementation found for <function sum at 0x10e070bf8> on types that implement __array_function__: [<class '__main__.MyArray'>]\r\n```\r\nAfter:\r\n```\r\nIn [3]: np.sum(MyArray())\r\n---------------------------------------------------------------------------\r\nTypeError                                 Traceback (most recent call last)\r\n<ipython-input-3-c8a80bb1d37e> in <module>()\r\n----> 1 np.sum(MyArray())\r\n\r\n~/dev/numpy/numpy/core/overrides.py in public_api(*args, **kwargs)\r\n    149             relevant_args = dispatcher(*args, **kwargs)\r\n    150             return array_function_implementation_or_override(\r\n--> 151                 implementation, public_api, relevant_args, args, kwargs)\r\n    152\r\n    153         # TODO: remove this when we drop Python 2 support (functools.wraps\r\n\r\n~/dev/numpy/numpy/core/overrides.py in array_function_implementation_or_override(implementation, public_api, relevant_args, args, kwargs)\r\n    108     raise TypeError('no implementation found for {} on types that implement '\r\n    109                     '__array_function__: {}'\r\n--> 110                     .format(public_api, list(map(type, overloaded_args))))\r\n    111\r\n    112\r\n\r\nTypeError: no implementation found for 'numpy.sum' on types that implement __array_function__: [<class '__main__.MyArray'>]\r\n```",
+        "date": "2018-10-25",
+        "merge_hash": "872372bd56ccb5fe98faae8be7d14e4a8c69e037",
+        "files": [
+            {
+                "sha": "a0613f61d13351e9c03adbe043516ec7810d2b1f",
+                "filename": "doc/release/1.16.0-notes.rst",
+                "status": "modified",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/doc/release/1.16.0-notes.rst",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/doc/release/1.16.0-notes.rst",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/doc/release/1.16.0-notes.rst?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "3201b2f7883ce55b164ab5a893800d67a265745f",
+                "filename": "numpy/core/arrayprint.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/arrayprint.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/arrayprint.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/arrayprint.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "e860860128109b7429f27fca8ffb0c399f241bee",
+                "filename": "numpy/core/defchararray.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/defchararray.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/defchararray.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/defchararray.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "7dfb52fea6ffa567c229e347bb464f6cdf19e16e",
+                "filename": "numpy/core/fromnumeric.py",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 1,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/fromnumeric.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/fromnumeric.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/fromnumeric.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "25debd2f8c6eee2919547c60693baa9ab0ad0b9d",
+                "filename": "numpy/core/multiarray.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/multiarray.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/multiarray.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/multiarray.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "5d82bbd8de323b60a4d8d5f4af612878db0c5a7a",
+                "filename": "numpy/core/numeric.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/numeric.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/numeric.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/numeric.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "4640efd31f65639045bd1e0ed9a195d9490b34de",
+                "filename": "numpy/core/overrides.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 3,
+                "changes": 11,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/overrides.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/overrides.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/overrides.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "7b3472f969bdc7e3cd7128d4f84a507ffbc96175",
+                "filename": "numpy/core/tests/test_overrides.py",
+                "status": "modified",
+                "additions": 21,
+                "deletions": 2,
+                "changes": 23,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/tests/test_overrides.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/core/tests/test_overrides.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/tests/test_overrides.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "de675936f449e13e16775e240d0d105769168555",
+                "filename": "numpy/fft/fftpack.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 1,
+                "changes": 8,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/fft/fftpack.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/fft/fftpack.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/fft/fftpack.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "e65883651793d1433d9b9d38f142831a39026a00",
+                "filename": "numpy/fft/helper.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/fft/helper.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/fft/helper.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/fft/helper.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "d27a3918f5151d9f5a1e0c7d1ef6a6e605ff44c6",
+                "filename": "numpy/lib/arraypad.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/arraypad.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/arraypad.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/arraypad.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "850e201231c111380128c56e436d39a69a7896b4",
+                "filename": "numpy/lib/arraysetops.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 1,
+                "changes": 8,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/arraysetops.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/arraysetops.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/arraysetops.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "e1e297492edd5c616500f9d81220186209aff66f",
+                "filename": "numpy/lib/financial.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/financial.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/financial.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/financial.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "fae6541bc10b644e0961aa90acafde62c4014824",
+                "filename": "numpy/lib/function_base.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 1,
+                "changes": 8,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/function_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/function_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/function_base.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "0cdf78c6dfbd28431ede73870ed749af99ff9c38",
+                "filename": "numpy/lib/index_tricks.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/index_tricks.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/index_tricks.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/index_tricks.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "d73d844672da08bc4f50247b21817814d604ceff",
+                "filename": "numpy/lib/nanfunctions.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/nanfunctions.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/nanfunctions.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/nanfunctions.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "c2702f0a7bb3cc2752151ee16d1ce9909ef1d304",
+                "filename": "numpy/lib/polynomial.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/polynomial.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/polynomial.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/polynomial.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "00424d55d3249a20ad8ed1cd4aa559bd3b844b4f",
+                "filename": "numpy/lib/shape_base.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 1,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/shape_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/shape_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/shape_base.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "0dc36e41cd22ed4d1f7a889df549cd802794b082",
+                "filename": "numpy/lib/stride_tricks.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/stride_tricks.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/stride_tricks.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/stride_tricks.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "a05e683753b20e3cceca2c27168824f7ab92c442",
+                "filename": "numpy/lib/twodim_base.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 1,
+                "changes": 8,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/twodim_base.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/twodim_base.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/twodim_base.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "9153e16925792b23ac3b6bf1b6da574145c3cda9",
+                "filename": "numpy/lib/type_check.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 1,
+                "changes": 9,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/type_check.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/type_check.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/type_check.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "ac0af0b37a630bfdee0ea9d67e71b2a3ef99cc4f",
+                "filename": "numpy/lib/ufunclike.py",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 3,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/ufunclike.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/lib/ufunclike.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/ufunclike.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            },
+            {
+                "sha": "771481e8ebbc3479ddcc4833e6c15c061486eeed",
+                "filename": "numpy/linalg/linalg.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 1,
+                "changes": 8,
+                "blob_url": "https://github.com/numpy/numpy/blob/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/linalg/linalg.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/872372bd56ccb5fe98faae8be7d14e4a8c69e037/numpy/linalg/linalg.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/linalg/linalg.py?ref=872372bd56ccb5fe98faae8be7d14e4a8c69e037"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/11573",
+        "repo": "numpy",
+        "number": 11573,
+        "bug_id": "numpy_11573",
+        "title": "TST: add broadcast_arrays() kwarg unit test for TypeError",
+        "body": "In short, local coverage tests (hopefully reported online soon from: #11567) indicated that we weren't unit testing for the proper handling of invalid kwargs for `np.broadcast_arrays()`.\r\n\r\nIn adding the unit test for this kwarg handling in this PR, I also noticed that the appropriate error **message** is not raised in Python 3 because `dict.keys()` is not a list anymore, so the test was also adjusted to verify the correct error message & the associated source code modified to ensure an indexable object in Python 3.",
+        "date": "2018-08-21",
+        "merge_hash": "0b5dfb0fb2a678652b45849ccf96982f89f010a8",
+        "files": [
+            {
+                "sha": "ca13738c1f37f0bed9ca269c80dce59a82f2642e",
+                "filename": "numpy/lib/stride_tricks.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/0b5dfb0fb2a678652b45849ccf96982f89f010a8/numpy/lib/stride_tricks.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/0b5dfb0fb2a678652b45849ccf96982f89f010a8/numpy/lib/stride_tricks.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/stride_tricks.py?ref=0b5dfb0fb2a678652b45849ccf96982f89f010a8"
+            },
+            {
+                "sha": "b2bd7da3ef470829dd76ff499b032e63ecfbcf80",
+                "filename": "numpy/lib/tests/test_stride_tricks.py",
+                "status": "modified",
+                "additions": 13,
+                "deletions": 1,
+                "changes": 14,
+                "blob_url": "https://github.com/numpy/numpy/blob/0b5dfb0fb2a678652b45849ccf96982f89f010a8/numpy/lib/tests/test_stride_tricks.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/0b5dfb0fb2a678652b45849ccf96982f89f010a8/numpy/lib/tests/test_stride_tricks.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test_stride_tricks.py?ref=0b5dfb0fb2a678652b45849ccf96982f89f010a8"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/12381",
+        "repo": "numpy",
+        "number": 12381,
+        "bug_id": "numpy_12381",
+        "title": "BUG: graceful DataSource __del__ when __init__ fails",
+        "body": "The [`__init__` method of DataSource](https://github.com/numpy/numpy/blob/master/numpy/lib/_datasource.py#L314) initializes instance attributes that are expected to exist during the cleanup performed by its `__del__` method.\r\n\r\nWhile this sounds sensible, if `__init__` fails for any reason and `self._istmpdest` is an attribute that doesn't exist, an `AttributeError` can be raised when trying to clean up the object with `__del__`. This probably only happens if the original source of the `Exception` in `__init__` is caught, so that the final reference to the instance object can be removed via `__del__`.\r\n\r\nThe above scenario can be observed to happen in the [Azure CI for the refguide check PR](https://dev.azure.com/numpy/numpy/_build/results?buildId=826&view=logs) in the macOS Job under \"Run Refguide Check\" slot.\r\n\r\nSpecifically, in #12253 the ported version of `refguide_check` has the function [`is_deprecated()`](https://github.com/numpy/numpy/pull/12253/files#diff-d5ff24498c294c9ac32f57f408e1d519R240), which calls `DataSource()` with an invalid keyword argument, preventing the `__init__` completion, and catching the `TypeError` with `except Exception`, which likely triggers `__del__` and produces the Traceback observed in the CI result.\r\n\r\nThis doesn't actually cause refguide_check to fail, but it would be nice to clean up that mess visible in the refguide check run report if possible.",
+        "date": "2018-11-15",
+        "merge_hash": "ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432",
+        "files": [
+            {
+                "sha": "30237b76f9a3e10671dbedcf0aa8d0085825669b",
+                "filename": "numpy/lib/_datasource.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432/numpy/lib/_datasource.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432/numpy/lib/_datasource.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/_datasource.py?ref=ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432"
+            },
+            {
+                "sha": "8eac16b589a0030d6dc285d5f1df676ca4614d2b",
+                "filename": "numpy/lib/tests/test__datasource.py",
+                "status": "modified",
+                "additions": 15,
+                "deletions": 0,
+                "changes": 15,
+                "blob_url": "https://github.com/numpy/numpy/blob/ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432/numpy/lib/tests/test__datasource.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432/numpy/lib/tests/test__datasource.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test__datasource.py?ref=ff8b0b21e0f17dbcc94fc87ba1194dcbbbe15432"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/10473",
+        "repo": "numpy",
+        "number": 10473,
+        "bug_id": "numpy_10473",
+        "title": "BUG: Fixed polydiv for Complex Numbers",
+        "body": "Polynomial Division failed if the coefficients were complex numbers. It raised the TypeError:\r\n```\r\nTypeError: Cannot cast ufunc subtract output from dtype('complex128') to dtype('float64') with casting rule 'same_kind'\r\n```\r\nThis issue led to failing of scipy.signal.residuez for complex numbers.",
+        "date": "2018-01-30",
+        "merge_hash": "e988535a06c8150e28e6858d7be0a5d2f7e08fa9",
+        "files": [
+            {
+                "sha": "41b5e2f648e98cebe25d53a2c88c2187fce33a2f",
+                "filename": "numpy/lib/polynomial.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/numpy/numpy/blob/e988535a06c8150e28e6858d7be0a5d2f7e08fa9/numpy/lib/polynomial.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/e988535a06c8150e28e6858d7be0a5d2f7e08fa9/numpy/lib/polynomial.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/polynomial.py?ref=e988535a06c8150e28e6858d7be0a5d2f7e08fa9"
+            },
+            {
+                "sha": "03915ceaddae97d86fa8d2fc3f347fcdba073427",
+                "filename": "numpy/lib/tests/test_polynomial.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 0,
+                "changes": 8,
+                "blob_url": "https://github.com/numpy/numpy/blob/e988535a06c8150e28e6858d7be0a5d2f7e08fa9/numpy/lib/tests/test_polynomial.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/e988535a06c8150e28e6858d7be0a5d2f7e08fa9/numpy/lib/tests/test_polynomial.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test_polynomial.py?ref=e988535a06c8150e28e6858d7be0a5d2f7e08fa9"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/9999",
+        "repo": "numpy",
+        "number": 9999,
+        "bug_id": "numpy_9999",
+        "title": "ENH: Make `np.in1d()` work for unorderable object arrays",
+        "body": "Fixes #9914 \r\n\r\n`np.in1d()` sorts large input arrays for efficiency reasons. However, the sorting throws an error when one of the input arrays contains objects that are not orderable:\r\n\r\n```python\r\n>>> np.isin(1, [None]*10)\r\nTypeError: unorderable types: NoneType() < NoneType()\r\n>>> np.isin([None], [1]*10)\r\nTypeError: unorderable types: int() < NoneType()\r\n```\r\n\r\nFix: Do not use sorting whenever one of the input arrays may contain arbitrary objects (`dtype.hasobject == True`).\r\n\r\n",
+        "date": "2017-11-18",
+        "merge_hash": "2d140f11857fc1353d6b2dcbb801e693128fd09a",
+        "files": [
+            {
+                "sha": "f3301af92b450794eb85ad20ad520607b7c7c437",
+                "filename": "numpy/lib/arraysetops.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 2,
+                "changes": 10,
+                "blob_url": "https://github.com/numpy/numpy/blob/2d140f11857fc1353d6b2dcbb801e693128fd09a/numpy/lib/arraysetops.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/2d140f11857fc1353d6b2dcbb801e693128fd09a/numpy/lib/arraysetops.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/arraysetops.py?ref=2d140f11857fc1353d6b2dcbb801e693128fd09a"
+            },
+            {
+                "sha": "b4787838d1f846d472589005d1b57e82816ec9bd",
+                "filename": "numpy/lib/tests/test_arraysetops.py",
+                "status": "modified",
+                "additions": 31,
+                "deletions": 0,
+                "changes": 31,
+                "blob_url": "https://github.com/numpy/numpy/blob/2d140f11857fc1353d6b2dcbb801e693128fd09a/numpy/lib/tests/test_arraysetops.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/2d140f11857fc1353d6b2dcbb801e693128fd09a/numpy/lib/tests/test_arraysetops.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test_arraysetops.py?ref=2d140f11857fc1353d6b2dcbb801e693128fd09a"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/9726",
+        "repo": "numpy",
+        "number": 9726,
+        "bug_id": "numpy_9726",
+        "title": "ENH: Better error message for savetxt when X.ndim > 2 or X.ndim = 0",
+        "body": "np.savetxt does not support saving arrays of dimension 0 or higher than 2.\r\nThis pull request improves the message of the error raised.\r\n\r\nBefore this patch, the error message was something like: `TypeError: Mismatch between array dtype ('float64') and format specifier ('%.18e %.18e')`",
+        "date": "2017-09-20",
+        "merge_hash": "e847a56a548b586a88084e8ec0dabfe8ae1f0e57",
+        "files": [
+            {
+                "sha": "7598b2c6b767aaa9d4f7c214a40f9f8aebc9e680",
+                "filename": "numpy/lib/npyio.py",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 2,
+                "changes": 7,
+                "blob_url": "https://github.com/numpy/numpy/blob/e847a56a548b586a88084e8ec0dabfe8ae1f0e57/numpy/lib/npyio.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/e847a56a548b586a88084e8ec0dabfe8ae1f0e57/numpy/lib/npyio.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/npyio.py?ref=e847a56a548b586a88084e8ec0dabfe8ae1f0e57"
+            },
+            {
+                "sha": "6f7fcc54cb52e06ecafb29958ee2725d21a616e8",
+                "filename": "numpy/lib/tests/test_io.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 0,
+                "changes": 6,
+                "blob_url": "https://github.com/numpy/numpy/blob/e847a56a548b586a88084e8ec0dabfe8ae1f0e57/numpy/lib/tests/test_io.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/e847a56a548b586a88084e8ec0dabfe8ae1f0e57/numpy/lib/tests/test_io.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/lib/tests/test_io.py?ref=e847a56a548b586a88084e8ec0dabfe8ae1f0e57"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/numpy/numpy/pull/8200",
+        "repo": "numpy",
+        "number": 8200,
+        "bug_id": "numpy_8200",
+        "title": "BUG: Fix structured array format functions ",
+        "body": "#### 1st commit\n- Preserving structured array element format, this commit fixes subarray format changed in PR #8160.\n- This commit also changes iterator for field name from `dtype_.descr` to `dtype_.names`. \n#### 2nd commit\n\nCloses #8172 \n### Reason of a test failure\n\ntest_format_on_flex_array_element (test_regression.TestRegression) fails because of the following `TypeError`.\n\n```\nIn [1]: import numpy as np\n   ...: \n   ...: dt = np.dtype([('date', '<M8[D]'), ('val', '<f8')])\n   ...: arr = np.array([('2000-01-01', 1)], dt)\n   ...: arr[0]\n\nTypeError: input must have type NumPy datetime\n```\n\nIt is because `array2string` calls `.item()` method of `arr[0]` and `.item()` casts the type of `date` field from `numpy.datetime64` to `datetime.time`.\nThen `DatetimeFormat` calls `datetime_as_string` with the `datetime.time` object and `TypeError` raised (See followings).\n\n```\nIn [11]: x = arr[0].item(); x\nOut[11]: (datetime.date(2000, 1, 1), 1.0)\n\nIn [12]: type(x[0])\nOut[12]: datetime.date\n\nIn [13]: np.datetime_as_string(x[0])\nTypeError: input must have type NumPy datetime\n\nIn [14]: type(arr[0][0])\nOut[14]: numpy.datetime64\n\nIn [15]: np.datetime_as_string(arr[0][0])\nOut[15]: '2000-01-01'\n```\n\nI don't understand the mechanism of this casting yet. \nIf this is a bug we should fix it. \nIf this is not a bug, I have to fix the code to treat this error in this PR.\n",
+        "date": "2016-11-02",
+        "merge_hash": "94b36b557ce7d88bbfe4091c59aa376764b7047d",
+        "files": [
+            {
+                "sha": "a9fcfcdaa07a8f4f8351e465f3a74a78a0d0ad3c",
+                "filename": "numpy/core/arrayprint.py",
+                "status": "modified",
+                "additions": 51,
+                "deletions": 48,
+                "changes": 99,
+                "blob_url": "https://github.com/numpy/numpy/blob/94b36b557ce7d88bbfe4091c59aa376764b7047d/numpy/core/arrayprint.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/94b36b557ce7d88bbfe4091c59aa376764b7047d/numpy/core/arrayprint.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/arrayprint.py?ref=94b36b557ce7d88bbfe4091c59aa376764b7047d"
+            },
+            {
+                "sha": "6c804a3b75c02b12c7210bad2ab0eed3091f73a4",
+                "filename": "numpy/core/tests/test_arrayprint.py",
+                "status": "modified",
+                "additions": 15,
+                "deletions": 1,
+                "changes": 16,
+                "blob_url": "https://github.com/numpy/numpy/blob/94b36b557ce7d88bbfe4091c59aa376764b7047d/numpy/core/tests/test_arrayprint.py",
+                "raw_url": "https://github.com/numpy/numpy/raw/94b36b557ce7d88bbfe4091c59aa376764b7047d/numpy/core/tests/test_arrayprint.py",
+                "contents_url": "https://api.github.com/repos/numpy/numpy/contents/numpy/core/tests/test_arrayprint.py?ref=94b36b557ce7d88bbfe4091c59aa376764b7047d"
+            }
+        ]
+    }
+]

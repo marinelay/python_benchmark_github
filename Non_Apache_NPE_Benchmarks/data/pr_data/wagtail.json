@@ -1,0 +1,193 @@
+[
+    {
+        "pr": "https://github.com/wagtail/wagtail/pull/6734",
+        "repo": "wagtail",
+        "number": 6734,
+        "bug_id": "wagtail_6734",
+        "title": "Telepath - prevent object ID collisions when packing",
+        "body": "A couple of fixes to the telepath packing mechanism - in increasing order of importance...\r\n\r\n* don't reassign IDs to nodes that already have them\r\n* fix try/catch for unsupported value types so that we're not masking unrelated TypeErrors that happen during `pack`\r\n* keep references to original objects encountered while walking the object tree, so that they don't get deallocated and their object IDs recycled (nasty!)",
+        "date": "2021-01-28",
+        "merge_hash": "bc6c469d92b2bb15331858aa4361baf172b0f705",
+        "files": [
+            {
+                "sha": "51c3d67f9a79a3d681bc5dc54ce1dbc799864b31",
+                "filename": "wagtail/core/telepath.py",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 0,
+                "changes": 5,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/bc6c469d92b2bb15331858aa4361baf172b0f705/wagtail/core/telepath.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/bc6c469d92b2bb15331858aa4361baf172b0f705/wagtail/core/telepath.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/core/telepath.py?ref=bc6c469d92b2bb15331858aa4361baf172b0f705"
+            },
+            {
+                "sha": "8aa1771cd4bb74269f22157a2f61b06db06722f0",
+                "filename": "wagtail/core/tests/test_telepath.py",
+                "status": "modified",
+                "additions": 0,
+                "deletions": 2,
+                "changes": 2,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/bc6c469d92b2bb15331858aa4361baf172b0f705/wagtail/core/tests/test_telepath.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/bc6c469d92b2bb15331858aa4361baf172b0f705/wagtail/core/tests/test_telepath.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/core/tests/test_telepath.py?ref=bc6c469d92b2bb15331858aa4361baf172b0f705"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/wagtail/wagtail/pull/5999",
+        "repo": "wagtail",
+        "number": 5999,
+        "bug_id": "wagtail_5999",
+        "title": "Allow page's variable name in context to be configurable",
+        "body": "`Page.context_object_name` can be used to define a more meaningful name\r\nfor the page variable in the template.\r\n\r\nIf defined a `context_object_name` is defined, the default `page` and `self` variables are still available for use in templates.\r\n\r\nI might have missed a trick adding the variable to the Page's Meta class but `django.db.models.options.Options`'s `contribute_to_class` method [raises a TypeError](https://github.com/django/django/blob/b4068bc65636cca6c2905aa8c40bea69bb0e4245/django/db/models/options.py#L198) for any unexpected properties found on the Meta.\r\n\r\nInstead, `context_object_name` lives on the `Page` and is configurable on a per-page basis.\r\n\r\nResolves #5213\r\n\r\n",
+        "date": "2020-05-01",
+        "merge_hash": "11561822839c0ad7d8a8c454eb3e2800e2fd78bd",
+        "files": [
+            {
+                "sha": "d2f337bf4bfeab7991650bab5900da9b4849984d",
+                "filename": "docs/reference/pages/model_reference.rst",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/docs/reference/pages/model_reference.rst",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/docs/reference/pages/model_reference.rst",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/docs/reference/pages/model_reference.rst?ref=11561822839c0ad7d8a8c454eb3e2800e2fd78bd"
+            },
+            {
+                "sha": "dad3d7932439c53e3761b36cb921c14355dd88e6",
+                "filename": "docs/topics/writing_templates.rst",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 0,
+                "changes": 2,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/docs/topics/writing_templates.rst",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/docs/topics/writing_templates.rst",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/docs/topics/writing_templates.rst?ref=11561822839c0ad7d8a8c454eb3e2800e2fd78bd"
+            },
+            {
+                "sha": "6c3e3ba24ba5d58ee53664c0671851ff5e1040b4",
+                "filename": "wagtail/core/models.py",
+                "status": "modified",
+                "additions": 8,
+                "deletions": 1,
+                "changes": 9,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/wagtail/core/models.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/wagtail/core/models.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/core/models.py?ref=11561822839c0ad7d8a8c454eb3e2800e2fd78bd"
+            },
+            {
+                "sha": "80e836a7aaf89deec75e486ed8f7bd3ec2b9de9c",
+                "filename": "wagtail/core/tests/test_page_model.py",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 0,
+                "changes": 11,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/wagtail/core/tests/test_page_model.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/11561822839c0ad7d8a8c454eb3e2800e2fd78bd/wagtail/core/tests/test_page_model.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/core/tests/test_page_model.py?ref=11561822839c0ad7d8a8c454eb3e2800e2fd78bd"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/wagtail/wagtail/pull/2585",
+        "repo": "wagtail",
+        "number": 2585,
+        "bug_id": "wagtail_2585",
+        "title": "Fixes RoutablePage throws a TypeError (#2584)",
+        "body": "FIX #2584 RoutablePage throws a TypeError if index route is not set\n",
+        "date": "2016-05-12",
+        "merge_hash": "0467e4795154e0d887b9e84ba5d42908e4236e63",
+        "files": [
+            {
+                "sha": "6409a64e097d18679e33bfd34c407d5feeea656f",
+                "filename": "wagtail/contrib/wagtailroutablepage/models.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 1,
+                "changes": 8,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/contrib/wagtailroutablepage/models.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/contrib/wagtailroutablepage/models.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/contrib/wagtailroutablepage/models.py?ref=0467e4795154e0d887b9e84ba5d42908e4236e63"
+            },
+            {
+                "sha": "d32a030b7e8ace876241d4f6773cb586881a2efb",
+                "filename": "wagtail/contrib/wagtailroutablepage/tests.py",
+                "status": "modified",
+                "additions": 11,
+                "deletions": 1,
+                "changes": 12,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/contrib/wagtailroutablepage/tests.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/contrib/wagtailroutablepage/tests.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/contrib/wagtailroutablepage/tests.py?ref=0467e4795154e0d887b9e84ba5d42908e4236e63"
+            },
+            {
+                "sha": "b64fedd5fd9328841ba35c39fa4d9bf38ef7f682",
+                "filename": "wagtail/tests/routablepage/migrations/0002_routablepagewithoutindexroutetest.py",
+                "status": "added",
+                "additions": 28,
+                "deletions": 0,
+                "changes": 28,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/tests/routablepage/migrations/0002_routablepagewithoutindexroutetest.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/tests/routablepage/migrations/0002_routablepagewithoutindexroutetest.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/tests/routablepage/migrations/0002_routablepagewithoutindexroutetest.py?ref=0467e4795154e0d887b9e84ba5d42908e4236e63"
+            },
+            {
+                "sha": "605be315657cadc02fac125e3632af30cb22d8ee",
+                "filename": "wagtail/tests/routablepage/models.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 0,
+                "changes": 4,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/tests/routablepage/models.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/tests/routablepage/models.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/tests/routablepage/models.py?ref=0467e4795154e0d887b9e84ba5d42908e4236e63"
+            },
+            {
+                "sha": "cf2ccad12d05fbf58dea5faaa7d1d55603db65b0",
+                "filename": "wagtail/tests/routablepage/templates/routablepagetests/routable_page_without_index_route_test.html",
+                "status": "added",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/tests/routablepage/templates/routablepagetests/routable_page_without_index_route_test.html",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/0467e4795154e0d887b9e84ba5d42908e4236e63/wagtail/tests/routablepage/templates/routablepagetests/routable_page_without_index_route_test.html",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/tests/routablepage/templates/routablepagetests/routable_page_without_index_route_test.html?ref=0467e4795154e0d887b9e84ba5d42908e4236e63"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/wagtail/wagtail/pull/721",
+        "repo": "wagtail",
+        "number": 721,
+        "bug_id": "wagtail_721",
+        "title": "Fixed JSON Oembed error on Python 3",
+        "body": "=> TypeError: the JSON object must be str, not 'bytes'\n",
+        "date": "2014-10-22",
+        "merge_hash": "945e0fe485b9bc7b828bcd96a5c0457cc31d06a8",
+        "files": [
+            {
+                "sha": "b78027e67a38992ff443c365b8708c87a4d3b323",
+                "filename": "wagtail/wagtailembeds/embeds.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/945e0fe485b9bc7b828bcd96a5c0457cc31d06a8/wagtail/wagtailembeds/embeds.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/945e0fe485b9bc7b828bcd96a5c0457cc31d06a8/wagtail/wagtailembeds/embeds.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/wagtailembeds/embeds.py?ref=945e0fe485b9bc7b828bcd96a5c0457cc31d06a8"
+            },
+            {
+                "sha": "6b1e0a0ececf1d7799bad2d8e235372bee520514",
+                "filename": "wagtail/wagtailembeds/tests.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/wagtail/wagtail/blob/945e0fe485b9bc7b828bcd96a5c0457cc31d06a8/wagtail/wagtailembeds/tests.py",
+                "raw_url": "https://github.com/wagtail/wagtail/raw/945e0fe485b9bc7b828bcd96a5c0457cc31d06a8/wagtail/wagtailembeds/tests.py",
+                "contents_url": "https://api.github.com/repos/wagtail/wagtail/contents/wagtail/wagtailembeds/tests.py?ref=945e0fe485b9bc7b828bcd96a5c0457cc31d06a8"
+            }
+        ]
+    }
+]

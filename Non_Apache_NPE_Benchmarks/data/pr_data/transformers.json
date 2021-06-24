@@ -1,0 +1,70 @@
+[
+    {
+        "pr": "https://github.com/huggingface/transformers/pull/8052",
+        "repo": "transformers",
+        "number": 8052,
+        "bug_id": "transformers_8052",
+        "title": "Fix a bug for `CallbackHandler.callback_list`",
+        "body": "# What does this PR do?\r\n\r\n<!--\r\nCongratulations! You've made it this far! You're not quite done yet though.\r\n\r\nOnce merged, your PR is going to appear in the release notes with the title you set, so make sure it's a great title that fully reflects the extent of your awesome contribution.\r\n\r\nThen, please replace this with a description of the change and which issue is fixed (if applicable). Please also include relevant motivation and context. List any dependencies (if any) that are required for this change.\r\n\r\nOnce you're done, someone will review your PR shortly (see the section \"Who can review?\" below to tag some potential reviewers). They may suggest changes to make the code even better. If no one reviewed your PR after a week has passed, don't hesitate to post a new comment @-mentioning the same persons---sometimes notifications get lost.\r\n-->\r\n\r\n<!-- Remove if not applicable -->\r\n\r\nFix a bug where `CallbackHandler.callback_list` fails when given callbacks are duplicated:\r\n\r\n```\r\n---------------------------------------------------------------------------\r\nTypeError                                 Traceback (most recent call last)\r\n<ipython-input-40-9605b122f4d1> in <module>()\r\n      2 from transformers.trainer import DEFAULT_CALLBACKS\r\n      3 \r\n----> 4 CallbackHandler(DEFAULT_CALLBACKS + [MLflowCallback], \"model\", \"optimizer\", \"lr_scheduler\")\r\n\r\n2 frames\r\n/usr/local/lib/python3.6/dist-packages/transformers/trainer_callback.py in __init__(self, callbacks, model, optimizer, lr_scheduler)\r\n    277         self.callbacks = []\r\n    278         for cb in callbacks:\r\n--> 279             self.add_callback(cb)\r\n    280         self.model = model\r\n    281         self.optimizer = optimizer\r\n\r\n/usr/local/lib/python3.6/dist-packages/transformers/trainer_callback.py in add_callback(self, callback)\r\n    299                 f\"You are adding a {cb_class} to the callbacks of this Trainer, but there is already one. The current\"\r\n    300                 + \"list of callbacks is\\n:\"\r\n--> 301                 + self.callback_list\r\n    302             )\r\n    303         self.callbacks.append(cb)\r\n\r\n/usr/local/lib/python3.6/dist-packages/transformers/trainer_callback.py in callback_list(self)\r\n    326     @property\r\n    327     def callback_list(self):\r\n--> 328         return \"\\n\".join(self.callbacks)\r\n    329 \r\n    330     def on_init_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl):\r\n\r\nTypeError: sequence item 0: expected str instance, DefaultFlowCallback found\r\n```\r\n\r\nCode to reproduce the bug:\r\n\r\n```python\r\nfrom transformers.trainer_callback import CallbackHandler\r\nfrom transformers.trainer import DEFAULT_CALLBACKS\r\n\r\nCallbackHandler(DEFAULT_CALLBACKS + [MLflowCallback], \"model\", \"optimizer\", \"lr_scheduler\")\r\n```\r\n\r\n## Before submitting\r\n- [ ] This PR fixes a typo or improves the docs (you can dismiss the other checks if that's the case).\r\n- [x] Did you read the [contributor guideline](https://github.com/huggingface/transformers/blob/master/CONTRIBUTING.md#start-contributing-pull-requests),\r\n      Pull Request section?\r\n- [ ] Was this discussed/approved via a Github issue or the [forum](https://discuss.huggingface.co/)? Please add a link\r\n      to the it if that's the case.\r\n- [ ] Did you make sure to update the documentation with your changes? Here are the\r\n      [documentation guidelines](https://github.com/huggingface/transformers/tree/master/docs), and\r\n      [here are tips on formatting docstrings](https://github.com/huggingface/transformers/tree/master/docs#writing-source-documentation).\r\n- [ ] Did you write any new necessary tests?\r\n\r\n\r\n## Who can review?\r\n\r\n@sgugger\r\n\r\nAnyone in the community is free to review the PR once the tests have passed. Feel free to tag\r\nmembers/contributors which may be interested in your PR.\r\n\r\n<!-- Your PR will be replied to more quickly if you can figure out the right person to tag with @\r\n\r\n If you know how to use git blame, that is the easiest way, otherwise, here is a rough guide of **who to tag**.\r\n Please tag fewer than 3 people.\r\n\r\n albert, bert, XLM: @LysandreJik\r\n GPT2: @LysandreJik, @patrickvonplaten\r\n tokenizers: @mfuntowicz\r\n Trainer: @sgugger\r\n Benchmarks: @patrickvonplaten\r\n Model Cards: @julien-c\r\n Translation: @sshleifer\r\n Summarization: @sshleifer\r\n examples/distillation: @VictorSanh\r\n nlp datasets: [different repo](https://github.com/huggingface/nlp)\r\n rust tokenizers: [different repo](https://github.com/huggingface/tokenizers)\r\n Text Generation: @patrickvonplaten, @TevenLeScao\r\n Blenderbot, Bart, Marian, Pegasus: @sshleifer\r\n T5: @patrickvonplaten\r\n Rag: @patrickvonplaten, @lhoestq\r\n EncoderDecoder: @patrickvonplaten\r\n Longformer, Reformer: @patrickvonplaten\r\n TransfoXL, XLNet: @TevenLeScao, @patrickvonplaten\r\n examples/seq2seq: @sshleifer\r\n examples/bert-loses-patience: @JetRunner\r\n tensorflow: @jplu\r\n examples/token-classification: @stefan-it\r\n documentation: @sgugger\r\n -->\r\n",
+        "date": "2020-10-27",
+        "merge_hash": "7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda",
+        "files": [
+            {
+                "sha": "398d5fd3513e1cfe9ffec62a16b1044a38df9f21",
+                "filename": "src/transformers/trainer_callback.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 1,
+                "changes": 2,
+                "blob_url": "https://github.com/huggingface/transformers/blob/7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda/src/transformers/trainer_callback.py",
+                "raw_url": "https://github.com/huggingface/transformers/raw/7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda/src/transformers/trainer_callback.py",
+                "contents_url": "https://api.github.com/repos/huggingface/transformers/contents/src/transformers/trainer_callback.py?ref=7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda"
+            },
+            {
+                "sha": "cc21d2d57ba12e84f8440b422e967d4638c51e45",
+                "filename": "tests/test_trainer_callback.py",
+                "status": "modified",
+                "additions": 7,
+                "deletions": 0,
+                "changes": 7,
+                "blob_url": "https://github.com/huggingface/transformers/blob/7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda/tests/test_trainer_callback.py",
+                "raw_url": "https://github.com/huggingface/transformers/raw/7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda/tests/test_trainer_callback.py",
+                "contents_url": "https://api.github.com/repos/huggingface/transformers/contents/tests/test_trainer_callback.py?ref=7bff0af0a4b09b9bfc3ade2532c2a3acdff95eda"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/huggingface/transformers/pull/6307",
+        "repo": "transformers",
+        "number": 6307,
+        "bug_id": "transformers_6307",
+        "title": "fix the shuffle agrument usage and the default",
+        "body": "This is a follow up to the recently merged PR to https://github.com/huggingface/transformers/pull/6027\r\n\r\nThe `shuffle` wasn't handled correctly:\r\n\r\n```\r\ncd examples/text-classification\r\n./run_pl.sh\r\n```\r\n```\r\nTypeError: get_dataloader() missing 1 required positional argument: 'shuffle'\r\n```\r\nthis fixes it",
+        "date": "2020-08-07",
+        "merge_hash": "175cd45e13b2e33d1efec9e2ac217cba99f6ae58",
+        "files": [
+            {
+                "sha": "7692081e9c34a6d1b008fd5f1147026a6c3ecc83",
+                "filename": "examples/seq2seq/test_seq2seq_examples.py",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/huggingface/transformers/blob/175cd45e13b2e33d1efec9e2ac217cba99f6ae58/examples/seq2seq/test_seq2seq_examples.py",
+                "raw_url": "https://github.com/huggingface/transformers/raw/175cd45e13b2e33d1efec9e2ac217cba99f6ae58/examples/seq2seq/test_seq2seq_examples.py",
+                "contents_url": "https://api.github.com/repos/huggingface/transformers/contents/examples/seq2seq/test_seq2seq_examples.py?ref=175cd45e13b2e33d1efec9e2ac217cba99f6ae58"
+            },
+            {
+                "sha": "cf706798b9f4b1392b0feaa46ada293732ea198b",
+                "filename": "examples/text-classification/run_pl_glue.py",
+                "status": "modified",
+                "additions": 2,
+                "deletions": 2,
+                "changes": 4,
+                "blob_url": "https://github.com/huggingface/transformers/blob/175cd45e13b2e33d1efec9e2ac217cba99f6ae58/examples/text-classification/run_pl_glue.py",
+                "raw_url": "https://github.com/huggingface/transformers/raw/175cd45e13b2e33d1efec9e2ac217cba99f6ae58/examples/text-classification/run_pl_glue.py",
+                "contents_url": "https://api.github.com/repos/huggingface/transformers/contents/examples/text-classification/run_pl_glue.py?ref=175cd45e13b2e33d1efec9e2ac217cba99f6ae58"
+            }
+        ]
+    }
+]

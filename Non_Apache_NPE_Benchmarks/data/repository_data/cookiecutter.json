@@ -1,0 +1,66 @@
+[
+    {
+        "url": "https://api.github.com/repos/cookiecutter/cookiecutter/issues/905",
+        "repository_url": "https://api.github.com/repos/cookiecutter/cookiecutter",
+        "labels_url": "https://api.github.com/repos/cookiecutter/cookiecutter/issues/905/labels{/name}",
+        "comments_url": "https://api.github.com/repos/cookiecutter/cookiecutter/issues/905/comments",
+        "events_url": "https://api.github.com/repos/cookiecutter/cookiecutter/issues/905/events",
+        "html_url": "https://github.com/cookiecutter/cookiecutter/pull/905",
+        "id": 209955105,
+        "node_id": "MDExOlB1bGxSZXF1ZXN0MTA3NzY0MzA0",
+        "number": 905,
+        "title": "Handle subprocess output.",
+        "user": {
+            "login": "jmcarp",
+            "id": 1633460,
+            "node_id": "MDQ6VXNlcjE2MzM0NjA=",
+            "avatar_url": "https://avatars.githubusercontent.com/u/1633460?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/jmcarp",
+            "html_url": "https://github.com/jmcarp",
+            "followers_url": "https://api.github.com/users/jmcarp/followers",
+            "following_url": "https://api.github.com/users/jmcarp/following{/other_user}",
+            "gists_url": "https://api.github.com/users/jmcarp/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/jmcarp/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/jmcarp/subscriptions",
+            "organizations_url": "https://api.github.com/users/jmcarp/orgs",
+            "repos_url": "https://api.github.com/users/jmcarp/repos",
+            "events_url": "https://api.github.com/users/jmcarp/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/jmcarp/received_events",
+            "type": "User",
+            "site_admin": false
+        },
+        "labels": [
+            {
+                "id": 47798245,
+                "node_id": "MDU6TGFiZWw0Nzc5ODI0NQ==",
+                "url": "https://api.github.com/repos/cookiecutter/cookiecutter/labels/bug",
+                "name": "bug",
+                "color": "fc2929",
+                "default": true,
+                "description": "This issue/PR relates to a bug."
+            }
+        ],
+        "state": "closed",
+        "locked": false,
+        "assignee": null,
+        "assignees": [],
+        "milestone": null,
+        "comments": 10,
+        "created_at": "2017-02-24T04:06:20Z",
+        "updated_at": "2017-08-11T16:53:37Z",
+        "closed_at": "2017-08-11T16:53:20Z",
+        "author_association": "CONTRIBUTOR",
+        "active_lock_reason": null,
+        "draft": false,
+        "pull_request": {
+            "url": "https://api.github.com/repos/cookiecutter/cookiecutter/pulls/905",
+            "html_url": "https://github.com/cookiecutter/cookiecutter/pull/905",
+            "diff_url": "https://github.com/cookiecutter/cookiecutter/pull/905.diff",
+            "patch_url": "https://github.com/cookiecutter/cookiecutter/pull/905.patch"
+        },
+        "body": "Subprocess returns a bytestring, so comparisons with strings in python\r\n3.x throw unexpected errors. This patch decodes bytestrings to strings\r\nand updates tests to return realistic output.\r\n\r\nHere's some sample output when the target repo isn't found:\r\n\r\n```\r\n(cookiecutter)jmcarp@Joshuas-MBP-3|~/code/cookiecutter on master!\r\n\u00b1 cookiecutter https://github.com/not/exists\r\nTraceback (most recent call last):\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/cookiecutter/vcs.py\", line 123, in clone\r\n    stderr=subprocess.STDOUT,\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/subprocess.py\", line 336, in check_output\r\n    **kwargs).stdout\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/subprocess.py\", line 418, in run\r\n    output=stdout, stderr=stderr)\r\nsubprocess.CalledProcessError: Command '['git', 'clone', 'https://github.com/not/exists']' returned non-zero exit status 128.\r\n\r\nDuring handling of the above exception, another exception occurred:\r\n\r\nTraceback (most recent call last):\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/bin/cookiecutter\", line 11, in <module>\r\n    load_entry_point('cookiecutter==1.5.1', 'console_scripts', 'cookiecutter')()\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/click/core.py\", line 722, in __call__\r\n    return self.main(*args, **kwargs)\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/click/core.py\", line 697, in main\r\n    rv = self.invoke(ctx)\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/click/core.py\", line 895, in invoke\r\n    return ctx.invoke(self.callback, **ctx.params)\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/click/core.py\", line 535, in invoke\r\n    return callback(*args, **kwargs)\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/cookiecutter/cli.py\", line 123, in main\r\n    default_config=default_config,\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/cookiecutter/main.py\", line 63, in cookiecutter\r\n    no_input=no_input,\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/cookiecutter/repository.py\", line 84, in determine_repo_dir\r\n    no_input=no_input,\r\n  File \"/Users/jmcarp/miniconda/envs/cookiecutter/lib/python3.6/site-packages/cookiecutter/vcs.py\", line 132, in clone\r\n    if 'not found' in clone_error.output.lower():\r\nTypeError: a bytes-like object is required, not 'str'\r\n```",
+        "performed_via_github_app": null,
+        "score": 1.0
+    }
+]

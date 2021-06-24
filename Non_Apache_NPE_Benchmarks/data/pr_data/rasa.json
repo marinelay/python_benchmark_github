@@ -1,0 +1,92 @@
+[
+    {
+        "pr": "https://github.com/RasaHQ/rasa/pull/8704",
+        "repo": "rasa",
+        "number": 8704,
+        "bug_id": "rasa_8704",
+        "title": "Pickling exceptions",
+        "body": "**Proposed changes**:\r\n- Fix error thrown when attempting to pickle `UnsupportedModelError` and `InvalidModelError`\r\n\r\nI needed to pass exceptions from background processes to be handled in the main process, but it was these exceptions were causing issues during pickling. The fix is easy, and hopefully a better practice especially for a project like rasa which relies on multiprocessing.\r\n\r\nPrevious error:\r\n\r\n```python\r\ndef test_exception_pickling():\r\n        exception = UnsupportedModelError(\"test run\")\r\n>       cycled_exception = pickle.loads(pickle.dumps(exception))\r\nE       TypeError: __init__() missing 1 required positional argument: 'message'\r\n```\r\n\r\n**Status (please check what you already did)**:\r\n- [x] added some tests for the functionality\r\n- [x] updated the documentation\r\n- [x] updated the changelog (please check [changelog](https://github.com/RasaHQ/rasa/tree/main/changelog) for instructions)\r\n- [x] reformat files using `black` (please check [Readme](https://github.com/RasaHQ/rasa#code-style) for instructions)\r\n",
+        "date": "2021-06-17",
+        "merge_hash": "1137e29ab90386336a0527c31ccc7e8e73dfd0b6",
+        "files": [
+            {
+                "sha": "df7cd2b2ffe72edc664320b1fc275a94ca3180ad",
+                "filename": "changelog/8704.misc.md",
+                "status": "added",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/RasaHQ/rasa/blob/1137e29ab90386336a0527c31ccc7e8e73dfd0b6/changelog/8704.misc.md",
+                "raw_url": "https://github.com/RasaHQ/rasa/raw/1137e29ab90386336a0527c31ccc7e8e73dfd0b6/changelog/8704.misc.md",
+                "contents_url": "https://api.github.com/repos/RasaHQ/rasa/contents/changelog/8704.misc.md?ref=1137e29ab90386336a0527c31ccc7e8e73dfd0b6"
+            },
+            {
+                "sha": "3e91d6a6a32f1067e8bb9bd259663598a00a3152",
+                "filename": "rasa/nlu/model.py",
+                "status": "modified",
+                "additions": 4,
+                "deletions": 2,
+                "changes": 6,
+                "blob_url": "https://github.com/RasaHQ/rasa/blob/1137e29ab90386336a0527c31ccc7e8e73dfd0b6/rasa/nlu/model.py",
+                "raw_url": "https://github.com/RasaHQ/rasa/raw/1137e29ab90386336a0527c31ccc7e8e73dfd0b6/rasa/nlu/model.py",
+                "contents_url": "https://api.github.com/repos/RasaHQ/rasa/contents/rasa/nlu/model.py?ref=1137e29ab90386336a0527c31ccc7e8e73dfd0b6"
+            },
+            {
+                "sha": "90bab383082487dcf17aebb287af4d44796def12",
+                "filename": "tests/nlu/test_model.py",
+                "status": "added",
+                "additions": 9,
+                "deletions": 0,
+                "changes": 9,
+                "blob_url": "https://github.com/RasaHQ/rasa/blob/1137e29ab90386336a0527c31ccc7e8e73dfd0b6/tests/nlu/test_model.py",
+                "raw_url": "https://github.com/RasaHQ/rasa/raw/1137e29ab90386336a0527c31ccc7e8e73dfd0b6/tests/nlu/test_model.py",
+                "contents_url": "https://api.github.com/repos/RasaHQ/rasa/contents/tests/nlu/test_model.py?ref=1137e29ab90386336a0527c31ccc7e8e73dfd0b6"
+            }
+        ]
+    },
+    {
+        "pr": "https://github.com/RasaHQ/rasa/pull/3732",
+        "repo": "rasa",
+        "number": 3732,
+        "bug_id": "rasa_3732",
+        "title": "Fix TypeError with SklearnPolicy",
+        "body": "When training `SklearnPolicy` the method to retrieve the\r\nmodel failed when non-featurizer parameters were passed to\r\n`.train`, e.g. failing with:\r\n\r\n    TypeError: model_architecture() got an unexpected keyword\r\n               argument 'dump_stories'\r\n\r\nWhile `model_architecture` filtered the params, at some point\r\nthe `**kwargs` parameter was lost. This issue is fixed\r\nby reintroducing the parameter and updating the training\r\nparameters with the `kwargs` passed to `train`.\r\n\r\n**Proposed changes**:\r\n- ...\r\n\r\n**Status (please check what you already did)**:\r\n- [x] made PR ready for code review\r\n- [x] added some tests for the functionality\r\n- [ ] updated the documentation\r\n- [x] updated the changelog\r\n- [x] reformat files using `black` (please check [Readme](https://github.com/RasaHQ/rasa_nlu#code-style) for instructions)\r\n",
+        "date": "2019-06-12",
+        "merge_hash": "9c3affff47496b6e8848d41acf5ab885b7037c30",
+        "files": [
+            {
+                "sha": "ec54cee91989b106cb2f8f51d7a5c38a0a35058f",
+                "filename": "CHANGELOG.rst",
+                "status": "modified",
+                "additions": 1,
+                "deletions": 0,
+                "changes": 1,
+                "blob_url": "https://github.com/RasaHQ/rasa/blob/9c3affff47496b6e8848d41acf5ab885b7037c30/CHANGELOG.rst",
+                "raw_url": "https://github.com/RasaHQ/rasa/raw/9c3affff47496b6e8848d41acf5ab885b7037c30/CHANGELOG.rst",
+                "contents_url": "https://api.github.com/repos/RasaHQ/rasa/contents/CHANGELOG.rst?ref=9c3affff47496b6e8848d41acf5ab885b7037c30"
+            },
+            {
+                "sha": "7c6f26aa2ff28f681414be752cc1301967b4b4db",
+                "filename": "rasa/core/policies/sklearn_policy.py",
+                "status": "modified",
+                "additions": 5,
+                "deletions": 6,
+                "changes": 11,
+                "blob_url": "https://github.com/RasaHQ/rasa/blob/9c3affff47496b6e8848d41acf5ab885b7037c30/rasa/core/policies/sklearn_policy.py",
+                "raw_url": "https://github.com/RasaHQ/rasa/raw/9c3affff47496b6e8848d41acf5ab885b7037c30/rasa/core/policies/sklearn_policy.py",
+                "contents_url": "https://api.github.com/repos/RasaHQ/rasa/contents/rasa/core/policies/sklearn_policy.py?ref=9c3affff47496b6e8848d41acf5ab885b7037c30"
+            },
+            {
+                "sha": "fb5ddaf8ce4c302980e746c40a1918a977fdf88d",
+                "filename": "tests/core/test_policies.py",
+                "status": "modified",
+                "additions": 6,
+                "deletions": 0,
+                "changes": 6,
+                "blob_url": "https://github.com/RasaHQ/rasa/blob/9c3affff47496b6e8848d41acf5ab885b7037c30/tests/core/test_policies.py",
+                "raw_url": "https://github.com/RasaHQ/rasa/raw/9c3affff47496b6e8848d41acf5ab885b7037c30/tests/core/test_policies.py",
+                "contents_url": "https://api.github.com/repos/RasaHQ/rasa/contents/tests/core/test_policies.py?ref=9c3affff47496b6e8848d41acf5ab885b7037c30"
+            }
+        ]
+    }
+]
