@@ -24,6 +24,8 @@ if cd ${repo}; then
         git checkout HEAD~1 ${file}
     done
 
+    ../dependency_setup.sh
+
     pyenv deactivate
 
     cd ..
