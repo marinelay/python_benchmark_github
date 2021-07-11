@@ -5,7 +5,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source $HOME/.cargo/env
 
 pip install -r ../requirements.txt
-pip install -e ".[devel, google, postgre]"
+pip install -e ".[devel]"
 export PYTHONIOENCODING=utf-8
 
 airflow initdb
