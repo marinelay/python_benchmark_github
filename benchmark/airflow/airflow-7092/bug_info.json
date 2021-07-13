@@ -1,5 +1,5 @@
 {
-	"py_version": "3.8.1",
+	"py_version": "3.6.9",
 	"repo": "airflow",
 	"git": "https://github.com/apache/airflow.git",
 	"fixed_pr_id": "96ee8bde80d49bb31391bb3b73ce776855b73670",
