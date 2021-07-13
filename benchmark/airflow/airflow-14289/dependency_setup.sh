@@ -9,4 +9,6 @@ pip install -r ../requirements.txt
 pip install -e ".[devel]"
 export PYTHONIOENCODING=utf-8
 
+pip install apache-airflow-providers-sqlite==1.0.1 apache-airflow-providers-ftp==1.0.1 apache-airflow-providers-http==1.1.0 apache-airflow-providers-imap==1.0.1
+
 airflow db init
