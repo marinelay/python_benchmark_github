@@ -1,5 +1,5 @@
 {
-	"py_version": "..",
+	"py_version": "3.6.9",
 	"repo": "compose",
 	"git": "https://github.com/docker/compose.git",
 	"fixed_pr_id": "50faddb683d76567d64c8ef7dd1a09358f68a779",

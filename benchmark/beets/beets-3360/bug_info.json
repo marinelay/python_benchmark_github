@@ -1,5 +1,5 @@
 {
-	"py_version": "..",
+	"py_version": "3.6.9",
 	"repo": "beets",
 	"git": "https://github.com/beetbox/beets.git",
 	"fixed_pr_id": "dc7e4337680f7166167e5f08814fb2aee99ae155",
