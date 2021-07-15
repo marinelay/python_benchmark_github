@@ -1,5 +1,5 @@
 {
-	"py_version": "..",
+	"py_version": "3.6.9",
 	"repo": "core",
 	"git": "https://github.com/home-assistant/core.git",
 	"fixed_pr_id": "18935440edaf8e5f1d9bb7a3e6432f606c700fde",
