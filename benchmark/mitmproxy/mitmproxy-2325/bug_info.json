@@ -1,5 +1,5 @@
 {
-	"py_version": "..",
+	"py_version": "3.6.9",
 	"repo": "mitmproxy",
 	"git": "https://github.com/mitmproxy/mitmproxy.git",
 	"fixed_pr_id": "3e85dfd24227b65762a7f7ca4758dc72ed7e3d91",

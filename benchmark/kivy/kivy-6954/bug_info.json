@@ -1,5 +1,5 @@
 {
-	"py_version": "..",
+	"py_version": "3.6.9",
 	"repo": "kivy",
 	"git": "https://github.com/kivy/kivy.git",
 	"fixed_pr_id": "855c9630ef84c31e261ef36a008e870195c13748",

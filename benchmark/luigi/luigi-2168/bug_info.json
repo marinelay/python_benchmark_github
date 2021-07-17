@@ -1,5 +1,5 @@
 {
-	"py_version": "..",
+	"py_version": "3.6.9",
 	"repo": "luigi",
 	"git": "https://github.com/spotify/luigi.git",
 	"fixed_pr_id": "484095b87438a9eaad049c8d599c8993e3aea978",
