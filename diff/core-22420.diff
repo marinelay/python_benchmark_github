@@ -1,0 +1,274 @@
+diff --git a/homeassistant/components/cloud/__init__.py b/homeassistant/components/cloud/__init__.py
+index 9517971b16d8d..76a768385f850 100644
+--- a/homeassistant/components/cloud/__init__.py
++++ b/homeassistant/components/cloud/__init__.py
+@@ -24,7 +24,7 @@
+     CONF_USER_POOL_ID, DOMAIN, MODE_DEV, MODE_PROD)
+ from .prefs import CloudPreferences
+ 
+-REQUIREMENTS = ['hass-nabucasa==0.10']
++REQUIREMENTS = ['hass-nabucasa==0.11']
+ DEPENDENCIES = ['http']
+ 
+ _LOGGER = logging.getLogger(__name__)
+diff --git a/homeassistant/components/cloud/binary_sensor.py b/homeassistant/components/cloud/binary_sensor.py
+index 874c3420c5844..19a6528e3218f 100644
+--- a/homeassistant/components/cloud/binary_sensor.py
++++ b/homeassistant/components/cloud/binary_sensor.py
+@@ -1,6 +1,7 @@
+ """Support for Home Assistant Cloud binary sensors."""
++import asyncio
++
+ from homeassistant.components.binary_sensor import BinarySensorDevice
+-from homeassistant.core import callback
+ from homeassistant.helpers.dispatcher import async_dispatcher_connect
+ 
+ from .const import DISPATCHER_REMOTE_UPDATE, DOMAIN
+@@ -8,6 +9,9 @@
+ DEPENDENCIES = ['cloud']
+ 
+ 
++WAIT_UNTIL_CHANGE = 3
++
++
+ async def async_setup_platform(
+         hass, config, async_add_entities, discovery_info=None):
+     """Set up the cloud binary sensors."""
+@@ -58,10 +62,10 @@ def should_poll(self) -> bool:
+ 
+     async def async_added_to_hass(self):
+         """Register update dispatcher."""
+-        @callback
+-        def async_state_update(data):
++        async def async_state_update(data):
+             """Update callback."""
+-            self.async_write_ha_state()
++            await asyncio.sleep(WAIT_UNTIL_CHANGE)
++            self.async_schedule_update_ha_state()
+ 
+         self._unsub_dispatcher = async_dispatcher_connect(
+             self.hass, DISPATCHER_REMOTE_UPDATE, async_state_update)
+diff --git a/homeassistant/components/hassio/__init__.py b/homeassistant/components/hassio/__init__.py
+index 7f85c8cfc3fc6..f89a6539cd0fc 100644
+--- a/homeassistant/components/hassio/__init__.py
++++ b/homeassistant/components/hassio/__init__.py
+@@ -145,8 +145,7 @@ async def async_setup(hass, config):
+     hass.data[DOMAIN] = hassio = HassIO(hass.loop, websession, host)
+ 
+     if not await hassio.is_connected():
+-        _LOGGER.error("Not connected with Hass.io")
+-        return False
++        _LOGGER.warning("Not connected with Hass.io / system to busy!")
+ 
+     store = hass.helpers.storage.Store(STORAGE_VERSION, STORAGE_KEY)
+     data = await store.async_load()
+diff --git a/homeassistant/components/hassio/handler.py b/homeassistant/components/hassio/handler.py
+index 7eb3245c0df5d..7eddc639690a0 100644
+--- a/homeassistant/components/hassio/handler.py
++++ b/homeassistant/components/hassio/handler.py
+@@ -62,7 +62,7 @@ def is_connected(self):
+ 
+         This method return a coroutine.
+         """
+-        return self.send_command("/supervisor/ping", method="get")
++        return self.send_command("/supervisor/ping", method="get", timeout=15)
+ 
+     @_api_data
+     def get_homeassistant_info(self):
+diff --git a/homeassistant/components/opentherm_gw/__init__.py b/homeassistant/components/opentherm_gw/__init__.py
+index 7676806cfdfb9..acb277c0ef5d0 100644
+--- a/homeassistant/components/opentherm_gw/__init__.py
++++ b/homeassistant/components/opentherm_gw/__init__.py
+@@ -15,7 +15,7 @@
+ 
+ import homeassistant.helpers.config_validation as cv
+ 
+-REQUIREMENTS = ['pyotgw==0.4b1']
++REQUIREMENTS = ['pyotgw==0.4b2']
+ 
+ _LOGGER = logging.getLogger(__name__)
+ 
+@@ -115,14 +115,15 @@ async def async_setup(hass, config):
+         DATA_GW_VARS: pyotgw.vars,
+         DATA_LATEST_STATUS: {}
+     }
+-    hass.async_create_task(connect_and_subscribe(
+-        hass, conf[CONF_DEVICE], gateway))
+     hass.async_create_task(register_services(hass, gateway))
+     hass.async_create_task(async_load_platform(
+         hass, 'climate', DOMAIN, conf.get(CONF_CLIMATE), config))
+     if monitored_vars:
+         hass.async_create_task(setup_monitored_vars(
+             hass, config, monitored_vars))
++    # Schedule directly on the loop to avoid blocking HA startup.
++    hass.loop.create_task(
++        connect_and_subscribe(hass, conf[CONF_DEVICE], gateway))
+     return True
+ 
+ 
+diff --git a/homeassistant/components/opentherm_gw/climate.py b/homeassistant/components/opentherm_gw/climate.py
+index 584be4c0c6483..1a7c031638f79 100644
+--- a/homeassistant/components/opentherm_gw/climate.py
++++ b/homeassistant/components/opentherm_gw/climate.py
+@@ -37,8 +37,8 @@ def __init__(self, hass, config):
+         self.floor_temp = config.get(CONF_FLOOR_TEMP)
+         self.temp_precision = config.get(CONF_PRECISION)
+         self._current_operation = STATE_IDLE
+-        self._current_temperature = 0.0
+-        self._target_temperature = 0.0
++        self._current_temperature = None
++        self._target_temperature = None
+         self._away_mode_a = None
+         self._away_mode_b = None
+         self._away_state_a = False
+@@ -124,6 +124,8 @@ def current_operation(self):
+     @property
+     def current_temperature(self):
+         """Return the current temperature."""
++        if self._current_temperature is None:
++            return
+         if self.floor_temp is True:
+             if self.temp_precision == PRECISION_HALVES:
+                 return int(2 * self._current_temperature) / 2
+diff --git a/homeassistant/components/ps4/config_flow.py b/homeassistant/components/ps4/config_flow.py
+index d000ed1f7e7ee..e0b41dfadd575 100644
+--- a/homeassistant/components/ps4/config_flow.py
++++ b/homeassistant/components/ps4/config_flow.py
+@@ -79,7 +79,11 @@ async def async_step_link(self, user_input=None):
+ 
+         # If entry exists check that devices found aren't configured.
+         if self.hass.config_entries.async_entries(DOMAIN):
++            creds = {}
+             for entry in self.hass.config_entries.async_entries(DOMAIN):
++                # Retrieve creds from entry
++                creds['data'] = entry.data[CONF_TOKEN]
++                # Retrieve device data from entry
+                 conf_devices = entry.data['devices']
+                 for c_device in conf_devices:
+                     if c_device['host'] in device_list:
+@@ -88,6 +92,11 @@ async def async_step_link(self, user_input=None):
+             # If list is empty then all devices are configured.
+             if not device_list:
+                 return self.async_abort(reason='devices_configured')
++            # Add existing creds for linking. Should be only 1.
++            if not creds:
++                # Abort if creds is missing.
++                return self.async_abort(reason='credential_error')
++            self.creds = creds['data']
+ 
+         # Login to PS4 with user data.
+         if user_input is not None:
+diff --git a/homeassistant/components/stream/__init__.py b/homeassistant/components/stream/__init__.py
+index 3f715af0e047d..c881ec1276a96 100644
+--- a/homeassistant/components/stream/__init__.py
++++ b/homeassistant/components/stream/__init__.py
+@@ -44,6 +44,11 @@ def request_stream(hass, stream_source, *, fmt='hls',
+     if options is None:
+         options = {}
+ 
++    # For RTSP streams, prefer TCP
++    if isinstance(stream_source, str) \
++            and stream_source[:7] == 'rtsp://' and not options:
++        options['rtsp_flags'] = 'prefer_tcp'
++
+     try:
+         streams = hass.data[DOMAIN][ATTR_STREAMS]
+         stream = streams.get(stream_source)
+diff --git a/homeassistant/components/stream/core.py b/homeassistant/components/stream/core.py
+index 665803d38ebca..59c0a6b650fd4 100644
+--- a/homeassistant/components/stream/core.py
++++ b/homeassistant/components/stream/core.py
+@@ -128,6 +128,7 @@ def put(self, segment: Segment) -> None:
+     @callback
+     def _timeout(self, _now=None):
+         """Handle stream timeout."""
++        self._unsub = None
+         if self._stream.keepalive:
+             self.idle = True
+             self._stream.check_idle()
+diff --git a/homeassistant/const.py b/homeassistant/const.py
+index ba33a566c9ac5..d8bd84a079a88 100644
+--- a/homeassistant/const.py
++++ b/homeassistant/const.py
+@@ -2,7 +2,7 @@
+ """Constants used by Home Assistant components."""
+ MAJOR_VERSION = 0
+ MINOR_VERSION = 90
+-PATCH_VERSION = '1'
++PATCH_VERSION = '2'
+ __short_version__ = '{}.{}'.format(MAJOR_VERSION, MINOR_VERSION)
+ __version__ = '{}.{}'.format(__short_version__, PATCH_VERSION)
+ REQUIRED_PYTHON_VER = (3, 5, 3)
+diff --git a/requirements_all.txt b/requirements_all.txt
+index 45d9386cbd8cb..814f80c159740 100644
+--- a/requirements_all.txt
++++ b/requirements_all.txt
+@@ -524,7 +524,7 @@ habitipy==0.2.0
+ hangups==0.4.6
+ 
+ # homeassistant.components.cloud
+-hass-nabucasa==0.10
++hass-nabucasa==0.11
+ 
+ # homeassistant.components.mqtt.server
+ hbmqtt==0.9.4
+@@ -1205,7 +1205,7 @@ pyoppleio==1.0.5
+ pyota==2.0.5
+ 
+ # homeassistant.components.opentherm_gw
+-pyotgw==0.4b1
++pyotgw==0.4b2
+ 
+ # homeassistant.auth.mfa_modules.notify
+ # homeassistant.auth.mfa_modules.totp
+diff --git a/requirements_test_all.txt b/requirements_test_all.txt
+index 3340bb40d9cf3..fcaf93701fe24 100644
+--- a/requirements_test_all.txt
++++ b/requirements_test_all.txt
+@@ -114,7 +114,7 @@ ha-ffmpeg==1.11
+ hangups==0.4.6
+ 
+ # homeassistant.components.cloud
+-hass-nabucasa==0.10
++hass-nabucasa==0.11
+ 
+ # homeassistant.components.mqtt.server
+ hbmqtt==0.9.4
+diff --git a/tests/components/cloud/test_binary_sensor.py b/tests/components/cloud/test_binary_sensor.py
+index 938829b809bdb..f6d8783a609a7 100644
+--- a/tests/components/cloud/test_binary_sensor.py
++++ b/tests/components/cloud/test_binary_sensor.py
+@@ -7,6 +7,9 @@
+ 
+ async def test_remote_connection_sensor(hass):
+     """Test the remote connection sensor."""
++    from homeassistant.components.cloud import binary_sensor as bin_sensor
++    bin_sensor.WAIT_UNTIL_CHANGE = 0
++
+     assert await async_setup_component(hass, 'cloud', {'cloud': {}})
+     cloud = hass.data['cloud'] = Mock()
+     cloud.remote.certificate = None
+diff --git a/tests/components/hassio/test_init.py b/tests/components/hassio/test_init.py
+index 1326805fc9394..dafb8f1a028d1 100644
+--- a/tests/components/hassio/test_init.py
++++ b/tests/components/hassio/test_init.py
+@@ -196,15 +196,16 @@ def test_fail_setup_without_environ_var(hass):
+ 
+ 
+ @asyncio.coroutine
+-def test_fail_setup_cannot_connect(hass):
++def test_fail_setup_cannot_connect(hass, caplog):
+     """Fail setup if cannot connect."""
+     with patch.dict(os.environ, MOCK_ENVIRON), \
+             patch('homeassistant.components.hassio.HassIO.is_connected',
+                   Mock(return_value=mock_coro(None))):
+         result = yield from async_setup_component(hass, 'hassio', {})
+-        assert not result
++        assert result
+ 
+-    assert not hass.components.hassio.is_hassio()
++    assert hass.components.hassio.is_hassio()
++    assert "Not connected with Hass.io / system to busy!" in caplog.text
+ 
+ 
+ @asyncio.coroutine

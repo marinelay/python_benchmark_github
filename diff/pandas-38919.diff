@@ -1,0 +1,93 @@
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index 45f8344a1ebe0..5b58ba14a1eff 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -273,6 +273,7 @@ I/O
+ - Allow custom error values for parse_dates argument of :func:`read_sql`, :func:`read_sql_query` and :func:`read_sql_table` (:issue:`35185`)
+ - Bug in :func:`to_hdf` raising ``KeyError`` when trying to apply
+   for subclasses of ``DataFrame`` or ``Series`` (:issue:`33748`).
++- Bug in :meth:`~HDFStore.put` raising a wrong ``TypeError`` when saving a DataFrame with non-string dtype (:issue:`34274`)
+ - Bug in :func:`json_normalize` resulting in the first element of a generator object not being included in the returned ``DataFrame`` (:issue:`35923`)
+ - Bug in :func:`read_excel` forward filling :class:`MultiIndex` names with multiple header and index columns specified (:issue:`34673`)
+ - :func:`pandas.read_excel` now respects :func:``pandas.set_option`` (:issue:`34252`)
+diff --git a/pandas/io/pytables.py b/pandas/io/pytables.py
+index ceaf6e1ac21e5..d2b02038f8b78 100644
+--- a/pandas/io/pytables.py
++++ b/pandas/io/pytables.py
+@@ -3915,6 +3915,7 @@ def _create_axes(
+                 nan_rep=nan_rep,
+                 encoding=self.encoding,
+                 errors=self.errors,
++                block_columns=b_items,
+             )
+             adj_name = _maybe_adjust_name(new_name, self.version)
+ 
+@@ -4878,7 +4879,14 @@ def _unconvert_index(
+ 
+ 
+ def _maybe_convert_for_string_atom(
+-    name: str, block: "Block", existing_col, min_itemsize, nan_rep, encoding, errors
++    name: str,
++    block: "Block",
++    existing_col,
++    min_itemsize,
++    nan_rep,
++    encoding,
++    errors,
++    block_columns: List[str],
+ ):
+     if not block.is_object:
+         return block.values
+@@ -4912,14 +4920,20 @@ def _maybe_convert_for_string_atom(
+ 
+         # we cannot serialize this data, so report an exception on a column
+         # by column basis
+-        for i in range(len(block.shape[0])):
++
++        # expected behaviour:
++        # search block for a non-string object column by column
++        for i in range(block.shape[0]):
+             col = block.iget(i)
+             inferred_type = lib.infer_dtype(col, skipna=False)
+             if inferred_type != "string":
+-                iloc = block.mgr_locs.indexer[i]
++                error_column_label = (
++                    block_columns[i] if len(block_columns) > i else f"No.{i}"
++                )
+                 raise TypeError(
+-                    f"Cannot serialize the column [{iloc}] because\n"
+-                    f"its data contents are [{inferred_type}] object dtype"
++                    f"Cannot serialize the column [{error_column_label}]\n"
++                    f"because its data contents are not [string] but "
++                    f"[{inferred_type}] object dtype"
+                 )
+ 
+     # itemsize is the maximum length of a string (along any dimension)
+diff --git a/pandas/tests/io/pytables/test_store.py b/pandas/tests/io/pytables/test_store.py
+index 7e288ec6f5063..3f0fd6e7483f8 100644
+--- a/pandas/tests/io/pytables/test_store.py
++++ b/pandas/tests/io/pytables/test_store.py
+@@ -2055,7 +2055,10 @@ def test_append_raise(self, setup_path):
+             df = tm.makeDataFrame()
+             df["invalid"] = [["a"]] * len(df)
+             assert df.dtypes["invalid"] == np.object_
+-            msg = re.escape("object of type 'int' has no len()")
++            msg = re.escape(
++                """Cannot serialize the column [invalid]
++because its data contents are not [string] but [mixed] object dtype"""
++            )
+             with pytest.raises(TypeError, match=msg):
+                 store.append("df", df)
+ 
+@@ -2221,7 +2224,10 @@ def test_unimplemented_dtypes_table_columns(self, setup_path):
+ 
+         with ensure_clean_store(setup_path) as store:
+             # this fails because we have a date in the object block......
+-            msg = "object of type 'int' has no len()"
++            msg = re.escape(
++                """Cannot serialize the column [datetime1]
++because its data contents are not [string] but [date] object dtype"""
++            )
+             with pytest.raises(TypeError, match=msg):
+                 store.append("df_unimplemented", df)
+ 

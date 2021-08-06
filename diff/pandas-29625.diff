@@ -1,0 +1,159 @@
+diff --git a/pandas/core/indexes/base.py b/pandas/core/indexes/base.py
+index 5b57d3f096b0c..750db3c7e6a20 100644
+--- a/pandas/core/indexes/base.py
++++ b/pandas/core/indexes/base.py
+@@ -54,6 +54,7 @@
+     ABCDatetimeArray,
+     ABCDatetimeIndex,
+     ABCIndexClass,
++    ABCIntervalIndex,
+     ABCMultiIndex,
+     ABCPandasArray,
+     ABCPeriodIndex,
+@@ -450,7 +451,9 @@ def __new__(
+                             return PeriodIndex(subarr, name=name, **kwargs)
+                         except IncompatibleFrequency:
+                             pass
+-            return cls._simple_new(subarr, name)
++            if kwargs:
++                raise TypeError(f"Unexpected keyword arguments {set(kwargs)!r}")
++            return cls._simple_new(subarr, name, **kwargs)
+ 
+         elif hasattr(data, "__array__"):
+             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name, **kwargs)
+@@ -3391,7 +3394,7 @@ def _reindex_non_unique(self, target):
+                 new_indexer = np.arange(len(self.take(indexer)))
+                 new_indexer[~check] = -1
+ 
+-        new_index = self._shallow_copy_with_infer(new_labels, freq=None)
++        new_index = self._shallow_copy_with_infer(new_labels)
+         return new_index, indexer, new_indexer
+ 
+     # --------------------------------------------------------------------
+@@ -4254,7 +4257,13 @@ def _concat_same_dtype(self, to_concat, name):
+         Concatenate to_concat which has the same class.
+         """
+         # must be overridden in specific classes
+-        klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ExtensionArray)
++        klasses = (
++            ABCDatetimeIndex,
++            ABCTimedeltaIndex,
++            ABCPeriodIndex,
++            ExtensionArray,
++            ABCIntervalIndex,
++        )
+         to_concat = [
+             x.astype(object) if isinstance(x, klasses) else x for x in to_concat
+         ]
+diff --git a/pandas/tests/indexes/multi/test_constructor.py b/pandas/tests/indexes/multi/test_constructor.py
+index c32adf275ac98..d2c95b12d5339 100644
+--- a/pandas/tests/indexes/multi/test_constructor.py
++++ b/pandas/tests/indexes/multi/test_constructor.py
+@@ -609,12 +609,11 @@ def test_create_index_existing_name(idx):
+                 ("qux", "two"),
+             ],
+             dtype="object",
+-        ),
+-        names=["foo", "bar"],
++        )
+     )
+     tm.assert_index_equal(result, expected)
+ 
+-    result = pd.Index(index, names=["A", "B"])
++    result = pd.Index(index, name="A")
+     expected = Index(
+         Index(
+             [
+@@ -627,7 +626,7 @@ def test_create_index_existing_name(idx):
+             ],
+             dtype="object",
+         ),
+-        names=["A", "B"],
++        name="A",
+     )
+     tm.assert_index_equal(result, expected)
+ 
+diff --git a/pandas/tests/indexes/multi/test_equivalence.py b/pandas/tests/indexes/multi/test_equivalence.py
+index f61ba0132ab97..c81af5a0c6c49 100644
+--- a/pandas/tests/indexes/multi/test_equivalence.py
++++ b/pandas/tests/indexes/multi/test_equivalence.py
+@@ -146,7 +146,10 @@ def test_identical(idx):
+     assert mi.identical(mi2)
+ 
+     mi3 = Index(mi.tolist(), names=mi.names)
+-    mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
++    msg = r"Unexpected keyword arguments {'names'}"
++    with pytest.raises(TypeError, match=msg):
++        Index(mi.tolist(), names=mi.names, tupleize_cols=False)
++    mi4 = Index(mi.tolist(), tupleize_cols=False)
+     assert mi.identical(mi3)
+     assert not mi.identical(mi4)
+     assert mi.equals(mi4)
+diff --git a/pandas/tests/indexes/test_base.py b/pandas/tests/indexes/test_base.py
+index 8ffceb491aa86..5bfa13c0865f1 100644
+--- a/pandas/tests/indexes/test_base.py
++++ b/pandas/tests/indexes/test_base.py
+@@ -350,6 +350,11 @@ def test_constructor_simple_new(self, vals, dtype):
+         result = index._simple_new(index.values, dtype)
+         tm.assert_index_equal(result, index)
+ 
++    def test_constructor_wrong_kwargs(self):
++        # GH #19348
++        with pytest.raises(TypeError, match="Unexpected keyword arguments {'foo'}"):
++            Index([], foo="bar")
++
+     @pytest.mark.parametrize(
+         "vals",
+         [
+diff --git a/pandas/tests/indexing/test_coercion.py b/pandas/tests/indexing/test_coercion.py
+index 4f38d7beb9c0b..469c011001467 100644
+--- a/pandas/tests/indexing/test_coercion.py
++++ b/pandas/tests/indexing/test_coercion.py
+@@ -479,22 +479,20 @@ def test_insert_index_period(self, insert, coerced_val, coerced_dtype):
+         obj = pd.PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq="M")
+         assert obj.dtype == "period[M]"
+ 
++        data = [
++            pd.Period("2011-01", freq="M"),
++            coerced_val,
++            pd.Period("2011-02", freq="M"),
++            pd.Period("2011-03", freq="M"),
++            pd.Period("2011-04", freq="M"),
++        ]
+         if isinstance(insert, pd.Period):
+-            index_type = pd.PeriodIndex
++            exp = pd.PeriodIndex(data, freq="M")
++            self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
+         else:
+-            index_type = pd.Index
+-
+-        exp = index_type(
+-            [
+-                pd.Period("2011-01", freq="M"),
+-                coerced_val,
+-                pd.Period("2011-02", freq="M"),
+-                pd.Period("2011-03", freq="M"),
+-                pd.Period("2011-04", freq="M"),
+-            ],
+-            freq="M",
+-        )
+-        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
++            msg = r"Unexpected keyword arguments {'freq'}"
++            with pytest.raises(TypeError, match=msg):
++                pd.Index(data, freq="M")
+ 
+     def test_insert_index_complex128(self):
+         pass
+diff --git a/pandas/tests/io/excel/test_readers.py b/pandas/tests/io/excel/test_readers.py
+index 70a86c2233513..d1611eebe2059 100644
+--- a/pandas/tests/io/excel/test_readers.py
++++ b/pandas/tests/io/excel/test_readers.py
+@@ -893,7 +893,7 @@ def test_excel_passes_na_filter(self, read_ext, na_filter):
+     def test_unexpected_kwargs_raises(self, read_ext, arg):
+         # gh-17964
+         kwarg = {arg: "Sheet1"}
+-        msg = "unexpected keyword argument `{}`".format(arg)
++        msg = r"unexpected keyword argument `{}`".format(arg)
+ 
+         with pd.ExcelFile("test1" + read_ext) as excel:
+             with pytest.raises(TypeError, match=msg):

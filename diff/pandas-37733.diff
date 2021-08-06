@@ -1,0 +1,412 @@
+diff --git a/doc/source/whatsnew/v1.2.0.rst b/doc/source/whatsnew/v1.2.0.rst
+index f751a91cecf19..49f617501980b 100644
+--- a/doc/source/whatsnew/v1.2.0.rst
++++ b/doc/source/whatsnew/v1.2.0.rst
+@@ -322,6 +322,10 @@ Other API changes
+ ^^^^^^^^^^^^^^^^^
+ 
+ - Sorting in descending order is now stable for :meth:`Series.sort_values` and :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses. This will affect sort order when sorting :class:`DataFrame` on multiple columns, sorting with a key function that produces duplicates, or requesting the sorting index when using :meth:`Index.sort_values`. When using :meth:`Series.value_counts`, count of missing values is no longer the last in the list of duplicate counts, and its position corresponds to the position in the original :class:`Series`. When using :meth:`Index.sort_values` for DateTime-like :class:`Index` subclasses, NaTs ignored the ``na_position`` argument and were sorted to the beggining. Now they respect ``na_position``, the default being ``last``, same as other :class:`Index` subclasses. (:issue:`35992`)
++- Passing an invalid ``fill_value`` to :meth:`Categorical.take`, :meth:`DatetimeArray.take`, :meth:`TimedeltaArray.take`, :meth:`PeriodArray.take` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
++- Passing an invalid ``fill_value`` to :meth:`Series.shift` with a ``CategoricalDtype`` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
++- Passing an invalid value to :meth:`IntervalIndex.insert` or :meth:`CategoricalIndex.insert` now raises a ``TypeError`` instead of a ``ValueError`` (:issue:`37733`)
++- Attempting to reindex a :class:`Series` with a :class:`CategoricalIndex` with an invalid ``fill_value`` now raises ``TypeError`` instead of ``ValueError`` (:issue:`37733`)
+ 
+ .. ---------------------------------------------------------------------------
+ 
+diff --git a/pandas/core/arrays/_mixins.py b/pandas/core/arrays/_mixins.py
+index d84e2e2ad295b..ddcf225d3585f 100644
+--- a/pandas/core/arrays/_mixins.py
++++ b/pandas/core/arrays/_mixins.py
+@@ -74,7 +74,7 @@ def take(
+     def _validate_fill_value(self, fill_value):
+         """
+         If a fill_value is passed to `take` convert it to a representation
+-        suitable for self._ndarray, raising ValueError if this is not possible.
++        suitable for self._ndarray, raising TypeError if this is not possible.
+ 
+         Parameters
+         ----------
+@@ -86,7 +86,7 @@ def _validate_fill_value(self, fill_value):
+ 
+         Raises
+         ------
+-        ValueError
++        TypeError
+         """
+         raise AbstractMethodError(self)
+ 
+diff --git a/pandas/core/arrays/categorical.py b/pandas/core/arrays/categorical.py
+index 9f011bc9d2651..970163df908ec 100644
+--- a/pandas/core/arrays/categorical.py
++++ b/pandas/core/arrays/categorical.py
+@@ -1190,7 +1190,7 @@ def _validate_searchsorted_value(self, value):
+     def _validate_fill_value(self, fill_value):
+         """
+         Convert a user-facing fill_value to a representation to use with our
+-        underlying ndarray, raising ValueError if this is not possible.
++        underlying ndarray, raising TypeError if this is not possible.
+ 
+         Parameters
+         ----------
+@@ -1202,7 +1202,7 @@ def _validate_fill_value(self, fill_value):
+ 
+         Raises
+         ------
+-        ValueError
++        TypeError
+         """
+ 
+         if is_valid_nat_for_dtype(fill_value, self.categories.dtype):
+@@ -1210,7 +1210,7 @@ def _validate_fill_value(self, fill_value):
+         elif fill_value in self.categories:
+             fill_value = self._unbox_scalar(fill_value)
+         else:
+-            raise ValueError(
++            raise TypeError(
+                 f"'fill_value={fill_value}' is not present "
+                 "in this Categorical's categories"
+             )
+@@ -1659,7 +1659,6 @@ def fillna(self, value=None, method=None, limit=None):
+                 # We get ndarray or Categorical if called via Series.fillna,
+                 #  where it will unwrap another aligned Series before getting here
+                 codes[mask] = new_codes[mask]
+-
+             else:
+                 codes[mask] = new_codes
+ 
+diff --git a/pandas/core/arrays/datetimelike.py b/pandas/core/arrays/datetimelike.py
+index f2f843886e802..d81a4567732bc 100644
+--- a/pandas/core/arrays/datetimelike.py
++++ b/pandas/core/arrays/datetimelike.py
+@@ -462,7 +462,7 @@ def _validate_comparison_value(self, other):
+     def _validate_fill_value(self, fill_value):
+         """
+         If a fill_value is passed to `take` convert it to an i8 representation,
+-        raising ValueError if this is not possible.
++        raising TypeError if this is not possible.
+ 
+         Parameters
+         ----------
+@@ -474,19 +474,9 @@ def _validate_fill_value(self, fill_value):
+ 
+         Raises
+         ------
+-        ValueError
++        TypeError
+         """
+-        msg = (
+-            f"'fill_value' should be a {self._scalar_type}. "
+-            f"Got '{str(fill_value)}'."
+-        )
+-        try:
+-            return self._validate_scalar(fill_value)
+-        except TypeError as err:
+-            if "Cannot compare tz-naive and tz-aware" in str(err):
+-                # tzawareness-compat
+-                raise
+-            raise ValueError(msg) from err
++        return self._validate_scalar(fill_value)
+ 
+     def _validate_shift_value(self, fill_value):
+         # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
+diff --git a/pandas/core/arrays/interval.py b/pandas/core/arrays/interval.py
+index a2eb506c6747a..977e4abff4287 100644
+--- a/pandas/core/arrays/interval.py
++++ b/pandas/core/arrays/interval.py
+@@ -649,7 +649,7 @@ def fillna(self, value=None, method=None, limit=None):
+         if limit is not None:
+             raise TypeError("limit is not supported for IntervalArray.")
+ 
+-        value_left, value_right = self._validate_fillna_value(value)
++        value_left, value_right = self._validate_fill_value(value)
+ 
+         left = self.left.fillna(value=value_left)
+         right = self.right.fillna(value=value_right)
+@@ -870,7 +870,7 @@ def _validate_scalar(self, value):
+             # GH#18295
+             left = right = value
+         else:
+-            raise ValueError(
++            raise TypeError(
+                 "can only insert Interval objects and NA into an IntervalArray"
+             )
+         return left, right
+@@ -878,17 +878,6 @@ def _validate_scalar(self, value):
+     def _validate_fill_value(self, value):
+         return self._validate_scalar(value)
+ 
+-    def _validate_fillna_value(self, value):
+-        # This mirrors Datetimelike._validate_fill_value
+-        try:
+-            return self._validate_scalar(value)
+-        except ValueError as err:
+-            msg = (
+-                "'IntervalArray.fillna' only supports filling with a "
+-                f"scalar 'pandas.Interval'. Got a '{type(value).__name__}' instead."
+-            )
+-            raise TypeError(msg) from err
+-
+     def _validate_setitem_value(self, value):
+         needs_float_conversion = False
+ 
+diff --git a/pandas/core/indexes/multi.py b/pandas/core/indexes/multi.py
+index 5a3f2b0853c4f..5790c6db6405f 100644
+--- a/pandas/core/indexes/multi.py
++++ b/pandas/core/indexes/multi.py
+@@ -3660,7 +3660,12 @@ def insert(self, loc: int, item):
+                 # must insert at end otherwise you have to recompute all the
+                 # other codes
+                 lev_loc = len(level)
+-                level = level.insert(lev_loc, k)
++                try:
++                    level = level.insert(lev_loc, k)
++                except TypeError:
++                    # TODO: Should this be done inside insert?
++                    # TODO: smarter casting rules?
++                    level = level.astype(object).insert(lev_loc, k)
+             else:
+                 lev_loc = level.get_loc(k)
+ 
+diff --git a/pandas/tests/arrays/categorical/test_take.py b/pandas/tests/arrays/categorical/test_take.py
+index 7a27f5c3e73ad..97d9db483c401 100644
+--- a/pandas/tests/arrays/categorical/test_take.py
++++ b/pandas/tests/arrays/categorical/test_take.py
+@@ -79,7 +79,7 @@ def test_take_fill_value_new_raises(self):
+         # https://github.com/pandas-dev/pandas/issues/23296
+         cat = Categorical(["a", "b", "c"])
+         xpr = r"'fill_value=d' is not present in this Categorical's categories"
+-        with pytest.raises(ValueError, match=xpr):
++        with pytest.raises(TypeError, match=xpr):
+             cat.take([0, 1, -1], fill_value="d", allow_fill=True)
+ 
+     def test_take_nd_deprecated(self):
+diff --git a/pandas/tests/arrays/test_datetimelike.py b/pandas/tests/arrays/test_datetimelike.py
+index ec20c829f1544..c24f789b30313 100644
+--- a/pandas/tests/arrays/test_datetimelike.py
++++ b/pandas/tests/arrays/test_datetimelike.py
+@@ -145,8 +145,8 @@ def test_take_fill_raises(self, fill_value):
+ 
+         arr = self.array_cls._simple_new(data, freq="D")
+ 
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{fill_value}'"
+-        with pytest.raises(ValueError, match=msg):
++        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
++        with pytest.raises(TypeError, match=msg):
+             arr.take([0, 1], allow_fill=True, fill_value=fill_value)
+ 
+     def test_take_fill(self):
+@@ -169,8 +169,8 @@ def test_take_fill_str(self, arr1d):
+         expected = arr1d[[-1, 1]]
+         tm.assert_equal(result, expected)
+ 
+-        msg = r"'fill_value' should be a <.*>\. Got 'foo'"
+-        with pytest.raises(ValueError, match=msg):
++        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
++        with pytest.raises(TypeError, match=msg):
+             arr1d.take([-1, 1], allow_fill=True, fill_value="foo")
+ 
+     def test_concat_same_type(self):
+@@ -745,13 +745,12 @@ def test_take_fill_valid(self, arr1d):
+         result = arr.take([-1, 1], allow_fill=True, fill_value=now)
+         assert result[0] == now
+ 
+-        msg = f"'fill_value' should be a {self.dtype}. Got '0 days 00:00:00'."
+-        with pytest.raises(ValueError, match=msg):
++        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
++        with pytest.raises(TypeError, match=msg):
+             # fill_value Timedelta invalid
+             arr.take([-1, 1], allow_fill=True, fill_value=now - now)
+ 
+-        msg = f"'fill_value' should be a {self.dtype}. Got '2014Q1'."
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             # fill_value Period invalid
+             arr.take([-1, 1], allow_fill=True, fill_value=pd.Period("2014Q1"))
+ 
+@@ -763,14 +762,13 @@ def test_take_fill_valid(self, arr1d):
+             arr.take([-1, 1], allow_fill=True, fill_value=now)
+ 
+         value = pd.NaT.value
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+-        with pytest.raises(ValueError, match=msg):
++        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
++        with pytest.raises(TypeError, match=msg):
+             # require NaT, not iNaT, as it could be confused with an integer
+             arr.take([-1, 1], allow_fill=True, fill_value=value)
+ 
+         value = np.timedelta64("NaT", "ns")
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             # require appropriate-dtype if we have a NA value
+             arr.take([-1, 1], allow_fill=True, fill_value=value)
+ 
+@@ -932,20 +930,18 @@ def test_take_fill_valid(self, timedelta_index):
+ 
+         now = pd.Timestamp.now()
+         value = now
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+-        with pytest.raises(ValueError, match=msg):
++        msg = f"value should be a '{arr._scalar_type.__name__}' or 'NaT'. Got"
++        with pytest.raises(TypeError, match=msg):
+             # fill_value Timestamp invalid
+             arr.take([0, 1], allow_fill=True, fill_value=value)
+ 
+         value = now.to_period("D")
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             # fill_value Period invalid
+             arr.take([0, 1], allow_fill=True, fill_value=value)
+ 
+         value = np.datetime64("NaT", "ns")
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             # require appropriate-dtype if we have a NA value
+             arr.take([-1, 1], allow_fill=True, fill_value=value)
+ 
+@@ -981,14 +977,13 @@ def test_take_fill_valid(self, arr1d):
+         arr = arr1d
+ 
+         value = pd.NaT.value
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{value}'."
+-        with pytest.raises(ValueError, match=msg):
++        msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
++        with pytest.raises(TypeError, match=msg):
+             # require NaT, not iNaT, as it could be confused with an integer
+             arr.take([-1, 1], allow_fill=True, fill_value=value)
+ 
+         value = np.timedelta64("NaT", "ns")
+-        msg = f"'fill_value' should be a {self.dtype}. Got '{str(value)}'."
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             # require appropriate-dtype if we have a NA value
+             arr.take([-1, 1], allow_fill=True, fill_value=value)
+ 
+diff --git a/pandas/tests/arrays/test_period.py b/pandas/tests/arrays/test_period.py
+index 0d81e8e733842..f96a15d5b2e7c 100644
+--- a/pandas/tests/arrays/test_period.py
++++ b/pandas/tests/arrays/test_period.py
+@@ -113,7 +113,8 @@ def test_take_raises():
+     with pytest.raises(IncompatibleFrequency, match="freq"):
+         arr.take([0, -1], allow_fill=True, fill_value=pd.Period("2000", freq="W"))
+ 
+-    with pytest.raises(ValueError, match="foo"):
++    msg = "value should be a 'Period' or 'NaT'. Got 'str' instead"
++    with pytest.raises(TypeError, match=msg):
+         arr.take([0, -1], allow_fill=True, fill_value="foo")
+ 
+ 
+diff --git a/pandas/tests/extension/test_interval.py b/pandas/tests/extension/test_interval.py
+index 4fdcf930d224f..ec834118ea7a1 100644
+--- a/pandas/tests/extension/test_interval.py
++++ b/pandas/tests/extension/test_interval.py
+@@ -136,8 +136,8 @@ def test_fillna_limit_backfill(self):
+     def test_fillna_series(self):
+         pass
+ 
+-    def test_non_scalar_raises(self, data_missing):
+-        msg = "Got a 'list' instead."
++    def test_fillna_non_scalar_raises(self, data_missing):
++        msg = "can only insert Interval objects and NA into an IntervalArray"
+         with pytest.raises(TypeError, match=msg):
+             data_missing.fillna([1, 1])
+ 
+diff --git a/pandas/tests/frame/test_stack_unstack.py b/pandas/tests/frame/test_stack_unstack.py
+index d1425c85caaee..3fa17c1764de3 100644
+--- a/pandas/tests/frame/test_stack_unstack.py
++++ b/pandas/tests/frame/test_stack_unstack.py
+@@ -245,7 +245,7 @@ def test_unstack_fill_frame_categorical(self):
+ 
+         # Fill with non-category results in a ValueError
+         msg = r"'fill_value=d' is not present in"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             data.unstack(fill_value="d")
+ 
+         # Fill with category value replaces missing values as expected
+diff --git a/pandas/tests/indexes/categorical/test_category.py b/pandas/tests/indexes/categorical/test_category.py
+index 324a2535bc465..1a05dbe2bb230 100644
+--- a/pandas/tests/indexes/categorical/test_category.py
++++ b/pandas/tests/indexes/categorical/test_category.py
+@@ -172,7 +172,7 @@ def test_insert(self):
+ 
+         # invalid
+         msg = "'fill_value=d' is not present in this Categorical's categories"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             ci.insert(0, "d")
+ 
+         # GH 18295 (test missing)
+@@ -184,7 +184,7 @@ def test_insert(self):
+     def test_insert_na_mismatched_dtype(self):
+         ci = CategoricalIndex([0, 1, 1])
+         msg = "'fill_value=NaT' is not present in this Categorical's categories"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             ci.insert(0, pd.NaT)
+ 
+     def test_delete(self):
+diff --git a/pandas/tests/indexes/categorical/test_reindex.py b/pandas/tests/indexes/categorical/test_reindex.py
+index 189582ea635d2..668c559abd08e 100644
+--- a/pandas/tests/indexes/categorical/test_reindex.py
++++ b/pandas/tests/indexes/categorical/test_reindex.py
+@@ -57,5 +57,5 @@ def test_reindex_missing_category(self):
+         # GH: 18185
+         ser = Series([1, 2, 3, 1], dtype="category")
+         msg = "'fill_value=-1' is not present in this Categorical's categories"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             ser.reindex([1, 2, 3, 4, 5], fill_value=-1)
+diff --git a/pandas/tests/indexes/interval/test_interval.py b/pandas/tests/indexes/interval/test_interval.py
+index 157446b1fff5d..45683ba48b4c4 100644
+--- a/pandas/tests/indexes/interval/test_interval.py
++++ b/pandas/tests/indexes/interval/test_interval.py
+@@ -192,7 +192,7 @@ def test_insert(self, data):
+ 
+         # invalid type
+         msg = "can only insert Interval objects and NA into an IntervalArray"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             data.insert(1, "foo")
+ 
+         # invalid closed
+@@ -213,7 +213,7 @@ def test_insert(self, data):
+         if data.left.dtype.kind not in ["m", "M"]:
+             # trying to insert pd.NaT into a numeric-dtyped Index should cast/raise
+             msg = "can only insert Interval objects and NA into an IntervalArray"
+-            with pytest.raises(ValueError, match=msg):
++            with pytest.raises(TypeError, match=msg):
+                 result = data.insert(1, pd.NaT)
+         else:
+             result = data.insert(1, pd.NaT)
+diff --git a/pandas/tests/indexing/test_categorical.py b/pandas/tests/indexing/test_categorical.py
+index 20d7662855ab3..79e9df8ce30cb 100644
+--- a/pandas/tests/indexing/test_categorical.py
++++ b/pandas/tests/indexing/test_categorical.py
+@@ -60,9 +60,9 @@ def test_loc_scalar(self):
+             df.loc["d"] = 10
+ 
+         msg = "'fill_value=d' is not present in this Categorical's categories"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             df.loc["d", "A"] = 10
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             df.loc["d", "C"] = 10
+ 
+         with pytest.raises(KeyError, match="^1$"):
+diff --git a/pandas/tests/series/methods/test_shift.py b/pandas/tests/series/methods/test_shift.py
+index d38d70abba923..60ec0a90e906f 100644
+--- a/pandas/tests/series/methods/test_shift.py
++++ b/pandas/tests/series/methods/test_shift.py
+@@ -170,7 +170,7 @@ def test_shift_categorical_fill_value(self):
+ 
+         # check for incorrect fill_value
+         msg = "'fill_value=f' is not present in this Categorical's categories"
+-        with pytest.raises(ValueError, match=msg):
++        with pytest.raises(TypeError, match=msg):
+             ts.shift(1, fill_value="f")
+ 
+     def test_shift_dst(self):

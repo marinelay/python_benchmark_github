@@ -1,0 +1,50 @@
+diff --git a/lib/streamlit/DeltaGenerator.py b/lib/streamlit/DeltaGenerator.py
+index d0f85baf26..b9952c68d2 100644
+--- a/lib/streamlit/DeltaGenerator.py
++++ b/lib/streamlit/DeltaGenerator.py
+@@ -604,11 +604,19 @@ def json(self, element, body):
+            height: 280px
+ 
+         """
+-        element.json.body = (
+-            body
+-            if isinstance(body, string_types)  # noqa: F821
+-            else json.dumps(body, default=lambda o: str(type(o)))
+-        )
++        import streamlit as st
++
++        if not isinstance(body, string_types):
++            try:
++                body = json.dumps(body, default=lambda o: str(type(o)))
++            except TypeError as err:
++                st.warning(
++                    "Warning: this data structure was not fully serializable as "
++                    "JSON due to one or more unexpected keys.  (Error was: %s)" % err
++                )
++                body = json.dumps(body, skipkeys=True, default=lambda o: str(type(o)))
++
++        element.json.body = body
+ 
+     @_with_element
+     def title(self, element, body):
+diff --git a/lib/tests/streamlit/streamlit_test.py b/lib/tests/streamlit/streamlit_test.py
+index 549d338c13..a80cdc9af8 100644
+--- a/lib/tests/streamlit/streamlit_test.py
++++ b/lib/tests/streamlit/streamlit_test.py
+@@ -389,6 +389,16 @@ def test_st_json(self):
+         el = self.get_delta_from_queue().new_element
+         self.assertEqual(el.json.body, '{"some": "json"}')
+ 
++        # Test that an object containing non-json-friendly keys can still
++        # be displayed.  Resultant json body will be missing those keys.
++
++        n = np.array([1, 2, 3, 4, 5])
++        data = {n[0]: "this key will not render as JSON", "array": n}
++        st.json(data)
++
++        el = self.get_delta_from_queue().new_element
++        self.assertEqual(el.json.body, '{"array": "<class \'numpy.ndarray\'>"}')
++
+     def test_st_line_chart(self):
+         """Test st.line_chart."""
+         df = pd.DataFrame([[10, 20, 30]], columns=["a", "b", "c"])

@@ -1,0 +1,220 @@
+diff --git a/airflow/contrib/hooks/bigquery_hook.py b/airflow/contrib/hooks/bigquery_hook.py
+index fe28ce75c3a6a..c41b35aa3fc46 100644
+--- a/airflow/contrib/hooks/bigquery_hook.py
++++ b/airflow/contrib/hooks/bigquery_hook.py
+@@ -56,7 +56,6 @@ def __init__(self,
+             gcp_conn_id=bigquery_conn_id, delegate_to=delegate_to)
+         self.use_legacy_sql = use_legacy_sql
+         self.location = location
+-        self.num_retries = self._get_field('num_retries', 5)
+ 
+     def get_conn(self):
+         """
+@@ -208,7 +207,7 @@ def __init__(self,
+                  use_legacy_sql=True,
+                  api_resource_configs=None,
+                  location=None,
+-                 num_retries=None):
++                 num_retries=5):
+ 
+         self.service = service
+         self.project_id = project_id
+@@ -232,7 +231,7 @@ def create_empty_table(self,
+                            labels=None,
+                            view=None,
+                            encryption_configuration=None,
+-                           num_retries=None):
++                           num_retries=5):
+         """
+         Creates a new, empty table in the dataset.
+         To create a view, which is defined by a SQL query, parse a dictionary to 'view' kwarg
+@@ -1970,7 +1969,7 @@ class BigQueryCursor(BigQueryBaseCursor):
+     https://github.com/dropbox/PyHive/blob/master/pyhive/common.py
+     """
+ 
+-    def __init__(self, service, project_id, use_legacy_sql=True, location=None, num_retries=None):
++    def __init__(self, service, project_id, use_legacy_sql=True, location=None, num_retries=5):
+         super().__init__(
+             service=service,
+             project_id=project_id,
+diff --git a/airflow/contrib/hooks/gcp_api_base_hook.py b/airflow/contrib/hooks/gcp_api_base_hook.py
+index d319020ce5d4e..6963efaa2e123 100644
+--- a/airflow/contrib/hooks/gcp_api_base_hook.py
++++ b/airflow/contrib/hooks/gcp_api_base_hook.py
+@@ -171,6 +171,16 @@ def project_id(self) -> Optional[str]:
+         """
+         return self._get_field('project')
+ 
++    @property
++    def num_retries(self) -> int:
++        """
++        Returns num_retries from Connection.
++
++        :return: the number of times each API request should be retried
++        :rtype: int
++        """
++        return self._get_field('num_retries') or 5
++
+     @property
+     def client_info(self) -> ClientInfo:
+         """
+diff --git a/airflow/contrib/hooks/gcp_dataproc_hook.py b/airflow/contrib/hooks/gcp_dataproc_hook.py
+index c9db5345a2039..cf846e1545af7 100644
+--- a/airflow/contrib/hooks/gcp_dataproc_hook.py
++++ b/airflow/contrib/hooks/gcp_dataproc_hook.py
+@@ -53,7 +53,7 @@ def __init__(
+         job: Dict,
+         region: str = 'global',
+         job_error_states: Iterable[str] = None,
+-        num_retries: int = None
++        num_retries: int = 5
+     ) -> None:
+         self.dataproc_api = dataproc_api
+         self.project_id = project_id
+@@ -451,7 +451,6 @@ def __init__(
+     ) -> None:
+         super().__init__(gcp_conn_id, delegate_to)
+         self.api_version = api_version
+-        self.num_retries = self._get_field('num_retries', 5)   # type: int
+ 
+     def get_conn(self):
+         """
+diff --git a/airflow/gcp/hooks/cloud_build.py b/airflow/gcp/hooks/cloud_build.py
+index 8739fa524d1c2..ca84fc1009fee 100644
+--- a/airflow/gcp/hooks/cloud_build.py
++++ b/airflow/gcp/hooks/cloud_build.py
+@@ -58,7 +58,6 @@ def __init__(
+     ) -> None:
+         super().__init__(gcp_conn_id, delegate_to)
+         self.api_version = api_version
+-        self.num_retries = self._get_field("num_retries", 5)
+ 
+     def get_conn(self):
+         """
+diff --git a/airflow/gcp/hooks/cloud_sql.py b/airflow/gcp/hooks/cloud_sql.py
+index d554026118c2d..dacbf6a771bb7 100644
+--- a/airflow/gcp/hooks/cloud_sql.py
++++ b/airflow/gcp/hooks/cloud_sql.py
+@@ -87,7 +87,6 @@ def __init__(
+     ) -> None:
+         super().__init__(gcp_conn_id, delegate_to)
+         self.api_version = api_version
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+         self._conn = None
+ 
+     def get_conn(self):
+diff --git a/airflow/gcp/hooks/cloud_storage_transfer_service.py b/airflow/gcp/hooks/cloud_storage_transfer_service.py
+index 27be5075f82c0..3d4e766c39931 100644
+--- a/airflow/gcp/hooks/cloud_storage_transfer_service.py
++++ b/airflow/gcp/hooks/cloud_storage_transfer_service.py
+@@ -115,7 +115,6 @@ def __init__(
+     ) -> None:
+         super().__init__(gcp_conn_id, delegate_to)
+         self.api_version = api_version
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+         self._conn = None
+ 
+     def get_conn(self):
+diff --git a/airflow/gcp/hooks/compute.py b/airflow/gcp/hooks/compute.py
+index a17f975857f06..66804220ee4dc 100644
+--- a/airflow/gcp/hooks/compute.py
++++ b/airflow/gcp/hooks/compute.py
+@@ -59,7 +59,6 @@ def __init__(
+     ) -> None:
+         super().__init__(gcp_conn_id, delegate_to)
+         self.api_version = api_version
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+ 
+     def get_conn(self):
+         """
+diff --git a/airflow/gcp/hooks/dataflow.py b/airflow/gcp/hooks/dataflow.py
+index f6a14530fc961..45bd24edac0dd 100644
+--- a/airflow/gcp/hooks/dataflow.py
++++ b/airflow/gcp/hooks/dataflow.py
+@@ -301,7 +301,6 @@ def __init__(
+         poll_sleep: int = 10
+     ) -> None:
+         self.poll_sleep = poll_sleep
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+         super().__init__(gcp_conn_id, delegate_to)
+ 
+     def get_conn(self):
+diff --git a/airflow/gcp/hooks/datastore.py b/airflow/gcp/hooks/datastore.py
+index 7ba2201469f14..aad7eaa3343c5 100644
+--- a/airflow/gcp/hooks/datastore.py
++++ b/airflow/gcp/hooks/datastore.py
+@@ -46,7 +46,6 @@ def __init__(self,
+         super().__init__(datastore_conn_id, delegate_to)
+         self.connection = None
+         self.api_version = api_version
+-        self.num_retries = self._get_field('num_retries', 5)
+ 
+     def get_conn(self):
+         """
+diff --git a/airflow/gcp/hooks/functions.py b/airflow/gcp/hooks/functions.py
+index aa96f0c851a8e..9a26ca5ae1b67 100644
+--- a/airflow/gcp/hooks/functions.py
++++ b/airflow/gcp/hooks/functions.py
+@@ -50,7 +50,6 @@ def __init__(
+     ) -> None:
+         super().__init__(gcp_conn_id, delegate_to)
+         self.api_version = api_version
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+ 
+     @staticmethod
+     def _full_location(project_id: str, location: str) -> str:
+diff --git a/airflow/gcp/hooks/gsheets.py b/airflow/gcp/hooks/gsheets.py
+index c0244e6a03ad7..08b498bba017d 100644
+--- a/airflow/gcp/hooks/gsheets.py
++++ b/airflow/gcp/hooks/gsheets.py
+@@ -57,7 +57,6 @@ def __init__(
+         self.gcp_conn_id = gcp_conn_id
+         self.api_version = api_version
+         self.delegate_to = delegate_to
+-        self.num_retries = self._get_field('num_retries', 5)
+         self._conn = None
+ 
+     def get_conn(self) -> Any:
+diff --git a/airflow/gcp/hooks/kms.py b/airflow/gcp/hooks/kms.py
+index f16531989a500..3910ca0148985 100644
+--- a/airflow/gcp/hooks/kms.py
++++ b/airflow/gcp/hooks/kms.py
+@@ -46,7 +46,6 @@ class GoogleCloudKMSHook(GoogleCloudBaseHook):
+ 
+     def __init__(self, gcp_conn_id: str = 'google_cloud_default', delegate_to: str = None) -> None:
+         super().__init__(gcp_conn_id, delegate_to=delegate_to)
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+ 
+     def get_conn(self):
+         """
+diff --git a/airflow/gcp/hooks/pubsub.py b/airflow/gcp/hooks/pubsub.py
+index 62f76042c6bf5..a23aa355e4036 100644
+--- a/airflow/gcp/hooks/pubsub.py
++++ b/airflow/gcp/hooks/pubsub.py
+@@ -52,7 +52,6 @@ class PubSubHook(GoogleCloudBaseHook):
+ 
+     def __init__(self, gcp_conn_id: str = 'google_cloud_default', delegate_to: str = None) -> None:
+         super().__init__(gcp_conn_id, delegate_to=delegate_to)
+-        self.num_retries = self._get_field('num_retries', 5)  # type: int
+ 
+     def get_conn(self):
+         """
+diff --git a/tests/contrib/hooks/test_gcp_api_base_hook.py b/tests/contrib/hooks/test_gcp_api_base_hook.py
+index cf6db0a253abc..a65ba2148a9b7 100644
+--- a/tests/contrib/hooks/test_gcp_api_base_hook.py
++++ b/tests/contrib/hooks/test_gcp_api_base_hook.py
+@@ -327,3 +327,14 @@ def test_default_scopes(self):
+         self.instance.extras = {'extra__google_cloud_platform__project': default_project}
+ 
+         self.assertEqual(self.instance.scopes, ('https://www.googleapis.com/auth/cloud-platform',))
++
++    @mock.patch("airflow.contrib.hooks.gcp_api_base_hook.GoogleCloudBaseHook.get_connection")
++    def test_num_retries_is_not_none_by_default(self, get_con_mock):
++        """
++        Verify that if 'num_retires' in extras is not set, the default value
++        should not be None
++        """
++        get_con_mock.return_value.extra_dejson = {
++            "extra__google_cloud_platform__num_retries": None
++        }
++        self.assertEqual(self.instance.num_retries, 5)

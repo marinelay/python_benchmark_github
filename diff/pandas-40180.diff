@@ -1,0 +1,96 @@
+diff --git a/doc/source/whatsnew/v1.3.0.rst b/doc/source/whatsnew/v1.3.0.rst
+index f7204ceb9d412..7a23fb801a29a 100644
+--- a/doc/source/whatsnew/v1.3.0.rst
++++ b/doc/source/whatsnew/v1.3.0.rst
+@@ -539,6 +539,8 @@ Reshaping
+ - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
+ - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
+ - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
++- Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
++-
+ 
+ Sparse
+ ^^^^^^
+diff --git a/pandas/compat/numpy/function.py b/pandas/compat/numpy/function.py
+index 8934a02a8f5bc..3f56ecd640774 100644
+--- a/pandas/compat/numpy/function.py
++++ b/pandas/compat/numpy/function.py
+@@ -212,6 +212,7 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name):
+ ALLANY_DEFAULTS["dtype"] = None
+ ALLANY_DEFAULTS["out"] = None
+ ALLANY_DEFAULTS["keepdims"] = False
++ALLANY_DEFAULTS["axis"] = None
+ validate_all = CompatValidator(
+     ALLANY_DEFAULTS, fname="all", method="both", max_fname_arg_count=1
+ )
+diff --git a/pandas/core/indexes/base.py b/pandas/core/indexes/base.py
+index 44c9b33ae51c7..7f5e7e3a32f14 100644
+--- a/pandas/core/indexes/base.py
++++ b/pandas/core/indexes/base.py
+@@ -5964,9 +5964,9 @@ def any(self, *args, **kwargs):
+         Parameters
+         ----------
+         *args
+-            These parameters will be passed to numpy.any.
++            Required for compatibility with numpy.
+         **kwargs
+-            These parameters will be passed to numpy.any.
++            Required for compatibility with numpy.
+ 
+         Returns
+         -------
+@@ -5993,20 +5993,20 @@ def any(self, *args, **kwargs):
+         >>> index.any()
+         False
+         """
+-        # FIXME: docstr inaccurate, args/kwargs not passed
++        nv.validate_any(args, kwargs)
+         self._maybe_disable_logical_methods("any")
+         return np.any(self.values)
+ 
+-    def all(self):
++    def all(self, *args, **kwargs):
+         """
+         Return whether all elements are Truthy.
+ 
+         Parameters
+         ----------
+         *args
+-            These parameters will be passed to numpy.all.
++            Required for compatibility with numpy.
+         **kwargs
+-            These parameters will be passed to numpy.all.
++            Required for compatibility with numpy.
+ 
+         Returns
+         -------
+@@ -6050,8 +6050,7 @@ def all(self):
+         >>> pd.Index([0, 0, 0]).any()
+         False
+         """
+-        # FIXME: docstr inaccurate, args/kwargs not passed
+-
++        nv.validate_all(args, kwargs)
+         self._maybe_disable_logical_methods("all")
+         return np.all(self.values)
+ 
+diff --git a/pandas/tests/reductions/test_reductions.py b/pandas/tests/reductions/test_reductions.py
+index e3145e0cc5c9f..77b549e675a8d 100644
+--- a/pandas/tests/reductions/test_reductions.py
++++ b/pandas/tests/reductions/test_reductions.py
+@@ -898,6 +898,15 @@ def test_all_any(self):
+         s = Series(["abc", True])
+         assert "abc" == s.any()  # 'abc' || True => 'abc'
+ 
++    @pytest.mark.parametrize("klass", [Index, Series])
++    def test_numpy_all_any(self, klass):
++        # GH#40180
++        idx = klass([0, 1, 2])
++        assert not np.all(idx)
++        assert np.any(idx)
++        idx = Index([1, 2, 3])
++        assert np.all(idx)
++
+     def test_all_any_params(self):
+         # Check skipna, with implicit 'object' dtype.
+         s1 = Series([np.nan, True])

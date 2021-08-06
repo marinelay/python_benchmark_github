@@ -1,0 +1,126 @@
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index c194d98a89789..c463043b388a6 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -956,6 +956,7 @@ Deprecations
+   retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
+ - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
+ - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
++- :meth:`ExcelFile.parse` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with :func:`read_excel` (:issue:`20920`).
+ - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
+ - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
+ - ``DataFrame.from_items`` is deprecated. Use :func:`DataFrame.from_dict` instead, or ``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`, :issue:`17312`)
+diff --git a/pandas/io/excel.py b/pandas/io/excel.py
+index 5bce37b9d7735..5608c29637447 100644
+--- a/pandas/io/excel.py
++++ b/pandas/io/excel.py
+@@ -303,20 +303,11 @@ def read_excel(io,
+                convert_float=True,
+                **kwds):
+ 
+-    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+-    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+-        warnings.warn("The `sheetname` keyword is deprecated, use "
+-                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+-        sheet_name = kwds.pop("sheetname")
+-    elif 'sheetname' in kwds:
+-        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
+-                        "Use just `sheet_name`")
+-
+     if not isinstance(io, ExcelFile):
+         io = ExcelFile(io, engine=engine)
+ 
+-    return io._parse_excel(
+-        sheetname=sheet_name,
++    return io.parse(
++        sheet_name=sheet_name,
+         header=header,
+         names=names,
+         index_col=index_col,
+@@ -435,7 +426,16 @@ def parse(self,
+         docstring for more info on accepted parameters
+         """
+ 
+-        return self._parse_excel(sheetname=sheet_name,
++        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
++        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
++            warnings.warn("The `sheetname` keyword is deprecated, use "
++                          "`sheet_name` instead", FutureWarning, stacklevel=2)
++            sheet_name = kwds.pop("sheetname")
++        elif 'sheetname' in kwds:
++            raise TypeError("Cannot specify both `sheet_name` "
++                            "and `sheetname`. Use just `sheet_name`")
++
++        return self._parse_excel(sheet_name=sheet_name,
+                                  header=header,
+                                  names=names,
+                                  index_col=index_col,
+@@ -489,7 +489,7 @@ def _excel2num(x):
+             return i in usecols
+ 
+     def _parse_excel(self,
+-                     sheetname=0,
++                     sheet_name=0,
+                      header=0,
+                      names=None,
+                      index_col=None,
+@@ -585,14 +585,14 @@ def _parse_cell(cell_contents, cell_typ):
+         ret_dict = False
+ 
+         # Keep sheetname to maintain backwards compatibility.
+-        if isinstance(sheetname, list):
+-            sheets = sheetname
++        if isinstance(sheet_name, list):
++            sheets = sheet_name
+             ret_dict = True
+-        elif sheetname is None:
++        elif sheet_name is None:
+             sheets = self.sheet_names
+             ret_dict = True
+         else:
+-            sheets = [sheetname]
++            sheets = [sheet_name]
+ 
+         # handle same-type duplicates.
+         sheets = list(OrderedDict.fromkeys(sheets).keys())
+diff --git a/pandas/tests/io/test_excel.py b/pandas/tests/io/test_excel.py
+index 5ef6dc07a5c22..05423474f330a 100644
+--- a/pandas/tests/io/test_excel.py
++++ b/pandas/tests/io/test_excel.py
+@@ -503,20 +503,35 @@ def test_sheet_name_and_sheetname(self, ext):
+         # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
+         # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
+         # GH12604: CLN GH10559 Rename sheetname variable to sheet_name
++        # GH20920: ExcelFile.parse() and pd.read_xlsx() have different
++        #          behavior for "sheetname" argument
+         dfref = self.get_csv_refdf('test1')
+-        df1 = self.get_exceldf('test1', ext, sheet_name='Sheet1')    # doc
++        df1 = self.get_exceldf('test1', ext,
++                               sheet_name='Sheet1')  # doc
+         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+             df2 = self.get_exceldf('test1', ext,
+                                    sheetname='Sheet1')  # bkwrd compat
+ 
++        excel = self.get_excelfile('test1', ext)
++        df1_parse = excel.parse(sheet_name='Sheet1')    # doc
++        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
++            df2_parse = excel.parse(sheetname='Sheet1')  # bkwrd compat
++
+         tm.assert_frame_equal(df1, dfref, check_names=False)
+         tm.assert_frame_equal(df2, dfref, check_names=False)
++        tm.assert_frame_equal(df1_parse, dfref, check_names=False)
++        tm.assert_frame_equal(df2_parse, dfref, check_names=False)
+ 
+     def test_sheet_name_both_raises(self, ext):
+         with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+             self.get_exceldf('test1', ext, sheetname='Sheet1',
+                              sheet_name='Sheet1')
+ 
++        excel = self.get_excelfile('test1', ext)
++        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
++            excel.parse(sheetname='Sheet1',
++                        sheet_name='Sheet1')
++
+ 
+ @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
+ class TestXlrdReader(ReadingTestsBase):

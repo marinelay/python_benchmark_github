@@ -1,0 +1,46 @@
+diff --git a/homeassistant/helpers/template.py b/homeassistant/helpers/template.py
+index e82302dfd3b9c..d8bbcbc6e122a 100644
+--- a/homeassistant/helpers/template.py
++++ b/homeassistant/helpers/template.py
+@@ -165,7 +165,7 @@ def async_render_with_possible_json_value(self, value,
+ 
+         try:
+             variables['value_json'] = json.loads(value)
+-        except ValueError:
++        except (ValueError, TypeError):
+# 여기서 캐치를 못해서 그대로 TypeError가 나는듯
+# 도대체 try-except를 쓸때는 언제지
+# try-except가 걸려있을 땐가;;
+
+             pass
+ 
+         try:
+diff --git a/tests/helpers/test_template.py b/tests/helpers/test_template.py
+index 02331c400d367..3febd4037ad09 100644
+--- a/tests/helpers/test_template.py
++++ b/tests/helpers/test_template.py
+@@ -4,6 +4,7 @@
+ import unittest
+ import random
+ import math
++import pytz
+ from unittest.mock import patch
+ 
+ from homeassistant.components import group
+@@ -422,6 +423,16 @@ def test_render_with_possible_json_value_undefined_json_error_value(self):
+         assert '' == \
+             tpl.render_with_possible_json_value('{"hello": "world"}', '')
+ 
++    def test_render_with_possible_json_value_non_string_value(self):
++        """Render with possible JSON value with non-string value."""
++        tpl = template.Template("""
++{{ strptime(value~'+0000', '%Y-%m-%d %H:%M:%S%z') }}
++            """, self.hass)
++        value = datetime(2019, 1, 18, 12, 13, 14)
++        expected = str(pytz.utc.localize(value))
++        assert expected == \
++            tpl.render_with_possible_json_value(value)
++
+     def test_raise_exception_on_error(self):
+         """Test raising an exception on error."""
+         with pytest.raises(TemplateError):

@@ -1,0 +1,104 @@
+diff --git a/pandas/core/generic.py b/pandas/core/generic.py
+index 152983451bc38..a3b9bec494854 100644
+--- a/pandas/core/generic.py
++++ b/pandas/core/generic.py
+@@ -5772,7 +5772,7 @@ def _to_dict_of_blocks(self, copy=True):
+             for k, v, in self._data.to_dict(copy=copy).items()
+         }
+ 
+-    def astype(self, dtype, copy=True, errors="raise", **kwargs):
++    def astype(self, dtype, copy=True, errors="raise"):
+         """
+         Cast a pandas object to a specified dtype ``dtype``.
+ 
+@@ -5795,8 +5795,6 @@ def astype(self, dtype, copy=True, errors="raise", **kwargs):
+ 
+             .. versionadded:: 0.20.0
+ 
+-        **kwargs : keyword arguments to pass on to the constructor
+-
+         Returns
+         -------
+         casted : same type as caller
+@@ -5882,7 +5880,7 @@ def astype(self, dtype, copy=True, errors="raise", **kwargs):
+                         "the key in Series dtype mappings."
+                     )
+                 new_type = dtype[self.name]
+-                return self.astype(new_type, copy, errors, **kwargs)
++                return self.astype(new_type, copy, errors)
+ 
+             for col_name in dtype.keys():
+                 if col_name not in self:
+@@ -5894,9 +5892,7 @@ def astype(self, dtype, copy=True, errors="raise", **kwargs):
+             for col_name, col in self.items():
+                 if col_name in dtype:
+                     results.append(
+-                        col.astype(
+-                            dtype=dtype[col_name], copy=copy, errors=errors, **kwargs
+-                        )
++                        col.astype(dtype=dtype[col_name], copy=copy, errors=errors)
+                     )
+                 else:
+                     results.append(results.append(col.copy() if copy else col))
+@@ -5911,9 +5907,7 @@ def astype(self, dtype, copy=True, errors="raise", **kwargs):
+ 
+         else:
+             # else, only a single dtype is given
+-            new_data = self._data.astype(
+-                dtype=dtype, copy=copy, errors=errors, **kwargs
+-            )
++            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors)
+             return self._constructor(new_data).__finalize__(self)
+ 
+         # GH 19920: retain column metadata after concat
+diff --git a/pandas/core/internals/blocks.py b/pandas/core/internals/blocks.py
+index 04c3b2b7714ef..b76cb5cbec626 100644
+--- a/pandas/core/internals/blocks.py
++++ b/pandas/core/internals/blocks.py
+@@ -574,18 +574,6 @@ def _astype(self, dtype, copy=False, errors="raise", **kwargs):
+         # may need to convert to categorical
+         if self.is_categorical_astype(dtype):
+ 
+-            # deprecated 17636
+-            for deprecated_arg in ("categories", "ordered"):
+-                if deprecated_arg in kwargs:
+-                    raise ValueError(
+-                        "Got an unexpected argument: {}".format(deprecated_arg)
+-                    )
+-
+-            categories = kwargs.get("categories", None)
+-            ordered = kwargs.get("ordered", None)
+-            if com.any_not_none(categories, ordered):
+-                dtype = CategoricalDtype(categories, ordered)
+-
+             if is_categorical_dtype(self.values):
+                 # GH 10696/18593: update an existing categorical efficiently
+                 return self.make_block(self.values.astype(dtype, copy=copy))
+@@ -621,7 +609,7 @@ def _astype(self, dtype, copy=False, errors="raise", **kwargs):
+             # _astype_nansafe works fine with 1-d only
+             vals1d = values.ravel()
+             try:
+-                values = astype_nansafe(vals1d, dtype, copy=True, **kwargs)
++                values = astype_nansafe(vals1d, dtype, copy=True)
+             except (ValueError, TypeError):
+                 # e.g. astype_nansafe can fail on object-dtype of strings
+                 #  trying to convert to float
+diff --git a/pandas/tests/series/test_dtypes.py b/pandas/tests/series/test_dtypes.py
+index 9be79bf93ece7..6ee120f3bec64 100644
+--- a/pandas/tests/series/test_dtypes.py
++++ b/pandas/tests/series/test_dtypes.py
+@@ -228,11 +228,10 @@ def test_astype_dict_like(self, dtype_class):
+         with pytest.raises(KeyError, match=msg):
+             s.astype(dt5)
+ 
+-    def test_astype_categories_deprecation_raises(self):
+-
+-        # deprecated 17636
++    def test_astype_categories_raises(self):
++        # deprecated 17636, removed in GH-27141
+         s = Series(["a", "b", "a"])
+-        with pytest.raises(ValueError, match="Got an unexpected"):
++        with pytest.raises(TypeError, match="got an unexpected"):
+             s.astype("category", categories=["a", "b"], ordered=True)
+ 
+     @pytest.mark.parametrize(

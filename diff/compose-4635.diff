@@ -1,0 +1,4763 @@
+diff --git a/.gitignore b/.gitignore
+index 4b318e2328..ef04ca15fa 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -9,3 +9,6 @@
+ /venv
+ README.rst
+ compose/GITSHA
++*.swo
++*.swp
++.DS_Store
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 14197cc03c..581d45bbf4 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,6 +1,97 @@
+ Change log
+ ==========
+ 
++1.12.0 (2017-03-21)
++-------------------
++
++### New features
++
++#### Compose file version 3.2
++
++- Introduced version 3.2 of the `docker-compose.yml` specification.
++
++- Added support for `cache_from` in the `build` section of services
++
++- Added support for the new expanded ports syntax in service definitions
++
++- Added support for the new expanded volumes syntax in service definitions
++
++#### Compose file version 2.1
++
++- Added support for `pids_limit` in service definitions
++
++#### Compose file version 2.0 and up
++
++- Added `--volumes` option to `docker-compose config` that lists named
++  volumes declared for that project
++
++- Added support for `mem_reservation` in service definitions (2.x only)
++
++- Added support for `dns_opt` in service definitions (2.x only)
++
++#### All formats
++
++- Added a new `docker-compose images` command that lists images used by
++  the current project's containers
++
++- Added a `--stop` (shorthand `-s`) option to `docker-compose rm` that stops
++  the running containers before removing them
++
++- Added a `--resolve-image-digests` option to `docker-compose config` that
++  pins the image version for each service to a permanent digest
++
++- Added a `--exit-code-from SERVICE` option to `docker-compose up`. When
++  used, `docker-compose` will exit on any container's exit with the code
++  corresponding to the specified service's exit code
++
++- Added a `--parallel` option to `docker-compose pull` that enables images
++  for multiple services to be pulled simultaneously
++
++- Added a `--build-arg` option to `docker-compose build`
++
++- Added a `--volume <volume_mapping>` (shorthand `-v`) option to
++  `docker-compose run` to declare runtime volumes to be mounted
++
++- Added a `--project-directory PATH` option to `docker-compose` that will
++  affect path resolution for the project
++
++- When using `--abort-on-container-exit` in `docker-compose up`, the exit
++  code for the container that caused the abort will be the exit code of
++  the `docker-compose up` command
++
++- Users can now configure which path separator character they want to use
++  to separate the `COMPOSE_FILE` environment value using the
++  `COMPOSE_PATH_SEPARATOR` environment variable
++
++- Added support for port range to single port in port mappings
++  (e.g. `8000-8010:80`)
++
++### Bugfixes
++
++- `docker-compose run --rm` now removes anonymous volumes after execution,
++  matching the behavior of `docker run --rm`.
++
++- Fixed a bug where override files containing port lists would cause a
++  TypeError to be raised
++
++- Fixed a bug where scaling services up or down would sometimes re-use
++  obsolete containers
++
++- Fixed a bug where the output of `docker-compose config` would be invalid
++  if the project declared anonymous volumes
++
++- Variable interpolation now properly occurs in the `secrets` section of
++  the Compose file
++
++- The `secrets` section now properly appears in the output of
++  `docker-compose config`
++
++- Fixed a bug where changes to some networks properties would not be
++  detected against previously created networks
++
++- Fixed a bug where `docker-compose` would crash when trying to write into
++  a closed pipe
++
+ 1.11.2 (2017-02-17)
+ -------------------
+ 
+@@ -649,7 +740,7 @@ Bug Fixes:
+     if at least one container is using the network.
+ 
+ -   When printings logs during `up` or `logs`, flush the output buffer after
+-    each line to prevent buffering issues from hideing logs.
++    each line to prevent buffering issues from hiding logs.
+ 
+ -   Recreate a container if one of its dependencies is being created.
+     Previously a container was only recreated if it's dependencies already
+diff --git a/Dockerfile.armhf b/Dockerfile.armhf
+new file mode 100644
+index 0000000000..9fd697155d
+--- /dev/null
++++ b/Dockerfile.armhf
+@@ -0,0 +1,71 @@
++FROM armhf/debian:wheezy
++
++RUN set -ex; \
++    apt-get update -qq; \
++    apt-get install -y \
++        locales \
++        gcc \
++        make \
++        zlib1g \
++        zlib1g-dev \
++        libssl-dev \
++        git \
++        ca-certificates \
++        curl \
++        libsqlite3-dev \
++        libbz2-dev \
++    ; \
++    rm -rf /var/lib/apt/lists/*
++
++RUN curl https://get.docker.com/builds/Linux/armel/docker-1.8.3 \
++        -o /usr/local/bin/docker && \
++    chmod +x /usr/local/bin/docker
++
++# Build Python 2.7.13 from source
++RUN set -ex; \
++    curl -L https://www.python.org/ftp/python/2.7.13/Python-2.7.13.tgz | tar -xz; \
++    cd Python-2.7.13; \
++    ./configure --enable-shared; \
++    make; \
++    make install; \
++    cd ..; \
++    rm -rf /Python-2.7.13
++
++# Build python 3.4 from source
++RUN set -ex; \
++    curl -L https://www.python.org/ftp/python/3.4.6/Python-3.4.6.tgz | tar -xz; \
++    cd Python-3.4.6; \
++    ./configure --enable-shared; \
++    make; \
++    make install; \
++    cd ..; \
++    rm -rf /Python-3.4.6
++
++# Make libpython findable
++ENV LD_LIBRARY_PATH /usr/local/lib
++
++# Install pip
++RUN set -ex; \
++    curl -L https://bootstrap.pypa.io/get-pip.py | python
++
++# Python3 requires a valid locale
++RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && locale-gen
++ENV LANG en_US.UTF-8
++
++RUN useradd -d /home/user -m -s /bin/bash user
++WORKDIR /code/
++
++RUN pip install tox==2.1.1
++
++ADD requirements.txt /code/
++ADD requirements-dev.txt /code/
++ADD .pre-commit-config.yaml /code/
++ADD setup.py /code/
++ADD tox.ini /code/
++ADD compose /code/compose/
++RUN tox --notest
++
++ADD . /code/
++RUN chown -R user /code/
++
++ENTRYPOINT ["/code/.tox/py27/bin/docker-compose"]
+diff --git a/Dockerfile.run b/Dockerfile.run
+index de46e35e5f..5d246e9e6c 100644
+--- a/Dockerfile.run
++++ b/Dockerfile.run
+@@ -1,14 +1,14 @@
++FROM alpine:3.4
+ 
+-FROM    alpine:3.4
+-ARG     version
+-RUN     apk -U add \
+-            python \
+-            py-pip
++ENV GLIBC 2.23-r3
+ 
+-COPY    requirements.txt /code/requirements.txt
+-RUN     pip install -r /code/requirements.txt
++RUN apk update && apk add --no-cache openssl ca-certificates && \
++    wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub && \
++    wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/$GLIBC/glibc-$GLIBC.apk && \
++    apk add --no-cache glibc-$GLIBC.apk && rm glibc-$GLIBC.apk && \
++    ln -s /lib/libz.so.1 /usr/glibc-compat/lib/ && \
++    ln -s /lib/libc.musl-x86_64.so.1 /usr/glibc-compat/lib
+ 
+-COPY     dist/docker_compose-${version}-py2.py3-none-any.whl /code/
+-RUN     pip install --no-deps /code/docker_compose-${version}-py2.py3-none-any.whl
++COPY dist/docker-compose-Linux-x86_64 /usr/local/bin/docker-compose
+ 
+-ENTRYPOINT ["/usr/bin/docker-compose"]
++ENTRYPOINT ["docker-compose"]
+diff --git a/README.md b/README.md
+index 5cf69b05c6..d43bd8c4c5 100644
+--- a/README.md
++++ b/README.md
+@@ -35,7 +35,7 @@ A `docker-compose.yml` looks like this:
+         image: redis
+ 
+ For more information about the Compose file, see the
+-[Compose file reference](https://github.com/docker/docker.github.io/blob/master/compose/compose-file.md)
++[Compose file reference](https://github.com/docker/docker.github.io/blob/master/compose/compose-file/compose-versioning.md)
+ 
+ Compose has commands for managing the whole lifecycle of your application:
+ 
+@@ -55,7 +55,7 @@ Installation and documentation
+ Contributing
+ ------------
+ 
+-[![Build Status](http://jenkins.dockerproject.org/buildStatus/icon?job=Compose%20Master)](http://jenkins.dockerproject.org/job/Compose%20Master/)
++[![Build Status](https://jenkins.dockerproject.org/buildStatus/icon?job=docker/compose/master)](https://jenkins.dockerproject.org/job/docker/job/compose/job/master/)
+ 
+ Want to help build Compose? Check out our [contributing documentation](https://github.com/docker/compose/blob/master/CONTRIBUTING.md).
+ 
+diff --git a/ROADMAP.md b/ROADMAP.md
+index 287e54680e..c2184e56a2 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -16,7 +16,7 @@ Some specific things we are considering:
+   - It should roll back to a known good state if it fails.
+   - It should allow a user to check the actions it is about to perform before running them.
+ - It should be possible to partially modify the config file for different environments (dev/test/staging/prod), passing in e.g. custom ports, volume mount paths, or volume drivers. ([#1377](https://github.com/docker/compose/issues/1377))
+-- Compose should recommend a technique for zero-downtime deploys.
++- Compose should recommend a technique for zero-downtime deploys. ([#1786](https://github.com/docker/compose/issues/1786))
+ - It should be possible to continuously attempt to keep an application in the correct state, instead of just performing `up` a single time.
+ 
+ ## Integration with Swarm
+diff --git a/compose/__init__.py b/compose/__init__.py
+index a66471983e..502e9cc4f0 100644
+--- a/compose/__init__.py
++++ b/compose/__init__.py
+@@ -1,4 +1,4 @@
+ from __future__ import absolute_import
+ from __future__ import unicode_literals
+ 
+-__version__ = '1.11.2'
++__version__ = '1.12.0-rc1'
+diff --git a/compose/bundle.py b/compose/bundle.py
+index 854cc79954..505ce91fed 100644
+--- a/compose/bundle.py
++++ b/compose/bundle.py
+@@ -202,7 +202,7 @@ def convert_service_to_bundle(name, service_dict, image_digest):
+     return container_config
+ 
+ 
+-# See https://github.com/docker/swarmkit/blob//agent/exec/container/container.go#L95
++# See https://github.com/docker/swarmkit/blob/agent/exec/container/container.go#L95
+ def set_command_and_args(config, entrypoint, command):
+     if isinstance(entrypoint, six.string_types):
+         entrypoint = split_command(entrypoint)
+diff --git a/compose/cli/command.py b/compose/cli/command.py
+index 020354283f..4e27226488 100644
+--- a/compose/cli/command.py
++++ b/compose/cli/command.py
+@@ -33,7 +33,8 @@ def project_from_options(project_dir, options):
+         verbose=options.get('--verbose'),
+         host=host,
+         tls_config=tls_config_from_options(options),
+-        environment=environment
++        environment=environment,
++        override_dir=options.get('--project-directory'),
+     )
+ 
+ 
+@@ -54,7 +55,8 @@ def get_config_path_from_options(base_dir, options, environment):
+ 
+     config_files = environment.get('COMPOSE_FILE')
+     if config_files:
+-        return config_files.split(os.pathsep)
++        pathsep = environment.get('COMPOSE_PATH_SEPARATOR', os.pathsep)
++        return config_files.split(pathsep)
+     return None
+ 
+ 
+@@ -93,10 +95,10 @@ def get_client(environment, verbose=False, version=None, tls_config=None, host=N
+ 
+ 
+ def get_project(project_dir, config_path=None, project_name=None, verbose=False,
+-                host=None, tls_config=None, environment=None):
++                host=None, tls_config=None, environment=None, override_dir=None):
+     if not environment:
+         environment = Environment.from_env_file(project_dir)
+-    config_details = config.find(project_dir, config_path, environment)
++    config_details = config.find(project_dir, config_path, environment, override_dir)
+     project_name = get_project_name(
+         config_details.working_dir, project_name, environment
+     )
+diff --git a/compose/cli/errors.py b/compose/cli/errors.py
+index 5b97709556..23e065c99b 100644
+--- a/compose/cli/errors.py
++++ b/compose/cli/errors.py
+@@ -7,6 +7,7 @@
+ from distutils.spawn import find_executable
+ from textwrap import dedent
+ 
++import six
+ from docker.errors import APIError
+ from requests.exceptions import ConnectionError as RequestsConnectionError
+ from requests.exceptions import ReadTimeout
+@@ -68,14 +69,18 @@ def log_timeout_error(timeout):
+ 
+ 
+ def log_api_error(e, client_version):
+-    if b'client is newer than server' not in e.explanation:
+-        log.error(e.explanation)
++    explanation = e.explanation
++    if isinstance(explanation, six.binary_type):
++        explanation = explanation.decode('utf-8')
++
++    if 'client is newer than server' not in explanation:
++        log.error(explanation)
+         return
+ 
+     version = API_VERSION_TO_ENGINE_VERSION.get(client_version)
+     if not version:
+         # They've set a custom API version
+-        log.error(e.explanation)
++        log.error(explanation)
+         return
+ 
+     log.error(
+diff --git a/compose/cli/formatter.py b/compose/cli/formatter.py
+index 5f58064591..6c0a3695a4 100644
+--- a/compose/cli/formatter.py
++++ b/compose/cli/formatter.py
+@@ -11,7 +11,7 @@
+ 
+ 
+ def get_tty_width():
+-    tty_size = os.popen('stty size', 'r').read().split()
++    tty_size = os.popen('stty size 2> /dev/null', 'r').read().split()
+     if len(tty_size) != 2:
+         return 0
+     _, width = tty_size
+diff --git a/compose/cli/log_printer.py b/compose/cli/log_printer.py
+index 299ddea465..043d3d068b 100644
+--- a/compose/cli/log_printer.py
++++ b/compose/cli/log_printer.py
+@@ -87,6 +87,13 @@ def run(self):
+         for line in consume_queue(queue, self.cascade_stop):
+             remove_stopped_threads(thread_map)
+ 
++            if self.cascade_stop:
++                matching_container = [cont.name for cont in self.containers if cont.name == line]
++                if line in matching_container:
++                    # Returning the name of the container that started the
++                    # the cascade_stop so we can return the correct exit code
++                    return line
++
+             if not line:
+                 if not thread_map:
+                     # There are no running containers left to tail, so exit
+@@ -132,8 +139,8 @@ def exception(cls, exc):
+         return cls(None, None, exc)
+ 
+     @classmethod
+-    def stop(cls):
+-        return cls(None, True, None)
++    def stop(cls, item=None):
++        return cls(item, True, None)
+ 
+ 
+ def tail_container_logs(container, presenter, queue, log_args):
+@@ -145,10 +152,9 @@ def tail_container_logs(container, presenter, queue, log_args):
+     except Exception as e:
+         queue.put(QueueItem.exception(e))
+         return
+-
+     if log_args.get('follow'):
+         queue.put(QueueItem.new(presenter.color_func(wait_on_exit(container))))
+-    queue.put(QueueItem.stop())
++    queue.put(QueueItem.stop(container.name))
+ 
+ 
+ def get_log_generator(container):
+@@ -228,10 +234,7 @@ def consume_queue(queue, cascade_stop):
+         if item.exc:
+             raise item.exc
+ 
+-        if item.is_stop:
+-            if cascade_stop:
+-                raise StopIteration
+-            else:
+-                continue
++        if item.is_stop and not cascade_stop:
++            continue
+ 
+         yield item.item
+diff --git a/compose/cli/main.py b/compose/cli/main.py
+index 51ba36a094..84cae9f539 100644
+--- a/compose/cli/main.py
++++ b/compose/cli/main.py
+@@ -22,8 +22,10 @@
+ from ..bundle import serialize_bundle
+ from ..config import ConfigurationError
+ from ..config import parse_environment
++from ..config import resolve_build_args
+ from ..config.environment import Environment
+ from ..config.serialize import serialize_config
++from ..config.types import VolumeSpec
+ from ..const import IS_WINDOWS_PLATFORM
+ from ..errors import StreamParseError
+ from ..progress_stream import StreamOutputError
+@@ -47,6 +49,7 @@
+ from .log_printer import build_log_presenters
+ from .log_printer import LogPrinter
+ from .utils import get_version_info
++from .utils import human_readable_file_size
+ from .utils import yesno
+ 
+ 
+@@ -58,9 +61,9 @@
+ 
+ 
+ def main():
+-    command = dispatch()
+-
++    signals.ignore_sigpipe()
+     try:
++        command = dispatch()
+         command()
+     except (KeyboardInterrupt, signals.ShutdownException):
+         log.error("Aborting.")
+@@ -78,6 +81,10 @@ def main():
+     except NeedsBuildError as e:
+         log.error("Service '%s' needs to be built, but --no-build was passed." % e.service.name)
+         sys.exit(1)
++    except NoSuchCommand as e:
++        commands = "\n".join(parse_doc_section("commands:", getdoc(e.supercommand)))
++        log.error("No such command: %s\n\n%s", e.command, commands)
++        sys.exit(1)
+     except (errors.ConnectionError, StreamParseError):
+         sys.exit(1)
+ 
+@@ -88,13 +95,7 @@ def dispatch():
+         TopLevelCommand,
+         {'options_first': True, 'version': get_version_info('compose')})
+ 
+-    try:
+-        options, handler, command_options = dispatcher.parse(sys.argv[1:])
+-    except NoSuchCommand as e:
+-        commands = "\n".join(parse_doc_section("commands:", getdoc(e.supercommand)))
+-        log.error("No such command: %s\n\n%s", e.command, commands)
+-        sys.exit(1)
+-
++    options, handler, command_options = dispatcher.parse(sys.argv[1:])
+     setup_console_handler(console_handler, options.get('--verbose'))
+     return functools.partial(perform_command, options, handler, command_options)
+ 
+@@ -168,6 +169,8 @@ class TopLevelCommand(object):
+       --skip-hostname-check       Don't check the daemon's hostname against the name specified
+                                   in the client certificate (for example if your docker host
+                                   is an IP address)
++      --project-directory PATH    Specify an alternate working directory
++                                  (default: the path of the compose file)
+ 
+     Commands:
+       build              Build or rebuild services
+@@ -178,6 +181,7 @@ class TopLevelCommand(object):
+       events             Receive real time events from containers
+       exec               Execute a command in a running container
+       help               Get help on a command
++      images             List images
+       kill               Kill containers
+       logs               View output from containers
+       pause              Pause services
+@@ -209,18 +213,29 @@ def build(self, options):
+         e.g. `composetest_db`. If you change a service's `Dockerfile` or the
+         contents of its build directory, you can run `docker-compose build` to rebuild it.
+ 
+-        Usage: build [options] [SERVICE...]
++        Usage: build [options] [--build-arg key=val...] [SERVICE...]
+ 
+         Options:
+-            --force-rm  Always remove intermediate containers.
+-            --no-cache  Do not use cache when building the image.
+-            --pull      Always attempt to pull a newer version of the image.
++            --force-rm              Always remove intermediate containers.
++            --no-cache              Do not use cache when building the image.
++            --pull                  Always attempt to pull a newer version of the image.
++            --build-arg key=val     Set build-time variables for one service.
+         """
++        service_names = options['SERVICE']
++        build_args = options.get('--build-arg', None)
++        if build_args:
++            environment = Environment.from_env_file(self.project_dir)
++            build_args = resolve_build_args(build_args, environment)
++
++        if not service_names and build_args:
++            raise UserError("Need service name for --build-arg option")
++
+         self.project.build(
+-            service_names=options['SERVICE'],
++            service_names=service_names,
+             no_cache=bool(options.get('--no-cache', False)),
+             pull=bool(options.get('--pull', False)),
+-            force_rm=bool(options.get('--force-rm', False)))
++            force_rm=bool(options.get('--force-rm', False)),
++            build_args=build_args)
+ 
+     def bundle(self, config_options, options):
+         """
+@@ -248,43 +263,7 @@ def bundle(self, config_options, options):
+         if not output:
+             output = "{}.dab".format(self.project.name)
+ 
+-        with errors.handle_connection_errors(self.project.client):
+-            try:
+-                image_digests = get_image_digests(
+-                    self.project,
+-                    allow_push=options['--push-images'],
+-                )
+-            except MissingDigests as e:
+-                def list_images(images):
+-                    return "\n".join("    {}".format(name) for name in sorted(images))
+-
+-                paras = ["Some images are missing digests."]
+-
+-                if e.needs_push:
+-                    command_hint = (
+-                        "Use `docker-compose push {}` to push them. "
+-                        "You can do this automatically with `docker-compose bundle --push-images`."
+-                        .format(" ".join(sorted(e.needs_push)))
+-                    )
+-                    paras += [
+-                        "The following images can be pushed:",
+-                        list_images(e.needs_push),
+-                        command_hint,
+-                    ]
+-
+-                if e.needs_pull:
+-                    command_hint = (
+-                        "Use `docker-compose pull {}` to pull them. "
+-                        .format(" ".join(sorted(e.needs_pull)))
+-                    )
+-
+-                    paras += [
+-                        "The following images need to be pulled:",
+-                        list_images(e.needs_pull),
+-                        command_hint,
+-                    ]
+-
+-                raise UserError("\n\n".join(paras))
++        image_digests = image_digests_for_project(self.project, options['--push-images'])
+ 
+         with open(output, 'w') as f:
+             f.write(serialize_bundle(compose_config, image_digests))
+@@ -298,12 +277,20 @@ def config(self, config_options, options):
+         Usage: config [options]
+ 
+         Options:
+-            -q, --quiet     Only validate the configuration, don't print
+-                            anything.
+-            --services      Print the service names, one per line.
++            --resolve-image-digests  Pin image tags to digests.
++            -q, --quiet              Only validate the configuration, don't print
++                                     anything.
++            --services               Print the service names, one per line.
++            --volumes                Print the volume names, one per line.
+ 
+         """
++
+         compose_config = get_config_from_options(self.project_dir, config_options)
++        image_digests = None
++
++        if options['--resolve-image-digests']:
++            self.project = project_from_options('.', config_options)
++            image_digests = image_digests_for_project(self.project)
+ 
+         if options['--quiet']:
+             return
+@@ -312,7 +299,11 @@ def config(self, config_options, options):
+             print('\n'.join(service['name'] for service in compose_config.services))
+             return
+ 
+-        print(serialize_config(compose_config))
++        if options['--volumes']:
++            print('\n'.join(volume for volume in compose_config.volumes))
++            return
++
++        print(serialize_config(compose_config, image_digests))
+ 
+     def create(self, options):
+         """
+@@ -479,6 +470,45 @@ def help(cls, options):
+ 
+         print(getdoc(subject))
+ 
++    def images(self, options):
++        """
++        List images used by the created containers.
++        Usage: images [options] [SERVICE...]
++
++        Options:
++        -q     Only display IDs
++        """
++        containers = sorted(
++            self.project.containers(service_names=options['SERVICE'], stopped=True) +
++            self.project.containers(service_names=options['SERVICE'], one_off=OneOffFilter.only),
++            key=attrgetter('name'))
++
++        if options['-q']:
++            for image in set(c.image for c in containers):
++                print(image.split(':')[1])
++        else:
++            headers = [
++                'Container',
++                'Repository',
++                'Tag',
++                'Image Id',
++                'Size'
++            ]
++            rows = []
++            for container in containers:
++                image_config = container.image_config
++                repo_tags = image_config['RepoTags'][0].split(':')
++                image_id = image_config['Id'].split(':')[1][:12]
++                size = human_readable_file_size(image_config['Size'])
++                rows.append([
++                    container.name,
++                    repo_tags[0],
++                    repo_tags[1],
++                    image_id,
++                    size
++                ])
++            print(Formatter().table(headers, rows))
++
+     def kill(self, options):
+         """
+         Force stop service containers.
+@@ -602,10 +632,12 @@ def pull(self, options):
+ 
+         Options:
+             --ignore-pull-failures  Pull what it can and ignores images with pull failures.
++            --parallel              Pull multiple images in parallel.
+         """
+         self.project.pull(
+             service_names=options['SERVICE'],
+-            ignore_pull_failures=options.get('--ignore-pull-failures')
++            ignore_pull_failures=options.get('--ignore-pull-failures'),
++            parallel_pull=options.get('--parallel')
+         )
+ 
+     def push(self, options):
+@@ -635,6 +667,7 @@ def rm(self, options):
+ 
+         Options:
+             -f, --force   Don't ask to confirm removal
++            -s, --stop    Stop the containers, if required, before removing
+             -v            Remove any anonymous volumes attached to containers
+             -a, --all     Deprecated - no effect.
+         """
+@@ -645,6 +678,15 @@ def rm(self, options):
+             )
+         one_off = OneOffFilter.include
+ 
++        if options.get('--stop'):
++            running_containers = self.project.containers(
++                service_names=options['SERVICE'], stopped=False, one_off=one_off
++            )
++            self.project.stop(
++                service_names=running_containers,
++                one_off=one_off
++            )
++
+         all_containers = self.project.containers(
+             service_names=options['SERVICE'], stopped=True, one_off=one_off
+         )
+@@ -674,7 +716,7 @@ def run(self, options):
+         running. If you do not want to start linked services, use
+         `docker-compose run --no-deps SERVICE COMMAND [ARGS...]`.
+ 
+-        Usage: run [options] [-p PORT...] [-e KEY=VAL...] SERVICE [COMMAND] [ARGS...]
++        Usage: run [options] [-v VOLUME...] [-p PORT...] [-e KEY=VAL...] SERVICE [COMMAND] [ARGS...]
+ 
+         Options:
+             -d                    Detached mode: Run container in the background, print
+@@ -688,6 +730,7 @@ def run(self, options):
+             -p, --publish=[]      Publish a container's port(s) to the host
+             --service-ports       Run command with the service's ports enabled and mapped
+                                   to the host.
++            -v, --volume=[]       Bind mount a volume (default [])
+             -T                    Disable pseudo-tty allocation. By default `docker-compose run`
+                                   allocates a TTY.
+             -w, --workdir=""      Working directory inside the container
+@@ -854,8 +897,11 @@ def up(self, options):
+                                        running. (default: 10)
+             --remove-orphans           Remove containers for services not
+                                        defined in the Compose file
++            --exit-code-from SERVICE   Return the exit code of the selected service container.
++                                       Requires --abort-on-container-exit.
+         """
+         start_deps = not options['--no-deps']
++        exit_value_from = exitval_from_opts(options, self.project)
+         cascade_stop = options['--abort-on-container-exit']
+         service_names = options['SERVICE']
+         timeout = timeout_from_opts(options)
+@@ -878,19 +924,50 @@ def up(self, options):
+             if detached:
+                 return
+ 
++            attached_containers = filter_containers_to_service_names(to_attach, service_names)
++
+             log_printer = log_printer_from_project(
+                 self.project,
+-                filter_containers_to_service_names(to_attach, service_names),
++                attached_containers,
+                 options['--no-color'],
+                 {'follow': True},
+                 cascade_stop,
+                 event_stream=self.project.events(service_names=service_names))
+             print("Attaching to", list_containers(log_printer.containers))
+-            log_printer.run()
++            cascade_starter = log_printer.run()
+ 
+             if cascade_stop:
+                 print("Aborting on container exit...")
++
++                exit_code = 0
++                if exit_value_from:
++                    candidates = filter(
++                        lambda c: c.service == exit_value_from,
++                        attached_containers)
++                    if not candidates:
++                        log.error(
++                            'No containers matching the spec "{0}" '
++                            'were run.'.format(exit_value_from)
++                        )
++                        exit_code = 2
++                    elif len(candidates) > 1:
++                        exit_values = filter(
++                            lambda e: e != 0,
++                            [c.inspect()['State']['ExitCode'] for c in candidates]
++                        )
++
++                        exit_code = exit_values[0]
++                    else:
++                        exit_code = candidates[0].inspect()['State']['ExitCode']
++                else:
++                    for e in self.project.containers(service_names=options['SERVICE'], stopped=True):
++                        if (not e.is_running and cascade_starter == e.name):
++                            if not e.exit_code == 0:
++                                exit_code = e.exit_code
++                                break
++
+                 self.project.stop(service_names=service_names, timeout=timeout)
++                sys.exit(exit_code)
+ 
+     @classmethod
+     def version(cls, options):
+@@ -928,6 +1005,58 @@ def timeout_from_opts(options):
+     return None if timeout is None else int(timeout)
+ 
+ 
++def image_digests_for_project(project, allow_push=False):
++    with errors.handle_connection_errors(project.client):
++        try:
++            return get_image_digests(
++                project,
++                allow_push=allow_push
++            )
++        except MissingDigests as e:
++            def list_images(images):
++                return "\n".join("    {}".format(name) for name in sorted(images))
++
++            paras = ["Some images are missing digests."]
++
++            if e.needs_push:
++                command_hint = (
++                    "Use `docker-compose push {}` to push them. "
++                    .format(" ".join(sorted(e.needs_push)))
++                )
++                paras += [
++                    "The following images can be pushed:",
++                    list_images(e.needs_push),
++                    command_hint,
++                ]
++
++            if e.needs_pull:
++                command_hint = (
++                    "Use `docker-compose pull {}` to pull them. "
++                    .format(" ".join(sorted(e.needs_pull)))
++                )
++
++                paras += [
++                    "The following images need to be pulled:",
++                    list_images(e.needs_pull),
++                    command_hint,
++                ]
++
++            raise UserError("\n\n".join(paras))
++
++
++def exitval_from_opts(options, project):
++    exit_value_from = options.get('--exit-code-from')
++    if exit_value_from:
++        if not options.get('--abort-on-container-exit'):
++            log.warn('using --exit-code-from implies --abort-on-container-exit')
++            options['--abort-on-container-exit'] = True
++        if exit_value_from not in [s.name for s in project.get_services()]:
++            log.error('No service named "%s" was found in your compose file.',
++                      exit_value_from)
++            sys.exit(2)
++    return exit_value_from
++
++
+ def image_type_from_opt(flag, value):
+     if not value:
+         return ImageType.none
+@@ -984,6 +1113,10 @@ def build_container_options(options, detach, command):
+     if options['--workdir']:
+         container_options['working_dir'] = options['--workdir']
+ 
++    if options['--volume']:
++        volumes = [VolumeSpec.parse(i) for i in options['--volume']]
++        container_options['volumes'] = volumes
++
+     return container_options
+ 
+ 
+@@ -1010,7 +1143,7 @@ def run_one_off_container(container_options, project, service, options):
+ 
+     def remove_container(force=False):
+         if options['--rm']:
+-            project.client.remove_container(container.id, force=True)
++            project.client.remove_container(container.id, force=True, v=True)
+ 
+     signals.set_signal_handler_to_shutdown()
+     try:
+diff --git a/compose/cli/signals.py b/compose/cli/signals.py
+index 68a0598e12..9b360c44e9 100644
+--- a/compose/cli/signals.py
++++ b/compose/cli/signals.py
+@@ -3,6 +3,8 @@
+ 
+ import signal
+ 
++from ..const import IS_WINDOWS_PLATFORM
++
+ 
+ class ShutdownException(Exception):
+     pass
+@@ -19,3 +21,10 @@ def set_signal_handler(handler):
+ 
+ def set_signal_handler_to_shutdown():
+     set_signal_handler(shutdown)
++
++
++def ignore_sigpipe():
++    # Restore default behavior for SIGPIPE instead of raising
++    # an exception when encountered.
++    if not IS_WINDOWS_PLATFORM:
++        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+diff --git a/compose/cli/utils.py b/compose/cli/utils.py
+index 580bd1b073..4d4fc4c181 100644
+--- a/compose/cli/utils.py
++++ b/compose/cli/utils.py
+@@ -2,6 +2,7 @@
+ from __future__ import division
+ from __future__ import unicode_literals
+ 
++import math
+ import os
+ import platform
+ import ssl
+@@ -135,3 +136,15 @@ def unquote_path(s):
+     if s[0] == '"' and s[-1] == '"':
+         return s[1:-1]
+     return s
++
++
++def human_readable_file_size(size):
++    suffixes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', ]
++    order = int(math.log(size, 2) / 10) if size else 0
++    if order >= len(suffixes):
++        order = len(suffixes) - 1
++
++    return '{0:.3g} {1}'.format(
++        size / float(1 << (order * 10)),
++        suffixes[order]
++    )
+diff --git a/compose/config/__init__.py b/compose/config/__init__.py
+index 7cf71eb98b..b629edf66f 100644
+--- a/compose/config/__init__.py
++++ b/compose/config/__init__.py
+@@ -9,3 +9,4 @@
+ from .config import load
+ from .config import merge_environment
+ from .config import parse_environment
++from .config import resolve_build_args
+diff --git a/compose/config/config.py b/compose/config/config.py
+index 4c9cf423bb..8cbaae272c 100644
+--- a/compose/config/config.py
++++ b/compose/config/config.py
+@@ -13,11 +13,8 @@
+ from cached_property import cached_property
+ 
+ from . import types
++from .. import const
+ from ..const import COMPOSEFILE_V1 as V1
+-from ..const import COMPOSEFILE_V2_0 as V2_0
+-from ..const import COMPOSEFILE_V2_1 as V2_1
+-from ..const import COMPOSEFILE_V3_0 as V3_0
+-from ..const import COMPOSEFILE_V3_1 as V3_1
+ from ..utils import build_string_dict
+ from ..utils import parse_nanoseconds_int
+ from ..utils import splitdrive
+@@ -35,6 +32,7 @@
+ from .types import parse_extra_hosts
+ from .types import parse_restart_spec
+ from .types import ServiceLink
++from .types import ServicePort
+ from .types import VolumeFromSpec
+ from .types import VolumeSpec
+ from .validation import match_named_volumes
+@@ -61,6 +59,7 @@
+     'devices',
+     'dns',
+     'dns_search',
++    'dns_opt',
+     'domainname',
+     'entrypoint',
+     'env_file',
+@@ -75,6 +74,7 @@
+     'links',
+     'mac_address',
+     'mem_limit',
++    'mem_reservation',
+     'memswap_limit',
+     'mem_swappiness',
+     'net',
+@@ -87,6 +87,7 @@
+     'secrets',
+     'security_opt',
+     'shm_size',
++    'pids_limit',
+     'stdin_open',
+     'stop_signal',
+     'sysctls',
+@@ -181,10 +182,10 @@ def version(self):
+                 .format(self.filename, VERSION_EXPLANATION))
+ 
+         if version == '2':
+-            version = V2_0
++            version = const.COMPOSEFILE_V2_0
+ 
+         if version == '3':
+-            version = V3_0
++            version = const.COMPOSEFILE_V3_0
+ 
+         return version
+ 
+@@ -201,7 +202,7 @@ def get_networks(self):
+         return {} if self.version == V1 else self.config.get('networks', {})
+ 
+     def get_secrets(self):
+-        return {} if self.version < V3_1 else self.config.get('secrets', {})
++        return {} if self.version < const.COMPOSEFILE_V3_1 else self.config.get('secrets', {})
+ 
+ 
+ class Config(namedtuple('_Config', 'version services volumes networks secrets')):
+@@ -214,6 +215,8 @@ class Config(namedtuple('_Config', 'version services volumes networks secrets'))
+     :type  volumes: :class:`dict`
+     :param networks: Dictionary mapping network names to description dictionaries
+     :type  networks: :class:`dict`
++    :param secrets: Dictionary mapping secret names to description dictionaries
++    :type secrets: :class:`dict`
+     """
+ 
+ 
+@@ -231,10 +234,10 @@ def with_abs_paths(cls, working_dir, filename, name, config):
+             config)
+ 
+ 
+-def find(base_dir, filenames, environment):
++def find(base_dir, filenames, environment, override_dir='.'):
+     if filenames == ['-']:
+         return ConfigDetails(
+-            os.getcwd(),
++            os.path.abspath(override_dir),
+             [ConfigFile(None, yaml.safe_load(sys.stdin))],
+             environment
+         )
+@@ -246,7 +249,7 @@ def find(base_dir, filenames, environment):
+ 
+     log.debug("Using configuration files: {}".format(",".join(filenames)))
+     return ConfigDetails(
+-        os.path.dirname(filenames[0]),
++        override_dir or os.path.dirname(filenames[0]),
+         [ConfigFile.from_filename(f) for f in filenames],
+         environment
+     )
+@@ -421,7 +424,7 @@ def build_service(service_name, service_dict, service_names):
+         service_dict = process_service(resolver.run())
+ 
+         service_config = service_config._replace(config=service_dict)
+-        validate_service(service_config, service_names, config_file.version)
++        validate_service(service_config, service_names, config_file)
+         service_dict = finalize_service(
+             service_config,
+             service_names,
+@@ -474,7 +477,7 @@ def process_config_file(config_file, environment, service_name=None):
+         'service',
+         environment)
+ 
+-    if config_file.version in (V2_0, V2_1, V3_0, V3_1):
++    if config_file.version != V1:
+         processed_config = dict(config_file.config)
+         processed_config['services'] = services
+         processed_config['volumes'] = interpolate_config_section(
+@@ -487,12 +490,14 @@ def process_config_file(config_file, environment, service_name=None):
+             config_file.get_networks(),
+             'network',
+             environment)
+-    elif config_file.version == V1:
+-        processed_config = services
++        if config_file.version in (const.COMPOSEFILE_V3_1, const.COMPOSEFILE_V3_2):
++            processed_config['secrets'] = interpolate_config_section(
++                config_file,
++                config_file.get_secrets(),
++                'secrets',
++                environment)
+     else:
+-        raise ConfigurationError(
+-            'Version in "{}" is unsupported. {}'
+-            .format(config_file.filename, VERSION_EXPLANATION))
++        processed_config = services
+ 
+     config_file = config_file._replace(config=processed_config)
+     validate_against_config_schema(config_file)
+@@ -598,8 +603,8 @@ def resolve_environment(service_dict, environment=None):
+     return dict(resolve_env_var(k, v, environment) for k, v in six.iteritems(env))
+ 
+ 
+-def resolve_build_args(build, environment):
+-    args = parse_build_arguments(build.get('args'))
++def resolve_build_args(buildargs, environment):
++    args = parse_build_arguments(buildargs)
+     return dict(resolve_env_var(k, v, environment) for k, v in six.iteritems(args))
+ 
+ 
+@@ -629,9 +634,9 @@ def validate_extended_service_dict(service_dict, filename, service):
+             "%s services with 'depends_on' cannot be extended" % error_prefix)
+ 
+ 
+-def validate_service(service_config, service_names, version):
++def validate_service(service_config, service_names, config_file):
+     service_dict, service_name = service_config.config, service_config.name
+-    validate_service_constraints(service_dict, service_name, version)
++    validate_service_constraints(service_dict, service_name, config_file)
+     validate_paths(service_dict)
+ 
+     validate_ulimits(service_config)
+@@ -683,7 +688,22 @@ def process_service(service_config):
+             service_dict[field] = to_list(service_dict[field])
+ 
+     service_dict = process_healthcheck(service_dict, service_config.name)
++    service_dict = process_ports(service_dict)
++
++    return service_dict
++
++
++def process_ports(service_dict):
++    if 'ports' not in service_dict:
++        return service_dict
+ 
++    ports = []
++    for port_definition in service_dict['ports']:
++        if isinstance(port_definition, ServicePort):
++            ports.append(port_definition)
++        else:
++            ports.extend(ServicePort.parse(port_definition))
++    service_dict['ports'] = ports
+     return service_dict
+ 
+ 
+@@ -864,7 +884,7 @@ def merge_service_dicts(base, override, version):
+         md.merge_field(field, merge_path_mappings)
+ 
+     for field in [
+-        'ports', 'cap_add', 'cap_drop', 'expose', 'external_links',
++        'cap_add', 'cap_drop', 'expose', 'external_links',
+         'security_opt', 'volumes_from',
+     ]:
+         md.merge_field(field, merge_unique_items_lists, default=[])
+@@ -873,6 +893,7 @@ def merge_service_dicts(base, override, version):
+         md.merge_field(field, merge_list_or_string)
+ 
+     md.merge_field('logging', merge_logging, default={})
++    merge_ports(md, base, override)
+ 
+     for field in set(ALLOWED_KEYS) - set(md):
+         md.merge_scalar(field)
+@@ -886,9 +907,28 @@ def merge_service_dicts(base, override, version):
+ 
+ 
+ def merge_unique_items_lists(base, override):
++    override = [str(o) for o in override]
++    base = [str(b) for b in base]
+     return sorted(set().union(base, override))
+ 
+ 
++def merge_ports(md, base, override):
++    def parse_sequence_func(seq):
++        acc = []
++        for item in seq:
++            acc.extend(ServicePort.parse(item))
++        return to_mapping(acc, 'merge_field')
++
++    field = 'ports'
++
++    if not md.needs_merge(field):
++        return
++
++    merged = parse_sequence_func(md.base.get(field, []))
++    merged.update(parse_sequence_func(md.override.get(field, [])))
++    md[field] = [item for item in sorted(merged.values())]
++
++
+ def merge_build(output, base, override):
+     def to_dict(service):
+         build_config = service.get('build', {})
+@@ -990,7 +1030,13 @@ def resolve_volume_paths(working_dir, service_dict):
+ 
+ 
+ def resolve_volume_path(working_dir, volume):
+-    container_path, host_path = split_path_mapping(volume)
++    if isinstance(volume, dict):
++        host_path = volume.get('source')
++        container_path = volume.get('target')
++        if host_path and volume.get('read_only'):
++            container_path += ':ro'
++    else:
++        container_path, host_path = split_path_mapping(volume)
+ 
+     if host_path is not None:
+         if host_path.startswith('.'):
+@@ -1012,7 +1058,7 @@ def normalize_build(service_dict, working_dir, environment):
+             build.update(service_dict['build'])
+             if 'args' in build:
+                 build['args'] = build_string_dict(
+-                    resolve_build_args(build, environment)
++                    resolve_build_args(build.get('args'), environment)
+                 )
+ 
+         service_dict['build'] = build
+@@ -1072,6 +1118,8 @@ def split_path_mapping(volume_path):
+     path. Using splitdrive so windows absolute paths won't cause issues with
+     splitting on ':'.
+     """
++    if isinstance(volume_path, dict):
++        return (volume_path.get('target'), volume_path)
+     drive, volume_config = splitdrive(volume_path)
+ 
+     if ':' in volume_config:
+@@ -1083,7 +1131,9 @@ def split_path_mapping(volume_path):
+ 
+ def join_path_mapping(pair):
+     (container, host) = pair
+-    if host is None:
++    if isinstance(host, dict):
++        return host
++    elif host is None:
+         return container
+     else:
+         return ":".join((host, container))
+diff --git a/compose/config/config_schema_v2.0.json b/compose/config/config_schema_v2.0.json
+index 59c7b30c96..54e9b33144 100644
+--- a/compose/config/config_schema_v2.0.json
++++ b/compose/config/config_schema_v2.0.json
+@@ -80,6 +80,13 @@
+         "depends_on": {"$ref": "#/definitions/list_of_strings"},
+         "devices": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+         "dns": {"$ref": "#/definitions/string_or_list"},
++        "dns_opt": {
++          "type": "array",
++          "items": {
++            "type": "string"
++          },
++          "uniqueItems": true
++        },
+         "dns_search": {"$ref": "#/definitions/string_or_list"},
+         "domainname": {"type": "string"},
+         "entrypoint": {
+@@ -138,8 +145,9 @@
+ 
+         "mac_address": {"type": "string"},
+         "mem_limit": {"type": ["number", "string"]},
+-        "memswap_limit": {"type": ["number", "string"]},
++        "mem_reservation": {"type": ["string", "integer"]},
+         "mem_swappiness": {"type": "integer"},
++        "memswap_limit": {"type": ["number", "string"]},
+         "network_mode": {"type": "string"},
+ 
+         "networks": {
+diff --git a/compose/config/config_schema_v2.1.json b/compose/config/config_schema_v2.1.json
+index d1ffff89a2..0f87be24ee 100644
+--- a/compose/config/config_schema_v2.1.json
++++ b/compose/config/config_schema_v2.1.json
+@@ -100,6 +100,13 @@
+           ]
+         },
+         "devices": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++        "dns_opt": {
++          "type": "array",
++          "items": {
++            "type": "string"
++          },
++          "uniqueItems": true
++        },
+         "dns": {"$ref": "#/definitions/string_or_list"},
+         "dns_search": {"$ref": "#/definitions/string_or_list"},
+         "domainname": {"type": "string"},
+@@ -161,8 +168,9 @@
+ 
+         "mac_address": {"type": "string"},
+         "mem_limit": {"type": ["number", "string"]},
+-        "memswap_limit": {"type": ["number", "string"]},
++        "mem_reservation": {"type": ["string", "integer"]},
+         "mem_swappiness": {"type": "integer"},
++        "memswap_limit": {"type": ["number", "string"]},
+         "network_mode": {"type": "string"},
+ 
+         "networks": {
+@@ -216,6 +224,7 @@
+         "security_opt": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+         "shm_size": {"type": ["number", "string"]},
+         "sysctls": {"$ref": "#/definitions/list_or_dict"},
++        "pids_limit": {"type": ["number", "string"]},
+         "stdin_open": {"type": "boolean"},
+         "stop_grace_period": {"type": "string", "format": "duration"},
+         "stop_signal": {"type": "string"},
+diff --git a/compose/config/config_schema_v3.2.json b/compose/config/config_schema_v3.2.json
+new file mode 100644
+index 0000000000..ea702fcd58
+--- /dev/null
++++ b/compose/config/config_schema_v3.2.json
+@@ -0,0 +1,472 @@
++{
++  "$schema": "http://json-schema.org/draft-04/schema#",
++  "id": "config_schema_v3.2.json",
++  "type": "object",
++  "required": ["version"],
++
++  "properties": {
++    "version": {
++      "type": "string"
++    },
++
++    "services": {
++      "id": "#/properties/services",
++      "type": "object",
++      "patternProperties": {
++        "^[a-zA-Z0-9._-]+$": {
++          "$ref": "#/definitions/service"
++        }
++      },
++      "additionalProperties": false
++    },
++
++    "networks": {
++      "id": "#/properties/networks",
++      "type": "object",
++      "patternProperties": {
++        "^[a-zA-Z0-9._-]+$": {
++          "$ref": "#/definitions/network"
++        }
++      }
++    },
++
++    "volumes": {
++      "id": "#/properties/volumes",
++      "type": "object",
++      "patternProperties": {
++        "^[a-zA-Z0-9._-]+$": {
++          "$ref": "#/definitions/volume"
++        }
++      },
++      "additionalProperties": false
++    },
++
++    "secrets": {
++      "id": "#/properties/secrets",
++      "type": "object",
++      "patternProperties": {
++        "^[a-zA-Z0-9._-]+$": {
++          "$ref": "#/definitions/secret"
++        }
++      },
++      "additionalProperties": false
++    }
++  },
++
++  "additionalProperties": false,
++
++  "definitions": {
++
++    "service": {
++      "id": "#/definitions/service",
++      "type": "object",
++
++      "properties": {
++        "deploy": {"$ref": "#/definitions/deployment"},
++        "build": {
++          "oneOf": [
++            {"type": "string"},
++            {
++              "type": "object",
++              "properties": {
++                "context": {"type": "string"},
++                "dockerfile": {"type": "string"},
++                "args": {"$ref": "#/definitions/list_or_dict"},
++                "cache_from": {"$ref": "#/definitions/list_of_strings"}
++              },
++              "additionalProperties": false
++            }
++          ]
++        },
++        "cap_add": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++        "cap_drop": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++        "cgroup_parent": {"type": "string"},
++        "command": {
++          "oneOf": [
++            {"type": "string"},
++            {"type": "array", "items": {"type": "string"}}
++          ]
++        },
++        "container_name": {"type": "string"},
++        "depends_on": {"$ref": "#/definitions/list_of_strings"},
++        "devices": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++        "dns": {"$ref": "#/definitions/string_or_list"},
++        "dns_search": {"$ref": "#/definitions/string_or_list"},
++        "domainname": {"type": "string"},
++        "entrypoint": {
++          "oneOf": [
++            {"type": "string"},
++            {"type": "array", "items": {"type": "string"}}
++          ]
++        },
++        "env_file": {"$ref": "#/definitions/string_or_list"},
++        "environment": {"$ref": "#/definitions/list_or_dict"},
++
++        "expose": {
++          "type": "array",
++          "items": {
++            "type": ["string", "number"],
++            "format": "expose"
++          },
++          "uniqueItems": true
++        },
++
++        "external_links": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++        "extra_hosts": {"$ref": "#/definitions/list_or_dict"},
++        "healthcheck": {"$ref": "#/definitions/healthcheck"},
++        "hostname": {"type": "string"},
++        "image": {"type": "string"},
++        "ipc": {"type": "string"},
++        "labels": {"$ref": "#/definitions/list_or_dict"},
++        "links": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++
++        "logging": {
++            "type": "object",
++
++            "properties": {
++                "driver": {"type": "string"},
++                "options": {
++                  "type": "object",
++                  "patternProperties": {
++                    "^.+$": {"type": ["string", "number", "null"]}
++                  }
++                }
++            },
++            "additionalProperties": false
++        },
++
++        "mac_address": {"type": "string"},
++        "network_mode": {"type": "string"},
++
++        "networks": {
++          "oneOf": [
++            {"$ref": "#/definitions/list_of_strings"},
++            {
++              "type": "object",
++              "patternProperties": {
++                "^[a-zA-Z0-9._-]+$": {
++                  "oneOf": [
++                    {
++                      "type": "object",
++                      "properties": {
++                        "aliases": {"$ref": "#/definitions/list_of_strings"},
++                        "ipv4_address": {"type": "string"},
++                        "ipv6_address": {"type": "string"}
++                      },
++                      "additionalProperties": false
++                    },
++                    {"type": "null"}
++                  ]
++                }
++              },
++              "additionalProperties": false
++            }
++          ]
++        },
++        "pid": {"type": ["string", "null"]},
++
++        "ports": {
++          "type": "array",
++          "items": {
++            "oneOf": [
++              {"type": ["string", "number"], "format": "ports"},
++              {
++                "type": "object",
++                "properties": {
++                  "mode": {"type": "string"},
++                  "target": {"type": "integer"},
++                  "published": {"type": "integer"},
++                  "protocol": {"type": "string"}
++                },
++                "additionalProperties": false
++              }
++            ]
++          },
++          "uniqueItems": true
++        },
++
++        "privileged": {"type": "boolean"},
++        "read_only": {"type": "boolean"},
++        "restart": {"type": "string"},
++        "security_opt": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
++        "shm_size": {"type": ["number", "string"]},
++        "secrets": {
++          "type": "array",
++          "items": {
++            "oneOf": [
++              {"type": "string"},
++              {
++                "type": "object",
++                "properties": {
++                  "source": {"type": "string"},
++                  "target": {"type": "string"},
++                  "uid": {"type": "string"},
++                  "gid": {"type": "string"},
++                  "mode": {"type": "number"}
++                }
++              }
++            ]
++          }
++        },
++        "sysctls": {"$ref": "#/definitions/list_or_dict"},
++        "stdin_open": {"type": "boolean"},
++        "stop_grace_period": {"type": "string", "format": "duration"},
++        "stop_signal": {"type": "string"},
++        "tmpfs": {"$ref": "#/definitions/string_or_list"},
++        "tty": {"type": "boolean"},
++        "ulimits": {
++          "type": "object",
++          "patternProperties": {
++            "^[a-z]+$": {
++              "oneOf": [
++                {"type": "integer"},
++                {
++                  "type":"object",
++                  "properties": {
++                    "hard": {"type": "integer"},
++                    "soft": {"type": "integer"}
++                  },
++                  "required": ["soft", "hard"],
++                  "additionalProperties": false
++                }
++              ]
++            }
++          }
++        },
++        "user": {"type": "string"},
++        "userns_mode": {"type": "string"},
++        "volumes": {
++          "type": "array",
++          "items": {
++            "oneOf": [
++              {"type": "string"},
++              {
++                "type": "object",
++                "required": ["type"],
++                "properties": {
++                  "type": {"type": "string"},
++                  "source": {"type": "string"},
++                  "target": {"type": "string"},
++                  "read_only": {"type": "boolean"},
++                  "bind": {
++                    "type": "object",
++                    "properties": {
++                      "propagation": {"type": "string"}
++                    }
++                  },
++                  "volume": {
++                    "type": "object",
++                    "properties": {
++                      "nocopy": {"type": "boolean"}
++                    }
++                  }
++                }
++              }
++            ],
++            "uniqueItems": true
++          }
++        },
++        "working_dir": {"type": "string"}
++      },
++      "additionalProperties": false
++    },
++
++    "healthcheck": {
++      "id": "#/definitions/healthcheck",
++      "type": "object",
++      "additionalProperties": false,
++      "properties": {
++        "disable": {"type": "boolean"},
++        "interval": {"type": "string"},
++        "retries": {"type": "number"},
++        "test": {
++          "oneOf": [
++            {"type": "string"},
++            {"type": "array", "items": {"type": "string"}}
++          ]
++        },
++        "timeout": {"type": "string"}
++      }
++    },
++    "deployment": {
++      "id": "#/definitions/deployment",
++      "type": ["object", "null"],
++      "properties": {
++        "mode": {"type": "string"},
++        "endpoint_mode": {"type": "string"},
++        "replicas": {"type": "integer"},
++        "labels": {"$ref": "#/definitions/list_or_dict"},
++        "update_config": {
++          "type": "object",
++          "properties": {
++            "parallelism": {"type": "integer"},
++            "delay": {"type": "string", "format": "duration"},
++            "failure_action": {"type": "string"},
++            "monitor": {"type": "string", "format": "duration"},
++            "max_failure_ratio": {"type": "number"}
++          },
++          "additionalProperties": false
++        },
++        "resources": {
++          "type": "object",
++          "properties": {
++            "limits": {"$ref": "#/definitions/resource"},
++            "reservations": {"$ref": "#/definitions/resource"}
++          }
++        },
++        "restart_policy": {
++          "type": "object",
++          "properties": {
++            "condition": {"type": "string"},
++            "delay": {"type": "string", "format": "duration"},
++            "max_attempts": {"type": "integer"},
++            "window": {"type": "string", "format": "duration"}
++          },
++          "additionalProperties": false
++        },
++        "placement": {
++          "type": "object",
++          "properties": {
++            "constraints": {"type": "array", "items": {"type": "string"}}
++          },
++          "additionalProperties": false
++        }
++      },
++      "additionalProperties": false
++    },
++
++    "resource": {
++      "id": "#/definitions/resource",
++      "type": "object",
++      "properties": {
++        "cpus": {"type": "string"},
++        "memory": {"type": "string"}
++      },
++      "additionalProperties": false
++    },
++
++    "network": {
++      "id": "#/definitions/network",
++      "type": ["object", "null"],
++      "properties": {
++        "driver": {"type": "string"},
++        "driver_opts": {
++          "type": "object",
++          "patternProperties": {
++            "^.+$": {"type": ["string", "number"]}
++          }
++        },
++        "ipam": {
++          "type": "object",
++          "properties": {
++            "driver": {"type": "string"},
++            "config": {
++              "type": "array",
++              "items": {
++                "type": "object",
++                "properties": {
++                  "subnet": {"type": "string"}
++                },
++                "additionalProperties": false
++              }
++            }
++          },
++          "additionalProperties": false
++        },
++        "external": {
++          "type": ["boolean", "object"],
++          "properties": {
++            "name": {"type": "string"}
++          },
++          "additionalProperties": false
++        },
++        "internal": {"type": "boolean"},
++        "attachable": {"type": "boolean"},
++        "labels": {"$ref": "#/definitions/list_or_dict"}
++      },
++      "additionalProperties": false
++    },
++
++    "volume": {
++      "id": "#/definitions/volume",
++      "type": ["object", "null"],
++      "properties": {
++        "driver": {"type": "string"},
++        "driver_opts": {
++          "type": "object",
++          "patternProperties": {
++            "^.+$": {"type": ["string", "number"]}
++          }
++        },
++        "external": {
++          "type": ["boolean", "object"],
++          "properties": {
++            "name": {"type": "string"}
++          },
++          "additionalProperties": false
++        },
++        "labels": {"$ref": "#/definitions/list_or_dict"}
++      },
++      "additionalProperties": false
++    },
++
++    "secret": {
++      "id": "#/definitions/secret",
++      "type": "object",
++      "properties": {
++        "file": {"type": "string"},
++        "external": {
++          "type": ["boolean", "object"],
++          "properties": {
++            "name": {"type": "string"}
++          }
++        },
++        "labels": {"$ref": "#/definitions/list_or_dict"}
++      },
++      "additionalProperties": false
++    },
++
++    "string_or_list": {
++      "oneOf": [
++        {"type": "string"},
++        {"$ref": "#/definitions/list_of_strings"}
++      ]
++    },
++
++    "list_of_strings": {
++      "type": "array",
++      "items": {"type": "string"},
++      "uniqueItems": true
++    },
++
++    "list_or_dict": {
++      "oneOf": [
++        {
++          "type": "object",
++          "patternProperties": {
++            ".+": {
++              "type": ["string", "number", "null"]
++            }
++          },
++          "additionalProperties": false
++        },
++        {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
++      ]
++    },
++
++    "constraints": {
++      "service": {
++        "id": "#/definitions/constraints/service",
++        "anyOf": [
++          {"required": ["build"]},
++          {"required": ["image"]}
++        ],
++        "properties": {
++          "build": {
++            "required": ["context"]
++          }
++        }
++      }
++    }
++  }
++}
+diff --git a/compose/config/errors.py b/compose/config/errors.py
+index 16ed01b861..0f78d4a94e 100644
+--- a/compose/config/errors.py
++++ b/compose/config/errors.py
+@@ -4,7 +4,7 @@
+ 
+ VERSION_EXPLANATION = (
+     'You might be seeing this error because you\'re using the wrong Compose file version. '
+-    'Either specify a supported version ("2.0", "2.1", "3.0") and place your '
++    'Either specify a supported version ("2.0", "2.1", "3.0", "3.1") and place your '
+     'service definitions under the `services` key, or omit the `version` key '
+     'and place your service definitions at the root of the file to use '
+     'version 1.\nFor more on the Compose file format versions, see '
+diff --git a/compose/config/serialize.py b/compose/config/serialize.py
+index 46d283f080..5b36124d0f 100644
+--- a/compose/config/serialize.py
++++ b/compose/config/serialize.py
+@@ -5,8 +5,10 @@
+ import yaml
+ 
+ from compose.config import types
+-from compose.config.config import V1
+-from compose.config.config import V2_1
++from compose.const import COMPOSEFILE_V1 as V1
++from compose.const import COMPOSEFILE_V2_1 as V2_1
++from compose.const import COMPOSEFILE_V3_1 as V3_1
++from compose.const import COMPOSEFILE_V3_1 as V3_2
+ 
+ 
+ def serialize_config_type(dumper, data):
+@@ -14,44 +16,47 @@ def serialize_config_type(dumper, data):
+     return representer(data.repr())
+ 
+ 
++def serialize_dict_type(dumper, data):
++    return dumper.represent_dict(data.repr())
++
++
+ yaml.SafeDumper.add_representer(types.VolumeFromSpec, serialize_config_type)
+ yaml.SafeDumper.add_representer(types.VolumeSpec, serialize_config_type)
++yaml.SafeDumper.add_representer(types.ServiceSecret, serialize_dict_type)
++yaml.SafeDumper.add_representer(types.ServicePort, serialize_dict_type)
+ 
+ 
+-def denormalize_config(config):
++def denormalize_config(config, image_digests=None):
++    result = {'version': V2_1 if config.version == V1 else config.version}
+     denormalized_services = [
+-        denormalize_service_dict(service_dict, config.version)
++        denormalize_service_dict(
++            service_dict,
++            config.version,
++            image_digests[service_dict['name']] if image_digests else None)
+         for service_dict in config.services
+     ]
+-    services = {
++    result['services'] = {
+         service_dict.pop('name'): service_dict
+         for service_dict in denormalized_services
+     }
+-    networks = config.networks.copy()
+-    for net_name, net_conf in networks.items():
++    result['networks'] = config.networks.copy()
++    for net_name, net_conf in result['networks'].items():
+         if 'external_name' in net_conf:
+             del net_conf['external_name']
+ 
+-    volumes = config.volumes.copy()
+-    for vol_name, vol_conf in volumes.items():
++    result['volumes'] = config.volumes.copy()
++    for vol_name, vol_conf in result['volumes'].items():
+         if 'external_name' in vol_conf:
+             del vol_conf['external_name']
+ 
+-    version = config.version
+-    if version == V1:
+-        version = V2_1
+-
+-    return {
+-        'version': version,
+-        'services': services,
+-        'networks': networks,
+-        'volumes': volumes,
+-    }
++    if config.version in (V3_1, V3_2):
++        result['secrets'] = config.secrets
++    return result
+ 
+ 
+-def serialize_config(config):
++def serialize_config(config, image_digests=None):
+     return yaml.safe_dump(
+-        denormalize_config(config),
++        denormalize_config(config, image_digests),
+         default_flow_style=False,
+         indent=2,
+         width=80)
+@@ -76,9 +81,12 @@ def serialize_ns_time_value(value):
+     return '{0}{1}'.format(*result)
+ 
+ 
+-def denormalize_service_dict(service_dict, version):
++def denormalize_service_dict(service_dict, version, image_digest=None):
+     service_dict = service_dict.copy()
+ 
++    if image_digest:
++        service_dict['image'] = image_digest
++
+     if 'restart' in service_dict:
+         service_dict['restart'] = types.serialize_restart_spec(
+             service_dict['restart']
+@@ -102,7 +110,10 @@ def denormalize_service_dict(service_dict, version):
+                 service_dict['healthcheck']['timeout']
+             )
+ 
+-    if 'secrets' in service_dict:
+-        service_dict['secrets'] = map(lambda s: s.repr(), service_dict['secrets'])
++    if 'ports' in service_dict and version not in (V3_2,):
++        service_dict['ports'] = map(
++            lambda p: p.legacy_repr() if isinstance(p, types.ServicePort) else p,
++            service_dict['ports']
++        )
+ 
+     return service_dict
+diff --git a/compose/config/types.py b/compose/config/types.py
+index 811e6c1fc3..a8d366fba3 100644
+--- a/compose/config/types.py
++++ b/compose/config/types.py
+@@ -9,6 +9,7 @@
+ from collections import namedtuple
+ 
+ import six
++from docker.utils.ports import build_port_bindings
+ 
+ from ..const import COMPOSEFILE_V1 as V1
+ from .errors import ConfigurationError
+@@ -203,7 +204,8 @@ def parse(cls, volume_config, normalize=False):
+ 
+     def repr(self):
+         external = self.external + ':' if self.external else ''
+-        return '{ext}{v.internal}:{v.mode}'.format(ext=external, v=self)
++        mode = ':' + self.mode if self.external else ''
++        return '{ext}{v.internal}{mode}'.format(mode=mode, ext=external, v=self)
+ 
+     @property
+     def is_named_volume(self):
+@@ -258,3 +260,61 @@ def repr(self):
+         return dict(
+             [(k, v) for k, v in self._asdict().items() if v is not None]
+         )
++
++
++class ServicePort(namedtuple('_ServicePort', 'target published protocol mode external_ip')):
++
++    @classmethod
++    def parse(cls, spec):
++        if not isinstance(spec, dict):
++            result = []
++            for k, v in build_port_bindings([spec]).items():
++                if '/' in k:
++                    target, proto = k.split('/', 1)
++                else:
++                    target, proto = (k, None)
++                for pub in v:
++                    if pub is None:
++                        result.append(
++                            cls(target, None, proto, None, None)
++                        )
++                    elif isinstance(pub, tuple):
++                        result.append(
++                            cls(target, pub[1], proto, None, pub[0])
++                        )
++                    else:
++                        result.append(
++                            cls(target, pub, proto, None, None)
++                        )
++            return result
++
++        return [cls(
++            spec.get('target'),
++            spec.get('published'),
++            spec.get('protocol'),
++            spec.get('mode'),
++            None
++        )]
++
++    @property
++    def merge_field(self):
++        return (self.target, self.published)
++
++    def repr(self):
++        return dict(
++            [(k, v) for k, v in self._asdict().items() if v is not None]
++        )
++
++    def legacy_repr(self):
++        return normalize_port_dict(self.repr())
++
++
++def normalize_port_dict(port):
++    return '{external_ip}{has_ext_ip}{published}{is_pub}{target}/{protocol}'.format(
++        published=port.get('published', ''),
++        is_pub=(':' if port.get('published') else ''),
++        target=port.get('target'),
++        protocol=port.get('protocol', 'tcp'),
++        external_ip=port.get('external_ip', ''),
++        has_ext_ip=(':' if port.get('external_ip') else ''),
++    )
+diff --git a/compose/config/validation.py b/compose/config/validation.py
+index 3f23f0a7ae..1df6dd6b7c 100644
+--- a/compose/config/validation.py
++++ b/compose/config/validation.py
+@@ -211,9 +211,12 @@ def handle_error_for_schema_with_id(error, path):
+ 
+     if is_service_dict_schema(schema_id) and error.validator == 'additionalProperties':
+         return "Invalid service name '{}' - only {} characters are allowed".format(
+-            # The service_name is the key to the json object
+-            list(error.instance)[0],
+-            VALID_NAME_CHARS)
++            # The service_name is one of the keys in the json object
++            [i for i in list(error.instance) if not i or any(filter(
++                lambda c: not re.match(VALID_NAME_CHARS, c), i
++            ))][0],
++            VALID_NAME_CHARS
++        )
+ 
+     if error.validator == 'additionalProperties':
+         if schema_id == '#/definitions/service':
+@@ -362,7 +365,7 @@ def process_config_schema_errors(error):
+ 
+ 
+ def validate_against_config_schema(config_file):
+-    schema = load_jsonschema(config_file.version)
++    schema = load_jsonschema(config_file)
+     format_checker = FormatChecker(["ports", "expose"])
+     validator = Draft4Validator(
+         schema,
+@@ -374,11 +377,12 @@ def validate_against_config_schema(config_file):
+         config_file.filename)
+ 
+ 
+-def validate_service_constraints(config, service_name, version):
++def validate_service_constraints(config, service_name, config_file):
+     def handler(errors):
+-        return process_service_constraint_errors(errors, service_name, version)
++        return process_service_constraint_errors(
++            errors, service_name, config_file.version)
+ 
+-    schema = load_jsonschema(version)
++    schema = load_jsonschema(config_file)
+     validator = Draft4Validator(schema['definitions']['constraints']['service'])
+     handle_errors(validator.iter_errors(config), handler, None)
+ 
+@@ -387,10 +391,15 @@ def get_schema_path():
+     return os.path.dirname(os.path.abspath(__file__))
+ 
+ 
+-def load_jsonschema(version):
++def load_jsonschema(config_file):
+     filename = os.path.join(
+         get_schema_path(),
+-        "config_schema_v{0}.json".format(version))
++        "config_schema_v{0}.json".format(config_file.version))
++
++    if not os.path.exists(filename):
++        raise ConfigurationError(
++            'Version in "{}" is unsupported. {}'
++            .format(config_file.filename, VERSION_EXPLANATION))
+ 
+     with open(filename, "r") as fh:
+         return json.load(fh)
+diff --git a/compose/const.py b/compose/const.py
+index e694dbdae5..8de6934450 100644
+--- a/compose/const.py
++++ b/compose/const.py
+@@ -21,8 +21,10 @@
+ COMPOSEFILE_V1 = '1'
+ COMPOSEFILE_V2_0 = '2.0'
+ COMPOSEFILE_V2_1 = '2.1'
++
+ COMPOSEFILE_V3_0 = '3.0'
+ COMPOSEFILE_V3_1 = '3.1'
++COMPOSEFILE_V3_2 = '3.2'
+ 
+ API_VERSIONS = {
+     COMPOSEFILE_V1: '1.21',
+@@ -30,6 +32,7 @@
+     COMPOSEFILE_V2_1: '1.24',
+     COMPOSEFILE_V3_0: '1.25',
+     COMPOSEFILE_V3_1: '1.25',
++    COMPOSEFILE_V3_2: '1.25',
+ }
+ 
+ API_VERSION_TO_ENGINE_VERSION = {
+@@ -38,4 +41,5 @@
+     API_VERSIONS[COMPOSEFILE_V2_1]: '1.12.0',
+     API_VERSIONS[COMPOSEFILE_V3_0]: '1.13.0',
+     API_VERSIONS[COMPOSEFILE_V3_1]: '1.13.0',
++    API_VERSIONS[COMPOSEFILE_V3_2]: '1.13.0',
+ }
+diff --git a/compose/network.py b/compose/network.py
+index d98f68d2fb..053fdacd87 100644
+--- a/compose/network.py
++++ b/compose/network.py
+@@ -126,22 +126,64 @@ def create_ipam_config_from_dict(ipam_dict):
+     )
+ 
+ 
++class NetworkConfigChangedError(ConfigurationError):
++    def __init__(self, net_name, property_name):
++        super(NetworkConfigChangedError, self).__init__(
++            'Network "{}" needs to be recreated - {} has changed'.format(
++                net_name, property_name
++            )
++        )
++
++
++def check_remote_ipam_config(remote, local):
++    remote_ipam = remote.get('IPAM')
++    ipam_dict = create_ipam_config_from_dict(local.ipam)
++    if local.ipam.get('driver') and local.ipam.get('driver') != remote_ipam.get('Driver'):
++        raise NetworkConfigChangedError(local.full_name, 'IPAM driver')
++    if len(ipam_dict['Config']) != 0:
++        if len(ipam_dict['Config']) != len(remote_ipam['Config']):
++            raise NetworkConfigChangedError(local.full_name, 'IPAM configs')
++        remote_configs = sorted(remote_ipam['Config'], key='Subnet')
++        local_configs = sorted(ipam_dict['Config'], key='Subnet')
++        while local_configs:
++            lc = local_configs.pop()
++            rc = remote_configs.pop()
++            if lc.get('Subnet') != rc.get('Subnet'):
++                raise NetworkConfigChangedError(local.full_name, 'IPAM config subnet')
++            if lc.get('Gateway') is not None and lc.get('Gateway') != rc.get('Gateway'):
++                raise NetworkConfigChangedError(local.full_name, 'IPAM config gateway')
++            if lc.get('IPRange') != rc.get('IPRange'):
++                raise NetworkConfigChangedError(local.full_name, 'IPAM config ip_range')
++            if sorted(lc.get('AuxiliaryAddresses')) != sorted(rc.get('AuxiliaryAddresses')):
++                raise NetworkConfigChangedError(local.full_name, 'IPAM config aux_addresses')
++
++
+ def check_remote_network_config(remote, local):
+     if local.driver and remote.get('Driver') != local.driver:
+-        raise ConfigurationError(
+-            'Network "{}" needs to be recreated - driver has changed'
+-            .format(local.full_name)
+-        )
++        raise NetworkConfigChangedError(local.full_name, 'driver')
+     local_opts = local.driver_opts or {}
+     remote_opts = remote.get('Options') or {}
+     for k in set.union(set(remote_opts.keys()), set(local_opts.keys())):
+         if k in OPTS_EXCEPTIONS:
+             continue
+         if remote_opts.get(k) != local_opts.get(k):
+-            raise ConfigurationError(
+-                'Network "{}" needs to be recreated - options have changed'
+-                .format(local.full_name)
+-            )
++            raise NetworkConfigChangedError(local.full_name, 'option "{}"'.format(k))
++
++    if local.ipam is not None:
++        check_remote_ipam_config(remote, local)
++
++    if local.internal is not None and local.internal != remote.get('Internal', False):
++        raise NetworkConfigChangedError(local.full_name, 'internal')
++    if local.enable_ipv6 is not None and local.enable_ipv6 != remote.get('EnableIPv6', False):
++        raise NetworkConfigChangedError(local.full_name, 'enable_ipv6')
++
++    local_labels = local.labels or {}
++    remote_labels = remote.get('Labels', {})
++    for k in set.union(set(remote_labels.keys()), set(local_labels.keys())):
++        if k.startswith('com.docker.compose.'):  # We are only interested in user-specified labels
++            continue
++        if remote_labels.get(k) != local_labels.get(k):
++            raise NetworkConfigChangedError(local.full_name, 'label "{}"'.format(k))
+ 
+ 
+ def build_networks(name, config_data, client):
+diff --git a/compose/parallel.py b/compose/parallel.py
+index e495410cff..fde723f336 100644
+--- a/compose/parallel.py
++++ b/compose/parallel.py
+@@ -4,6 +4,7 @@
+ import logging
+ import operator
+ import sys
++from threading import Semaphore
+ from threading import Thread
+ 
+ from docker.errors import APIError
+@@ -11,6 +12,8 @@
+ from six.moves.queue import Empty
+ from six.moves.queue import Queue
+ 
++from compose.cli.colors import green
++from compose.cli.colors import red
+ from compose.cli.signals import ShutdownException
+ from compose.errors import HealthCheckFailed
+ from compose.errors import NoHealthCheckConfigured
+@@ -23,7 +26,7 @@
+ STOP = object()
+ 
+ 
+-def parallel_execute(objects, func, get_name, msg, get_deps=None):
++def parallel_execute(objects, func, get_name, msg, get_deps=None, limit=None):
+     """Runs func on objects in parallel while ensuring that func is
+     ran on object only after it is ran on all its dependencies.
+ 
+@@ -37,7 +40,7 @@ def parallel_execute(objects, func, get_name, msg, get_deps=None):
+     for obj in objects:
+         writer.initialize(get_name(obj))
+ 
+-    events = parallel_execute_iter(objects, func, get_deps)
++    events = parallel_execute_iter(objects, func, get_deps, limit)
+ 
+     errors = {}
+     results = []
+@@ -45,16 +48,16 @@ def parallel_execute(objects, func, get_name, msg, get_deps=None):
+ 
+     for obj, result, exception in events:
+         if exception is None:
+-            writer.write(get_name(obj), 'done')
++            writer.write(get_name(obj), green('done'))
+             results.append(result)
+         elif isinstance(exception, APIError):
+             errors[get_name(obj)] = exception.explanation
+-            writer.write(get_name(obj), 'error')
++            writer.write(get_name(obj), red('error'))
+         elif isinstance(exception, (OperationFailedError, HealthCheckFailed, NoHealthCheckConfigured)):
+             errors[get_name(obj)] = exception.msg
+-            writer.write(get_name(obj), 'error')
++            writer.write(get_name(obj), red('error'))
+         elif isinstance(exception, UpstreamError):
+-            writer.write(get_name(obj), 'error')
++            writer.write(get_name(obj), red('error'))
+         else:
+             errors[get_name(obj)] = exception
+             error_to_reraise = exception
+@@ -94,7 +97,15 @@ def pending(self):
+         return set(self.objects) - self.started - self.finished - self.failed
+ 
+ 
+-def parallel_execute_iter(objects, func, get_deps):
++class NoLimit(object):
++    def __enter__(self):
++        pass
++
++    def __exit__(self, *ex):
++        pass
++
++
++def parallel_execute_iter(objects, func, get_deps, limit):
+     """
+     Runs func on objects in parallel while ensuring that func is
+     ran on object only after it is ran on all its dependencies.
+@@ -113,11 +124,16 @@ def parallel_execute_iter(objects, func, get_deps):
+     if get_deps is None:
+         get_deps = _no_deps
+ 
++    if limit is None:
++        limiter = NoLimit()
++    else:
++        limiter = Semaphore(limit)
++
+     results = Queue()
+     state = State(objects)
+ 
+     while True:
+-        feed_queue(objects, func, get_deps, results, state)
++        feed_queue(objects, func, get_deps, results, state, limiter)
+ 
+         try:
+             event = results.get(timeout=0.1)
+@@ -141,19 +157,20 @@ def parallel_execute_iter(objects, func, get_deps):
+         yield event
+ 
+ 
+-def producer(obj, func, results):
++def producer(obj, func, results, limiter):
+     """
+     The entry point for a producer thread which runs func on a single object.
+     Places a tuple on the results queue once func has either returned or raised.
+     """
+-    try:
+-        result = func(obj)
+-        results.put((obj, result, None))
+-    except Exception as e:
+-        results.put((obj, None, e))
++    with limiter:
++        try:
++            result = func(obj)
++            results.put((obj, result, None))
++        except Exception as e:
++            results.put((obj, None, e))
+ 
+ 
+-def feed_queue(objects, func, get_deps, results, state):
++def feed_queue(objects, func, get_deps, results, state, limiter):
+     """
+     Starts producer threads for any objects which are ready to be processed
+     (i.e. they have no dependencies which haven't been successfully processed).
+@@ -177,7 +194,7 @@ def feed_queue(objects, func, get_deps, results, state):
+                 ) for dep, ready_check in deps
+             ):
+                 log.debug('Starting producer thread for {}'.format(obj))
+-                t = Thread(target=producer, args=(obj, func, results))
++                t = Thread(target=producer, args=(obj, func, results, limiter))
+                 t.daemon = True
+                 t.start()
+                 state.started.add(obj)
+@@ -199,7 +216,7 @@ class UpstreamError(Exception):
+ class ParallelStreamWriter(object):
+     """Write out messages for operations happening in parallel.
+ 
+-    Each operation has it's own line, and ANSI code characters are used
++    Each operation has its own line, and ANSI code characters are used
+     to jump to the correct line, and write over the line.
+     """
+ 
+diff --git a/compose/project.py b/compose/project.py
+index 0330ab80f2..a75d71efc7 100644
+--- a/compose/project.py
++++ b/compose/project.py
+@@ -307,10 +307,10 @@ def restart(self, service_names=None, **options):
+             'Restarting')
+         return containers
+ 
+-    def build(self, service_names=None, no_cache=False, pull=False, force_rm=False):
++    def build(self, service_names=None, no_cache=False, pull=False, force_rm=False, build_args=None):
+         for service in self.get_services(service_names):
+             if service.can_be_built():
+-                service.build(no_cache, pull, force_rm)
++                service.build(no_cache, pull, force_rm, build_args)
+             else:
+                 log.info('%s uses an image, skipping' % service.name)
+ 
+@@ -365,7 +365,7 @@ def build_container_event(event, container):
+ 
+             # TODO: get labels from the API v1.22 , see github issue 2618
+             try:
+-                # this can fail if the conatiner has been removed
++                # this can fail if the container has been removed
+                 container = Container.from_id(self.client, event['id'])
+             except APIError:
+                 continue
+@@ -454,9 +454,22 @@ def _get_convergence_plans(self, services, strategy):
+ 
+         return plans
+ 
+-    def pull(self, service_names=None, ignore_pull_failures=False):
+-        for service in self.get_services(service_names, include_deps=False):
+-            service.pull(ignore_pull_failures)
++    def pull(self, service_names=None, ignore_pull_failures=False, parallel_pull=False):
++        services = self.get_services(service_names, include_deps=False)
++
++        if parallel_pull:
++            def pull_service(service):
++                service.pull(ignore_pull_failures, True)
++
++            parallel.parallel_execute(
++                services,
++                pull_service,
++                operator.attrgetter('name'),
++                'Pulling',
++                limit=5)
++        else:
++            for service in services:
++                service.pull(ignore_pull_failures)
+ 
+     def push(self, service_names=None, ignore_push_failures=False):
+         for service in self.get_services(service_names, include_deps=False):
+diff --git a/compose/service.py b/compose/service.py
+index 9f2fc68b43..b9f77beb9e 100644
+--- a/compose/service.py
++++ b/compose/service.py
+@@ -2,6 +2,7 @@
+ from __future__ import unicode_literals
+ 
+ import logging
++import os
+ import re
+ import sys
+ from collections import namedtuple
+@@ -21,6 +22,8 @@
+ from . import progress_stream
+ from .config import DOCKER_CONFIG_KEYS
+ from .config import merge_environment
++from .config.errors import DependencyError
++from .config.types import ServicePort
+ from .config.types import VolumeSpec
+ from .const import DEFAULT_TIMEOUT
+ from .const import IS_WINDOWS_PLATFORM
+@@ -53,6 +56,7 @@
+     'devices',
+     'dns',
+     'dns_search',
++    'dns_opt',
+     'env_file',
+     'extra_hosts',
+     'group_add',
+@@ -61,10 +65,12 @@
+     'log_driver',
+     'log_opt',
+     'mem_limit',
++    'mem_reservation',
+     'memswap_limit',
+-    'oom_score_adj',
+     'mem_swappiness',
++    'oom_score_adj',
+     'pid',
++    'pids_limit',
+     'privileged',
+     'restart',
+     'security_opt',
+@@ -226,9 +232,20 @@ def stop_and_remove(container):
+ 
+             if num_running != len(all_containers):
+                 # we have some stopped containers, let's start them up again
++                stopped_containers = [
++                    c for c in all_containers if not c.is_running
++                ]
++
++                # Remove containers that have diverged
++                divergent_containers = [
++                    c for c in stopped_containers if self._containers_have_diverged([c])
++                ]
+                 stopped_containers = sorted(
+-                    (c for c in all_containers if not c.is_running),
+-                    key=attrgetter('number'))
++                    set(stopped_containers) - set(divergent_containers),
++                    key=attrgetter('number')
++                )
++                for c in divergent_containers:
++                        c.remove()
+ 
+                 num_stopped = len(stopped_containers)
+ 
+@@ -682,7 +699,7 @@ def _get_container_create_options(
+ 
+         if 'ports' in container_options or 'expose' in self.options:
+             container_options['ports'] = build_container_ports(
+-                container_options,
++                formatted_ports(container_options.get('ports', [])),
+                 self.options)
+ 
+         container_options['environment'] = merge_environment(
+@@ -736,18 +753,22 @@ def _get_container_host_config(self, override_options, one_off=False):
+ 
+         host_config = self.client.create_host_config(
+             links=self._get_links(link_to_self=one_off),
+-            port_bindings=build_port_bindings(options.get('ports') or []),
++            port_bindings=build_port_bindings(
++                formatted_ports(options.get('ports', []))
++            ),
+             binds=options.get('binds'),
+             volumes_from=self._get_volumes_from(),
+             privileged=options.get('privileged', False),
+             network_mode=self.network_mode.mode,
+             devices=options.get('devices'),
+             dns=options.get('dns'),
++            dns_opt=options.get('dns_opt'),
+             dns_search=options.get('dns_search'),
+             restart_policy=options.get('restart'),
+             cap_add=options.get('cap_add'),
+             cap_drop=options.get('cap_drop'),
+             mem_limit=options.get('mem_limit'),
++            mem_reservation=options.get('mem_reservation'),
+             memswap_limit=options.get('memswap_limit'),
+             ulimits=build_ulimits(options.get('ulimits')),
+             log_config=log_config,
+@@ -760,6 +781,7 @@ def _get_container_host_config(self, override_options, one_off=False):
+             cpu_quota=options.get('cpu_quota'),
+             shm_size=options.get('shm_size'),
+             sysctls=options.get('sysctls'),
++            pids_limit=options.get('pids_limit'),
+             tmpfs=options.get('tmpfs'),
+             oom_score_adj=options.get('oom_score_adj'),
+             mem_swappiness=options.get('mem_swappiness'),
+@@ -782,13 +804,18 @@ def build_spec(secret):
+ 
+         return [build_spec(secret) for secret in self.secrets]
+ 
+-    def build(self, no_cache=False, pull=False, force_rm=False):
++    def build(self, no_cache=False, pull=False, force_rm=False, build_args_override=None):
+         log.info('Building %s' % self.name)
+ 
+         build_opts = self.options.get('build', {})
+-        path = build_opts.get('context')
++
++        build_args = build_opts.get('args', {}).copy()
++        if build_args_override:
++            build_args.update(build_args_override)
++
+         # python2 os.stat() doesn't support unicode on some UNIX, so we
+         # encode it to a bytestring to be safe
++        path = build_opts.get('context')
+         if not six.PY3 and not IS_WINDOWS_PLATFORM:
+             path = path.encode('utf8')
+ 
+@@ -801,7 +828,8 @@ def build(self, no_cache=False, pull=False, force_rm=False):
+             pull=pull,
+             nocache=no_cache,
+             dockerfile=build_opts.get('dockerfile', None),
+-            buildargs=build_opts.get('args', None),
++            cache_from=build_opts.get('cache_from', None),
++            buildargs=build_args
+         )
+ 
+         try:
+@@ -845,7 +873,17 @@ def get_container_name(self, number, one_off=False):
+         if self.custom_container_name and not one_off:
+             return self.custom_container_name
+ 
+-        return build_container_name(self.project, self.name, number, one_off)
++        container_name = build_container_name(
++            self.project, self.name, number, one_off,
++        )
++        ext_links_origins = [l.split(':')[0] for l in self.options.get('external_links', [])]
++        if container_name in ext_links_origins:
++            raise DependencyError(
++                'Service {0} has a self-referential external link: {1}'.format(
++                    self.name, container_name
++                )
++            )
++        return container_name
+ 
+     def remove_image(self, image_type):
+         if not image_type or image_type == ImageType.none:
+@@ -863,7 +901,10 @@ def remove_image(self, image_type):
+ 
+     def specifies_host_port(self):
+         def has_host_port(binding):
+-            _, external_bindings = split_port(binding)
++            if isinstance(binding, dict):
++                external_bindings = binding.get('published')
++            else:
++                _, external_bindings = split_port(binding)
+ 
+             # there are no external bindings
+             if external_bindings is None:
+@@ -885,17 +926,23 @@ def has_host_port(binding):
+ 
+         return any(has_host_port(binding) for binding in self.options.get('ports', []))
+ 
+-    def pull(self, ignore_pull_failures=False):
++    def pull(self, ignore_pull_failures=False, silent=False):
+         if 'image' not in self.options:
+             return
+ 
+         repo, tag, separator = parse_repository_tag(self.options['image'])
+         tag = tag or 'latest'
+-        log.info('Pulling %s (%s%s%s)...' % (self.name, repo, separator, tag))
++        if not silent:
++            log.info('Pulling %s (%s%s%s)...' % (self.name, repo, separator, tag))
+         try:
+             output = self.client.pull(repo, tag=tag, stream=True)
+-            return progress_stream.get_digest_from_pull(
+-                stream_output(output, sys.stdout))
++            if silent:
++                with open(os.devnull, 'w') as devnull:
++                    return progress_stream.get_digest_from_pull(
++                        stream_output(output, devnull))
++            else:
++                return progress_stream.get_digest_from_pull(
++                    stream_output(output, sys.stdout))
+         except (StreamOutputError, NotFound) as e:
+             if not ignore_pull_failures:
+                 raise
+@@ -1202,12 +1249,21 @@ def format_env(key, value):
+         return '{key}={value}'.format(key=key, value=value)
+     return [format_env(*item) for item in environment.items()]
+ 
++
+ # Ports
++def formatted_ports(ports):
++    result = []
++    for port in ports:
++        if isinstance(port, ServicePort):
++            result.append(port.legacy_repr())
++        else:
++            result.append(port)
++    return result
+ 
+ 
+-def build_container_ports(container_options, options):
++def build_container_ports(container_ports, options):
+     ports = []
+-    all_ports = container_options.get('ports', []) + options.get('expose', [])
++    all_ports = container_ports + options.get('expose', [])
+     for port_range in all_ports:
+         internal_range, _ = split_port(port_range)
+         for port in internal_range:
+diff --git a/contrib/completion/bash/docker-compose b/contrib/completion/bash/docker-compose
+index 77d02b4283..4d134b5cb7 100644
+--- a/contrib/completion/bash/docker-compose
++++ b/contrib/completion/bash/docker-compose
+@@ -1,4 +1,4 @@
+-#!bash
++#!/bin/bash
+ #
+ # bash completion for docker-compose
+ #
+@@ -18,7 +18,7 @@
+ 
+ 
+ __docker_compose_q() {
+-	docker-compose 2>/dev/null $daemon_options "$@"
++	docker-compose 2>/dev/null "${top_level_options[@]}" "$@"
+ }
+ 
+ # Transforms a multiline list of strings into a single line string
+@@ -36,6 +36,18 @@ __docker_compose_to_extglob() {
+ 	echo "@($extglob)"
+ }
+ 
++# Determines whether the option passed as the first argument exist on
++# the commandline. The option may be a pattern, e.g. `--force|-f`.
++__docker_compose_has_option() {
++	local pattern="$1"
++	for (( i=2; i < $cword; ++i)); do
++		if [[ ${words[$i]} =~ ^($pattern)$ ]] ; then
++			return 0
++		fi
++	done
++	return 1
++}
++
+ # suppress trailing whitespace
+ __docker_compose_nospace() {
+ 	# compopt is not available in ancient bash versions
+@@ -98,9 +110,17 @@ __docker_compose_services_stopped() {
+ 
+ 
+ _docker_compose_build() {
++	case "$prev" in
++		--build-arg)
++			COMPREPLY=( $( compgen -e -- "$cur" ) )
++			__docker_compose_nospace
++			return
++			;;
++	esac
++
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "--force-rm --help --no-cache --pull" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "--build-arg --force-rm --help --no-cache --pull" -- "$cur" ) )
+ 			;;
+ 		*)
+ 			__docker_compose_services_from_build
+@@ -148,14 +168,18 @@ _docker_compose_docker_compose() {
+ 			_filedir "y?(a)ml"
+ 			return
+ 			;;
+-		$(__docker_compose_to_extglob "$daemon_options_with_args") )
++		--project-directory)
++			_filedir -d
++			return
++			;;
++		$(__docker_compose_to_extglob "$top_level_options_with_args") )
+ 			return
+ 			;;
+ 	esac
+ 
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "$daemon_boolean_options  $daemon_options_with_args --help -h --verbose --version -v" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "$top_level_boolean_options  $top_level_options_with_args --help -h --verbose --version -v" -- "$cur" ) )
+ 			;;
+ 		*)
+ 			COMPREPLY=( $( compgen -W "${commands[*]}" -- "$cur" ) )
+@@ -220,6 +244,16 @@ _docker_compose_help() {
+ 	COMPREPLY=( $( compgen -W "${commands[*]}" -- "$cur" ) )
+ }
+ 
++_docker_compose_images() {
++	case "$cur" in
++		-*)
++			COMPREPLY=( $( compgen -W "--help -q" -- "$cur" ) )
++			;;
++		*)
++			__docker_compose_services_all
++			;;
++	esac
++}
+ 
+ _docker_compose_kill() {
+ 	case "$prev" in
+@@ -349,10 +383,14 @@ _docker_compose_restart() {
+ _docker_compose_rm() {
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "--force -f --help -v" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "--force -f --help --stop -s -v" -- "$cur" ) )
+ 			;;
+ 		*)
+-			__docker_compose_services_stopped
++			if __docker_compose_has_option "--stop|-s" ; then
++				__docker_compose_services_all
++			else
++				__docker_compose_services_stopped
++			fi
+ 			;;
+ 	esac
+ }
+@@ -365,14 +403,14 @@ _docker_compose_run() {
+ 			__docker_compose_nospace
+ 			return
+ 			;;
+-		--entrypoint|--name|--user|-u|--workdir|-w)
++		--entrypoint|--name|--user|-u|--volume|-v|--workdir|-w)
+ 			return
+ 			;;
+ 	esac
+ 
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "-d --entrypoint -e --help --name --no-deps --publish -p --rm --service-ports -T --user -u --workdir -w" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "-d --entrypoint -e --help --name --no-deps --publish -p --rm --service-ports -T --user -u --volume -v --workdir -w" -- "$cur" ) )
+ 			;;
+ 		*)
+ 			__docker_compose_services_all
+@@ -467,7 +505,7 @@ _docker_compose_up() {
+ 
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "--abort-on-container-exit --build -d --force-recreate --help --no-build --no-color --no-deps --no-recreate --timeout -t --remove-orphans" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "--exit-code-from --abort-on-container-exit --build -d --force-recreate --help --no-build --no-color --no-deps --no-recreate --timeout -t --remove-orphans" -- "$cur" ) )
+ 			;;
+ 		*)
+ 			__docker_compose_services_all
+@@ -498,6 +536,7 @@ _docker_compose() {
+ 		events
+ 		exec
+ 		help
++		images
+ 		kill
+ 		logs
+ 		pause
+@@ -519,14 +558,15 @@ _docker_compose() {
+ 
+ 	# options for the docker daemon that have to be passed to secondary calls to
+ 	# docker-compose executed by this script
+-	local daemon_boolean_options="
++	local top_level_boolean_options="
+ 		--skip-hostname-check
+ 		--tls
+ 		--tlsverify
+ 	"
+-	local daemon_options_with_args="
++	local top_level_options_with_args="
+ 		--file -f
+ 		--host -H
++		--project-directory
+ 		--project-name -p
+ 		--tlscacert
+ 		--tlscert
+@@ -540,19 +580,19 @@ _docker_compose() {
+ 	# search subcommand and invoke its handler.
+ 	# special treatment of some top-level options
+ 	local command='docker_compose'
+-	local daemon_options=()
++	local top_level_options=()
+ 	local counter=1
+ 
+ 	while [ $counter -lt $cword ]; do
+ 		case "${words[$counter]}" in
+-			$(__docker_compose_to_extglob "$daemon_boolean_options") )
++			$(__docker_compose_to_extglob "$top_level_boolean_options") )
+ 				local opt=${words[counter]}
+-				daemon_options+=($opt)
++				top_level_options+=($opt)
+ 				;;
+-			$(__docker_compose_to_extglob "$daemon_options_with_args") )
++			$(__docker_compose_to_extglob "$top_level_options_with_args") )
+ 				local opt=${words[counter]}
+ 				local arg=${words[++counter]}
+-				daemon_options+=($opt $arg)
++				top_level_options+=($opt $arg)
+ 				;;
+ 			-*)
+ 				;;
+@@ -571,4 +611,4 @@ _docker_compose() {
+ 	return 0
+ }
+ 
+-complete -F _docker_compose docker-compose
++complete -F _docker_compose docker-compose docker-compose.exe
+diff --git a/contrib/completion/fish/docker-compose.fish b/contrib/completion/fish/docker-compose.fish
+new file mode 100644
+index 0000000000..69ecc50568
+--- /dev/null
++++ b/contrib/completion/fish/docker-compose.fish
+@@ -0,0 +1,24 @@
++# Tab completion for docker-compose (https://github.com/docker/compose).
++# Version: 1.9.0
++
++complete -e -c docker-compose
++
++for line in (docker-compose --help | \
++             string match -r '^\s+\w+\s+[^\n]+' | \
++             string trim)
++  set -l doc (string split -m 1 ' ' -- $line)
++  complete -c docker-compose -n '__fish_use_subcommand' -xa $doc[1] --description $doc[2]
++end
++
++complete -c docker-compose -s f -l file -r                -d 'Specify an alternate compose file'
++complete -c docker-compose -s p -l project-name -x        -d 'Specify an alternate project name'
++complete -c docker-compose -l verbose                     -d 'Show more output'
++complete -c docker-compose -s H -l host -x                -d 'Daemon socket to connect to'
++complete -c docker-compose -l tls                         -d 'Use TLS; implied by --tlsverify'
++complete -c docker-compose -l tlscacert -r                -d 'Trust certs signed only by this CA'
++complete -c docker-compose -l tlscert -r                  -d 'Path to TLS certificate file'
++complete -c docker-compose -l tlskey -r                   -d 'Path to TLS key file'
++complete -c docker-compose -l tlsverify                   -d 'Use TLS and verify the remote'
++complete -c docker-compose -l skip-hostname-check         -d "Don't check the daemon's hostname against the name specified in the client certificate (for example if your docker host is an IP address)"
++complete -c docker-compose -s h -l help                   -d 'Print usage'
++complete -c docker-compose -s v -l version                -d 'Print version and exit'
+diff --git a/script/build/image b/script/build/image
+index 3590ce14e4..a3198c99f1 100755
+--- a/script/build/image
++++ b/script/build/image
+@@ -8,8 +8,10 @@ if [ -z "$1" ]; then
+ fi
+ 
+ TAG=$1
++
+ VERSION="$(python setup.py --version)"
+ 
+ ./script/build/write-git-sha
+ python setup.py sdist bdist_wheel
+-docker build --build-arg version=$VERSION -t docker/compose:$TAG -f Dockerfile.run .
++./script/build/linux
++docker build -t docker/compose:$TAG -f Dockerfile.run .
+diff --git a/script/release/utils.sh b/script/release/utils.sh
+index b4e5a2e6a0..321c1fb7b8 100644
+--- a/script/release/utils.sh
++++ b/script/release/utils.sh
+@@ -1,6 +1,6 @@
+ #!/bin/bash
+ #
+-# Util functions for release scritps
++# Util functions for release scripts
+ #
+ 
+ set -e
+diff --git a/script/run/run.sh b/script/run/run.sh
+index f5d9ae86da..192b31219a 100755
+--- a/script/run/run.sh
++++ b/script/run/run.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/bin/sh
+ #
+ # Run docker-compose in a container
+ #
+@@ -15,7 +15,7 @@
+ 
+ set -e
+ 
+-VERSION="1.11.2"
++VERSION="1.12.0-rc1"
+ IMAGE="docker/compose:$VERSION"
+ 
+ 
+diff --git a/script/test/default b/script/test/default
+index fa741a19d8..aabb4e426f 100755
+--- a/script/test/default
++++ b/script/test/default
+@@ -5,11 +5,15 @@ set -ex
+ 
+ TAG="docker-compose:$(git rev-parse --short HEAD)"
+ 
++# By default use the Dockerfile, but can be overriden to use an alternative file
++# e.g DOCKERFILE=Dockerfile.armhf script/test/default
++DOCKERFILE="${DOCKERFILE:-Dockerfile}"
++
+ rm -rf coverage-html
+ # Create the host directory so it's owned by $USER
+ mkdir -p coverage-html
+ 
+-docker build -t "$TAG" .
++docker build -f ${DOCKERFILE} -t "$TAG" .
+ 
+ GIT_VOLUME="--volume=$(pwd)/.git:/code/.git"
+ . script/test/all
+diff --git a/script/test/versions.py b/script/test/versions.py
+index 0c3b8162db..97383ad99f 100755
+--- a/script/test/versions.py
++++ b/script/test/versions.py
+@@ -44,7 +44,7 @@ def parse(cls, version):
+         version = version.lstrip('v')
+         version, _, rc = version.partition('-')
+         major, minor, patch = version.split('.', 3)
+-        return cls(int(major), int(minor), int(patch), rc)
++        return cls(major, minor, patch, rc)
+ 
+     @property
+     def major_minor(self):
+@@ -57,7 +57,7 @@ def order(self):
+         """
+         # rc releases should appear before official releases
+         rc = (0, self.rc) if self.rc else (1, )
+-        return (self.major, self.minor, self.patch) + rc
++        return (int(self.major), int(self.minor), int(self.patch)) + rc
+ 
+     def __str__(self):
+         rc = '-{}'.format(self.rc) if self.rc else ''
+diff --git a/tests/acceptance/cli_test.py b/tests/acceptance/cli_test.py
+index 160e1913de..14e6f73362 100644
+--- a/tests/acceptance/cli_test.py
++++ b/tests/acceptance/cli_test.py
+@@ -5,6 +5,7 @@
+ import datetime
+ import json
+ import os
++import os.path
+ import signal
+ import subprocess
+ import time
+@@ -18,6 +19,7 @@
+ from docker import errors
+ 
+ from .. import mock
++from ..helpers import create_host_file
+ from compose.cli.command import get_project
+ from compose.container import Container
+ from compose.project import OneOffFilter
+@@ -105,6 +107,7 @@ class CLITestCase(DockerClientTestCase):
+     def setUp(self):
+         super(CLITestCase, self).setUp()
+         self.base_dir = 'tests/fixtures/simple-composefile'
++        self.override_dir = None
+ 
+     def tearDown(self):
+         if self.base_dir:
+@@ -127,7 +130,7 @@ def tearDown(self):
+     def project(self):
+         # Hack: allow project to be overridden
+         if not hasattr(self, '_project'):
+-            self._project = get_project(self.base_dir)
++            self._project = get_project(self.base_dir, override_dir=self.override_dir)
+         return self._project
+ 
+     def dispatch(self, options, project_options=None, returncode=0):
+@@ -152,6 +155,12 @@ def test_help(self):
+         # Prevent tearDown from trying to create a project
+         self.base_dir = None
+ 
++    def test_help_nonexistent(self):
++        self.base_dir = 'tests/fixtures/no-composefile'
++        result = self.dispatch(['help', 'foobar'], returncode=1)
++        assert 'No such command' in result.stderr
++        self.base_dir = None
++
+     def test_shorthand_host_opt(self):
+         self.dispatch(
+             ['-H={0}'.format(os.environ.get('DOCKER_HOST', 'unix://')),
+@@ -177,6 +186,11 @@ def test_config_list_services(self):
+         result = self.dispatch(['config', '--services'])
+         assert set(result.stdout.rstrip().split('\n')) == {'web', 'other'}
+ 
++    def test_config_list_volumes(self):
++        self.base_dir = 'tests/fixtures/v2-full'
++        result = self.dispatch(['config', '--volumes'])
++        assert set(result.stdout.rstrip().split('\n')) == {'data'}
++
+     def test_config_quiet_with_error(self):
+         self.base_dir = None
+         result = self.dispatch([
+@@ -211,7 +225,7 @@ def test_config_default(self):
+                 'other': {
+                     'image': 'busybox:latest',
+                     'command': 'top',
+-                    'volumes': ['/data:rw'],
++                    'volumes': ['/data'],
+                 },
+             },
+         }
+@@ -288,7 +302,7 @@ def test_config_v1(self):
+                 },
+                 'volume': {
+                     'image': 'busybox',
+-                    'volumes': ['/data:rw'],
++                    'volumes': ['/data'],
+                     'network_mode': 'bridge',
+                 },
+                 'app': {
+@@ -307,7 +321,7 @@ def test_config_v3(self):
+         result = self.dispatch(['config'])
+ 
+         assert yaml.load(result.stdout) == {
+-            'version': '3.0',
++            'version': '3.2',
+             'networks': {},
+             'volumes': {
+                 'foobar': {
+@@ -357,6 +371,11 @@ def test_config_v3(self):
+                         'timeout': '1s',
+                         'retries': 5,
+                     },
++                    'volumes': [
++                        '/host/path:/container/path:ro',
++                        'foobar:/container/volumepath:rw',
++                        '/anonymous'
++                    ],
+ 
+                     'stop_grace_period': '20s',
+                 },
+@@ -505,6 +524,23 @@ def test_bundle_with_digests(self):
+             },
+         }
+ 
++    def test_build_override_dir(self):
++        self.base_dir = 'tests/fixtures/build-path-override-dir'
++        self.override_dir = os.path.abspath('tests/fixtures')
++        result = self.dispatch([
++            '--project-directory', self.override_dir,
++            'build'])
++
++        assert 'Successfully built' in result.stdout
++
++    def test_build_override_dir_invalid_path(self):
++        config_path = os.path.abspath('tests/fixtures/build-path-override-dir/docker-compose.yml')
++        result = self.dispatch([
++            '-f', config_path,
++            'build'], returncode=1)
++
++        assert 'does not exist, is not accessible, or is not a valid URL' in result.stderr
++
+     def test_create(self):
+         self.dispatch(['create'])
+         service = self.project.get_service('simple')
+@@ -546,6 +582,45 @@ def test_create_with_no_recreate(self):
+ 
+         self.assertEqual(old_ids, new_ids)
+ 
++    def test_run_one_off_with_volume(self):
++        self.base_dir = 'tests/fixtures/simple-composefile-volume-ready'
++        volume_path = os.path.abspath(os.path.join(os.getcwd(), self.base_dir, 'files'))
++        create_host_file(self.client, os.path.join(volume_path, 'example.txt'))
++
++        self.dispatch([
++            'run',
++            '-v', '{}:/data'.format(volume_path),
++            'simple',
++            'test', '-f', '/data/example.txt'
++        ], returncode=0)
++        # FIXME: does not work with Python 3
++        # assert cmd_result.stdout.strip() == 'FILE_CONTENT'
++
++    def test_run_one_off_with_multiple_volumes(self):
++        self.base_dir = 'tests/fixtures/simple-composefile-volume-ready'
++        volume_path = os.path.abspath(os.path.join(os.getcwd(), self.base_dir, 'files'))
++        create_host_file(self.client, os.path.join(volume_path, 'example.txt'))
++
++        self.dispatch([
++            'run',
++            '-v', '{}:/data'.format(volume_path),
++            '-v', '{}:/data1'.format(volume_path),
++            'simple',
++            'test', '-f', '/data/example.txt'
++        ], returncode=0)
++        # FIXME: does not work with Python 3
++        # assert cmd_result.stdout.strip() == 'FILE_CONTENT'
++
++        self.dispatch([
++            'run',
++            '-v', '{}:/data'.format(volume_path),
++            '-v', '{}:/data1'.format(volume_path),
++            'simple',
++            'test', '-f' '/data1/example.txt'
++        ], returncode=0)
++        # FIXME: does not work with Python 3
++        # assert cmd_result.stdout.strip() == 'FILE_CONTENT'
++
+     def test_create_with_force_recreate_and_no_recreate(self):
+         self.dispatch(
+             ['create', '--force-recreate', '--no-recreate'],
+@@ -1074,10 +1149,18 @@ def test_up_handles_force_shutdown(self):
+         wait_on_condition(ContainerCountCondition(self.project, 0))
+ 
+     def test_up_handles_abort_on_container_exit(self):
+-        start_process(self.base_dir, ['up', '--abort-on-container-exit'])
+-        wait_on_condition(ContainerCountCondition(self.project, 2))
+-        self.project.stop(['simple'])
++        self.base_dir = 'tests/fixtures/abort-on-container-exit-0'
++        proc = start_process(self.base_dir, ['up', '--abort-on-container-exit'])
++        wait_on_condition(ContainerCountCondition(self.project, 0))
++        proc.wait()
++        self.assertEqual(proc.returncode, 0)
++
++    def test_up_handles_abort_on_container_exit_code(self):
++        self.base_dir = 'tests/fixtures/abort-on-container-exit-1'
++        proc = start_process(self.base_dir, ['up', '--abort-on-container-exit'])
+         wait_on_condition(ContainerCountCondition(self.project, 0))
++        proc.wait()
++        self.assertEqual(proc.returncode, 1)
+ 
+     def test_exec_without_tty(self):
+         self.base_dir = 'tests/fixtures/links-composefile'
+@@ -1085,8 +1168,8 @@ def test_exec_without_tty(self):
+         self.assertEqual(len(self.project.containers()), 1)
+ 
+         stdout, stderr = self.dispatch(['exec', '-T', 'console', 'ls', '-1d', '/'])
+-        self.assertEquals(stdout, "/\n")
+-        self.assertEquals(stderr, "")
++        self.assertEqual(stdout, "/\n")
++        self.assertEqual(stderr, "")
+ 
+     def test_exec_custom_user(self):
+         self.base_dir = 'tests/fixtures/links-composefile'
+@@ -1094,8 +1177,8 @@ def test_exec_custom_user(self):
+         self.assertEqual(len(self.project.containers()), 1)
+ 
+         stdout, stderr = self.dispatch(['exec', '-T', '--user=operator', 'console', 'whoami'])
+-        self.assertEquals(stdout, "operator\n")
+-        self.assertEquals(stderr, "")
++        self.assertEqual(stdout, "operator\n")
++        self.assertEqual(stderr, "")
+ 
+     def test_run_service_without_links(self):
+         self.base_dir = 'tests/fixtures/links-composefile'
+@@ -1167,6 +1250,36 @@ def test_run_without_command(self):
+             [u'/bin/true'],
+         )
+ 
++    def test_run_rm(self):
++        self.base_dir = 'tests/fixtures/volume'
++        proc = start_process(self.base_dir, ['run', '--rm', 'test'])
++        wait_on_condition(ContainerStateCondition(
++            self.project.client,
++            'volume_test_run_1',
++            'running'))
++        service = self.project.get_service('test')
++        containers = service.containers(one_off=OneOffFilter.only)
++        self.assertEqual(len(containers), 1)
++        mounts = containers[0].get('Mounts')
++        for mount in mounts:
++            if mount['Destination'] == '/container-path':
++                anonymousName = mount['Name']
++                break
++        os.kill(proc.pid, signal.SIGINT)
++        wait_on_process(proc, 1)
++
++        self.assertEqual(len(service.containers(stopped=True, one_off=OneOffFilter.only)), 0)
++
++        volumes = self.client.volumes()['Volumes']
++        assert volumes is not None
++        for volume in service.options.get('volumes'):
++            if volume.internal == '/container-named-path':
++                name = volume.external
++                break
++        volumeNames = [v['Name'] for v in volumes]
++        assert name in volumeNames
++        assert anonymousName not in volumeNames
++
+     def test_run_service_with_dockerfile_entrypoint(self):
+         self.base_dir = 'tests/fixtures/entrypoint-dockerfile'
+         self.dispatch(['run', 'test'])
+@@ -1234,7 +1347,7 @@ def test_run_service_with_user_overridden_short_form(self):
+         container = service.containers(stopped=True, one_off=OneOffFilter.only)[0]
+         self.assertEqual(user, container.get('Config.User'))
+ 
+-    def test_run_service_with_environement_overridden(self):
++    def test_run_service_with_environment_overridden(self):
+         name = 'service'
+         self.base_dir = 'tests/fixtures/environment-composefile'
+         self.dispatch([
+@@ -1246,9 +1359,9 @@ def test_run_service_with_environement_overridden(self):
+         ])
+         service = self.project.get_service(name)
+         container = service.containers(stopped=True, one_off=OneOffFilter.only)[0]
+-        # env overriden
++        # env overridden
+         self.assertEqual('notbar', container.environment['foo'])
+-        # keep environement from yaml
++        # keep environment from yaml
+         self.assertEqual('world', container.environment['hello'])
+         # added option from command line
+         self.assertEqual('beta', container.environment['alpha'])
+@@ -1293,7 +1406,7 @@ def test_run_service_with_map_ports(self):
+         self.assertEqual(port_range[0], "0.0.0.0:49153")
+         self.assertEqual(port_range[1], "0.0.0.0:49154")
+ 
+-    def test_run_service_with_explicitly_maped_ports(self):
++    def test_run_service_with_explicitly_mapped_ports(self):
+         # create one off container
+         self.base_dir = 'tests/fixtures/ports-composefile'
+         self.dispatch(['run', '-d', '-p', '30000:3000', '--publish', '30001:3001', 'simple'])
+@@ -1310,7 +1423,7 @@ def test_run_service_with_explicitly_maped_ports(self):
+         self.assertEqual(port_short, "0.0.0.0:30000")
+         self.assertEqual(port_full, "0.0.0.0:30001")
+ 
+-    def test_run_service_with_explicitly_maped_ip_ports(self):
++    def test_run_service_with_explicitly_mapped_ip_ports(self):
+         # create one off container
+         self.base_dir = 'tests/fixtures/ports-composefile'
+         self.dispatch([
+@@ -1498,6 +1611,11 @@ def test_rm(self):
+         self.assertEqual(len(service.containers(stopped=True)), 1)
+         self.dispatch(['rm', '-f'], None)
+         self.assertEqual(len(service.containers(stopped=True)), 0)
++        service = self.project.get_service('simple')
++        service.create_container()
++        self.dispatch(['rm', '-fs'], None)
++        simple = self.project.get_service('simple')
++        self.assertEqual(len(simple.containers()), 0)
+ 
+     def test_rm_all(self):
+         service = self.project.get_service('simple')
+@@ -1759,6 +1877,19 @@ def get_port(number):
+         self.assertEqual(get_port(3001), "0.0.0.0:49152")
+         self.assertEqual(get_port(3002), "0.0.0.0:49153")
+ 
++    def test_expanded_port(self):
++        self.base_dir = 'tests/fixtures/ports-composefile'
++        self.dispatch(['-f', 'expanded-notation.yml', 'up', '-d'])
++        container = self.project.get_service('simple').get_container()
++
++        def get_port(number):
++            result = self.dispatch(['port', 'simple', str(number)])
++            return result.stdout.rstrip()
++
++        self.assertEqual(get_port(3000), container.get_local_port(3000))
++        self.assertEqual(get_port(3001), "0.0.0.0:49152")
++        self.assertEqual(get_port(3002), "0.0.0.0:49153")
++
+     def test_port_with_scale(self):
+         self.base_dir = 'tests/fixtures/ports-composefile-scale'
+         self.dispatch(['scale', 'simple=2'], None)
+@@ -1927,3 +2058,28 @@ def test_top_processes_running(self):
+         self.dispatch(['up', '-d'])
+         result = self.dispatch(['top'])
+         assert result.stdout.count("top") == 4
++
++    def test_forward_exitval(self):
++        self.base_dir = 'tests/fixtures/exit-code-from'
++        proc = start_process(
++            self.base_dir,
++            ['up', '--abort-on-container-exit', '--exit-code-from', 'another'])
++
++        result = wait_on_process(proc, returncode=1)
++
++        assert 'exitcodefrom_another_1 exited with code 1' in result.stdout
++
++    def test_images(self):
++        self.project.get_service('simple').create_container()
++        result = self.dispatch(['images'])
++        assert 'busybox' in result.stdout
++        assert 'simplecomposefile_simple_1' in result.stdout
++
++    def test_images_default_composefile(self):
++        self.base_dir = 'tests/fixtures/multiple-composefiles'
++        self.dispatch(['up', '-d'])
++        result = self.dispatch(['images'])
++
++        assert 'busybox' in result.stdout
++        assert 'multiplecomposefiles_another_1' in result.stdout
++        assert 'multiplecomposefiles_simple_1' in result.stdout
+diff --git a/tests/fixtures/abort-on-container-exit-0/docker-compose.yml b/tests/fixtures/abort-on-container-exit-0/docker-compose.yml
+new file mode 100644
+index 0000000000..ce41697bcd
+--- /dev/null
++++ b/tests/fixtures/abort-on-container-exit-0/docker-compose.yml
+@@ -0,0 +1,6 @@
++simple:
++  image: busybox:latest
++  command: top
++another:
++  image: busybox:latest
++  command: ls .
+diff --git a/tests/fixtures/abort-on-container-exit-1/docker-compose.yml b/tests/fixtures/abort-on-container-exit-1/docker-compose.yml
+new file mode 100644
+index 0000000000..7ec9b7e117
+--- /dev/null
++++ b/tests/fixtures/abort-on-container-exit-1/docker-compose.yml
+@@ -0,0 +1,6 @@
++simple:
++  image: busybox:latest
++  command: top
++another:
++  image: busybox:latest
++  command: ls /thecakeisalie
+diff --git a/tests/fixtures/build-path-override-dir/docker-compose.yml b/tests/fixtures/build-path-override-dir/docker-compose.yml
+new file mode 100644
+index 0000000000..15dbb3e68e
+--- /dev/null
++++ b/tests/fixtures/build-path-override-dir/docker-compose.yml
+@@ -0,0 +1,2 @@
++foo:
++  build: ./build-ctx/
+diff --git a/tests/fixtures/exit-code-from/docker-compose.yml b/tests/fixtures/exit-code-from/docker-compose.yml
+new file mode 100644
+index 0000000000..687e78b97c
+--- /dev/null
++++ b/tests/fixtures/exit-code-from/docker-compose.yml
+@@ -0,0 +1,6 @@
++simple:
++  image: busybox:latest
++  command: sh -c "echo hello && tail -f /dev/null"
++another:
++  image: busybox:latest
++  command: /bin/false
+diff --git a/tests/fixtures/ports-composefile/expanded-notation.yml b/tests/fixtures/ports-composefile/expanded-notation.yml
+new file mode 100644
+index 0000000000..6fbe59176c
+--- /dev/null
++++ b/tests/fixtures/ports-composefile/expanded-notation.yml
+@@ -0,0 +1,15 @@
++version: '3.2'
++services:
++    simple:
++      image: busybox:latest
++      command: top
++      ports:
++        - target: 3000
++        - target: 3001
++          published: 49152
++        - target: 3002
++          published: 49153
++          protocol: tcp
++        - target: 3003
++          published: 49154
++          protocol: udp
+diff --git a/tests/fixtures/simple-composefile-volume-ready/docker-compose.yml b/tests/fixtures/simple-composefile-volume-ready/docker-compose.yml
+new file mode 100644
+index 0000000000..98a7d23b72
+--- /dev/null
++++ b/tests/fixtures/simple-composefile-volume-ready/docker-compose.yml
+@@ -0,0 +1,2 @@
++simple:
++  image: busybox:latest
+diff --git a/tests/fixtures/simple-composefile-volume-ready/files/example.txt b/tests/fixtures/simple-composefile-volume-ready/files/example.txt
+new file mode 100644
+index 0000000000..edb4d33905
+--- /dev/null
++++ b/tests/fixtures/simple-composefile-volume-ready/files/example.txt
+@@ -0,0 +1 @@
++FILE_CONTENT
+diff --git a/tests/fixtures/v3-full/docker-compose.yml b/tests/fixtures/v3-full/docker-compose.yml
+index a1661ab936..27f3c6e04f 100644
+--- a/tests/fixtures/v3-full/docker-compose.yml
++++ b/tests/fixtures/v3-full/docker-compose.yml
+@@ -1,4 +1,4 @@
+-version: "3"
++version: "3.2"
+ services:
+   web:
+     image: busybox
+@@ -34,6 +34,17 @@ services:
+       timeout: 1s
+       retries: 5
+ 
++    volumes:
++      - source: /host/path
++        target: /container/path
++        type: bind
++        read_only: true
++      - source: foobar
++        type: volume
++        target: /container/volumepath
++      - type: volume
++        target: /anonymous
++
+     stop_grace_period: 20s
+ volumes:
+   foobar:
+diff --git a/tests/fixtures/volume/docker-compose.yml b/tests/fixtures/volume/docker-compose.yml
+new file mode 100644
+index 0000000000..4335b0a094
+--- /dev/null
++++ b/tests/fixtures/volume/docker-compose.yml
+@@ -0,0 +1,11 @@
++version: '2'
++services:
++  test:
++    image: busybox
++    command: top
++    volumes:
++      - /container-path
++      - testvolume:/container-named-path
++
++volumes:
++  testvolume: {}
+diff --git a/tests/helpers.py b/tests/helpers.py
+index 4b422a6a0a..59efd2557c 100644
+--- a/tests/helpers.py
++++ b/tests/helpers.py
+@@ -1,6 +1,8 @@
+ from __future__ import absolute_import
+ from __future__ import unicode_literals
+ 
++import os
++
+ from compose.config.config import ConfigDetails
+ from compose.config.config import ConfigFile
+ from compose.config.config import load
+@@ -15,3 +17,30 @@ def build_config_details(contents, working_dir='working_dir', filename='filename
+         working_dir,
+         [ConfigFile(filename, contents)],
+     )
++
++
++def create_host_file(client, filename):
++    dirname = os.path.dirname(filename)
++
++    with open(filename, 'r') as fh:
++        content = fh.read()
++
++    container = client.create_container(
++        'busybox:latest',
++        ['sh', '-c', 'echo -n "{}" > {}'.format(content, filename)],
++        volumes={dirname: {}},
++        host_config=client.create_host_config(
++            binds={dirname: {'bind': dirname, 'ro': False}},
++            network_mode='none',
++        ),
++    )
++    try:
++        client.start(container)
++        exitcode = client.wait(container)
++
++        if exitcode != 0:
++            output = client.logs(container)
++            raise Exception(
++                "Container exited with code {}:\n{}".format(exitcode, output))
++    finally:
++        client.remove_container(container, force=True)
+diff --git a/tests/integration/project_test.py b/tests/integration/project_test.py
+index 28762cd207..e8dbe8fbf7 100644
+--- a/tests/integration/project_test.py
++++ b/tests/integration/project_test.py
+@@ -10,15 +10,16 @@
+ 
+ from .. import mock
+ from ..helpers import build_config as load_config
++from ..helpers import create_host_file
+ from .testcases import DockerClientTestCase
+ from compose.config import config
+ from compose.config import ConfigurationError
+ from compose.config import types
+-from compose.config.config import V2_0
+-from compose.config.config import V2_1
+-from compose.config.config import V3_1
+ from compose.config.types import VolumeFromSpec
+ from compose.config.types import VolumeSpec
++from compose.const import COMPOSEFILE_V2_0 as V2_0
++from compose.const import COMPOSEFILE_V2_1 as V2_1
++from compose.const import COMPOSEFILE_V3_1 as V3_1
+ from compose.const import LABEL_PROJECT
+ from compose.const import LABEL_SERVICE
+ from compose.container import Container
+@@ -1517,30 +1518,3 @@ def test_project_up_no_healthcheck_dependency(self):
+         assert 'svc1' in svc2.get_dependency_names()
+         with pytest.raises(NoHealthCheckConfigured):
+             svc1.is_healthy()
+-
+-
+-def create_host_file(client, filename):
+-    dirname = os.path.dirname(filename)
+-
+-    with open(filename, 'r') as fh:
+-        content = fh.read()
+-
+-    container = client.create_container(
+-        'busybox:latest',
+-        ['sh', '-c', 'echo -n "{}" > {}'.format(content, filename)],
+-        volumes={dirname: {}},
+-        host_config=client.create_host_config(
+-            binds={dirname: {'bind': dirname, 'ro': False}},
+-            network_mode='none',
+-        ),
+-    )
+-    try:
+-        client.start(container)
+-        exitcode = client.wait(container)
+-
+-        if exitcode != 0:
+-            output = client.logs(container)
+-            raise Exception(
+-                "Container exited with code {}:\n{}".format(exitcode, output))
+-    finally:
+-        client.remove_container(container, force=True)
+diff --git a/tests/integration/service_test.py b/tests/integration/service_test.py
+index 09758eee94..12ec8a9934 100644
+--- a/tests/integration/service_test.py
++++ b/tests/integration/service_test.py
+@@ -32,6 +32,7 @@
+ from compose.service import Service
+ from tests.integration.testcases import v2_1_only
+ from tests.integration.testcases import v2_only
++from tests.integration.testcases import v3_only
+ 
+ 
+ def create_and_start_container(service, **override_options):
+@@ -40,6 +41,7 @@ def create_and_start_container(service, **override_options):
+ 
+ 
+ class ServiceTest(DockerClientTestCase):
++
+     def test_containers(self):
+         foo = self.create_service('foo')
+         bar = self.create_service('bar')
+@@ -113,6 +115,14 @@ def test_create_container_with_shm_size(self):
+         service.start_container(container)
+         self.assertEqual(container.get('HostConfig.ShmSize'), 67108864)
+ 
++    @pytest.mark.xfail(True, reason='Some kernels/configs do not support pids_limit')
++    def test_create_container_with_pids_limit(self):
++        self.require_api_version('1.23')
++        service = self.create_service('db', pids_limit=10)
++        container = service.create_container()
++        service.start_container(container)
++        assert container.get('HostConfig.PidsLimit') == 10
++
+     def test_create_container_with_extra_hosts_list(self):
+         extra_hosts = ['somehost:162.242.195.82', 'otherhost:50.31.209.229']
+         service = self.create_service('db', extra_hosts=extra_hosts)
+@@ -587,12 +597,30 @@ def test_build_with_build_args(self):
+         with open(os.path.join(base_dir, 'Dockerfile'), 'w') as f:
+             f.write("FROM busybox\n")
+             f.write("ARG build_version\n")
++            f.write("RUN echo ${build_version}\n")
+ 
+         service = self.create_service('buildwithargs',
+                                       build={'context': text_type(base_dir),
+                                              'args': {"build_version": "1"}})
+         service.build()
+         assert service.image()
++        assert "build_version=1" in service.image()['ContainerConfig']['Cmd']
++
++    def test_build_with_build_args_override(self):
++        base_dir = tempfile.mkdtemp()
++        self.addCleanup(shutil.rmtree, base_dir)
++
++        with open(os.path.join(base_dir, 'Dockerfile'), 'w') as f:
++            f.write("FROM busybox\n")
++            f.write("ARG build_version\n")
++            f.write("RUN echo ${build_version}\n")
++
++        service = self.create_service('buildwithargs',
++                                      build={'context': text_type(base_dir),
++                                             'args': {"build_version": "1"}})
++        service.build(build_args_override={'build_version': '2'})
++        assert service.image()
++        assert "build_version=2" in service.image()['ContainerConfig']['Cmd']
+ 
+     def test_start_container_stays_unprivileged(self):
+         service = self.create_service('web')
+@@ -870,6 +898,11 @@ def test_mem_swappiness(self):
+         container = create_and_start_container(service)
+         self.assertEqual(container.get('HostConfig.MemorySwappiness'), 11)
+ 
++    def test_mem_reservation(self):
++        service = self.create_service('web', mem_reservation='20m')
++        container = create_and_start_container(service)
++        assert container.get('HostConfig.MemoryReservation') == 20 * 1024 * 1024
++
+     def test_restart_always_value(self):
+         service = self.create_service('web', restart={'Name': 'always'})
+         container = create_and_start_container(service)
+@@ -885,8 +918,16 @@ def test_group_add_value(self):
+         container = create_and_start_container(service)
+ 
+         host_container_groupadd = container.get('HostConfig.GroupAdd')
+-        self.assertTrue("root" in host_container_groupadd)
+-        self.assertTrue("1" in host_container_groupadd)
++        assert "root" in host_container_groupadd
++        assert "1" in host_container_groupadd
++
++    def test_dns_opt_value(self):
++        service = self.create_service('web', dns_opt=["use-vc", "no-tld-query"])
++        container = create_and_start_container(service)
++
++        dns_opt = container.get('HostConfig.DnsOptions')
++        assert 'use-vc' in dns_opt
++        assert 'no-tld-query' in dns_opt
+ 
+     def test_restart_on_failure_value(self):
+         service = self.create_service('web', restart={
+@@ -946,6 +987,20 @@ def test_env_from_file_combined_with_env(self):
+         }.items():
+             self.assertEqual(env[k], v)
+ 
++    @v3_only()
++    def test_build_with_cachefrom(self):
++        base_dir = tempfile.mkdtemp()
++        self.addCleanup(shutil.rmtree, base_dir)
++
++        with open(os.path.join(base_dir, 'Dockerfile'), 'w') as f:
++            f.write("FROM busybox\n")
++
++        service = self.create_service('cache_from',
++                                      build={'context': base_dir,
++                                             'cache_from': ['build1']})
++        service.build()
++        assert service.image()
++
+     @mock.patch.dict(os.environ)
+     def test_resolve_env(self):
+         os.environ['FILE_DEF'] = 'E1'
+@@ -974,7 +1029,7 @@ def test_with_high_enough_api_version_we_get_default_network_mode(self):
+         with mock.patch.object(self.client, '_version', '1.20'):
+             service = self.create_service('web')
+             service_config = service._get_container_host_config({})
+-            self.assertEquals(service_config['NetworkMode'], 'default')
++            self.assertEqual(service_config['NetworkMode'], 'default')
+ 
+     def test_labels(self):
+         labels_dict = {
+@@ -1020,7 +1075,7 @@ def test_custom_container_name(self):
+         one_off_container = service.create_container(one_off=True)
+         self.assertNotEqual(one_off_container.name, 'my-web-container')
+ 
+-    @pytest.mark.skipif(True, reason="Broken on 1.11.0rc1")
++    @pytest.mark.skipif(True, reason="Broken on 1.11.0 - 17.03.0")
+     def test_log_drive_invalid(self):
+         service = self.create_service('web', logging={'driver': 'xxx'})
+         expected_error_msg = "logger: no log driver named 'xxx' is registered"
+@@ -1078,6 +1133,7 @@ def converge(service, strategy=ConvergenceStrategy.changed):
+ 
+ 
+ class ConfigHashTest(DockerClientTestCase):
++
+     def test_no_config_hash_when_one_off(self):
+         web = self.create_service('web')
+         container = web.create_container(one_off=True)
+diff --git a/tests/integration/testcases.py b/tests/integration/testcases.py
+index efc1551b4e..38fdcc6605 100644
+--- a/tests/integration/testcases.py
++++ b/tests/integration/testcases.py
+@@ -10,12 +10,12 @@
+ from .. import unittest
+ from compose.cli.docker_client import docker_client
+ from compose.config.config import resolve_environment
+-from compose.config.config import V1
+-from compose.config.config import V2_0
+-from compose.config.config import V2_1
+-from compose.config.config import V3_0
+ from compose.config.environment import Environment
+ from compose.const import API_VERSIONS
++from compose.const import COMPOSEFILE_V1 as V1
++from compose.const import COMPOSEFILE_V2_0 as V2_0
++from compose.const import COMPOSEFILE_V2_0 as V2_1
++from compose.const import COMPOSEFILE_V3_0 as V3_0
+ from compose.const import LABEL_PROJECT
+ from compose.progress_stream import stream_output
+ from compose.service import Service
+diff --git a/tests/unit/cli/command_test.py b/tests/unit/cli/command_test.py
+index 50fc84e17f..3655c432e9 100644
+--- a/tests/unit/cli/command_test.py
++++ b/tests/unit/cli/command_test.py
+@@ -45,6 +45,15 @@ def test_multiple_path_from_env_windows(self):
+                 '.', {}, environment
+             ) == ['one.yml', 'two.yml']
+ 
++    def test_multiple_path_from_env_custom_separator(self):
++        with mock.patch.dict(os.environ):
++            os.environ['COMPOSE_PATH_SEPARATOR'] = '^'
++            os.environ['COMPOSE_FILE'] = 'c:\\one.yml^.\\semi;colon.yml'
++            environment = Environment.from_env_file('.')
++            assert get_config_path_from_options(
++                '.', {}, environment
++            ) == ['c:\\one.yml', '.\\semi;colon.yml']
++
+     def test_no_path(self):
+         environment = Environment.from_env_file('.')
+         assert not get_config_path_from_options('.', {}, environment)
+diff --git a/tests/unit/cli/errors_test.py b/tests/unit/cli/errors_test.py
+index a7b57562f2..7406a88803 100644
+--- a/tests/unit/cli/errors_test.py
++++ b/tests/unit/cli/errors_test.py
+@@ -42,10 +42,26 @@ def test_api_error_version_mismatch(self, mock_logging):
+         _, args, _ = mock_logging.error.mock_calls[0]
+         assert "Docker Engine of version 1.10.0 or greater" in args[0]
+ 
++    def test_api_error_version_mismatch_unicode_explanation(self, mock_logging):
++        with pytest.raises(errors.ConnectionError):
++            with handle_connection_errors(mock.Mock(api_version='1.22')):
++                raise APIError(None, None, u"client is newer than server")
++
++        _, args, _ = mock_logging.error.mock_calls[0]
++        assert "Docker Engine of version 1.10.0 or greater" in args[0]
++
+     def test_api_error_version_other(self, mock_logging):
+         msg = b"Something broke!"
+         with pytest.raises(errors.ConnectionError):
+             with handle_connection_errors(mock.Mock(api_version='1.22')):
+                 raise APIError(None, None, msg)
+ 
++        mock_logging.error.assert_called_once_with(msg.decode('utf-8'))
++
++    def test_api_error_version_other_unicode_explanation(self, mock_logging):
++        msg = u"Something broke!"
++        with pytest.raises(errors.ConnectionError):
++            with handle_connection_errors(mock.Mock(api_version='1.22')):
++                raise APIError(None, None, msg)
++
+         mock_logging.error.assert_called_once_with(msg)
+diff --git a/tests/unit/cli/log_printer_test.py b/tests/unit/cli/log_printer_test.py
+index b908eb68b6..d0c4b56be2 100644
+--- a/tests/unit/cli/log_printer_test.py
++++ b/tests/unit/cli/log_printer_test.py
+@@ -187,11 +187,13 @@ def test_item_is_stop_without_cascade_stop(self):
+         assert next(generator) == 'b'
+ 
+     def test_item_is_stop_with_cascade_stop(self):
++        """Return the name of the container that caused the cascade_stop"""
+         queue = Queue()
+-        for item in QueueItem.stop(), QueueItem.new('a'), QueueItem.new('b'):
++        for item in QueueItem.stop('foobar-1'), QueueItem.new('a'), QueueItem.new('b'):
+             queue.put(item)
+ 
+-        assert list(consume_queue(queue, True)) == []
++        generator = consume_queue(queue, True)
++        assert next(generator) is 'foobar-1'
+ 
+     def test_item_is_none_when_timeout_is_hit(self):
+         queue = Queue()
+diff --git a/tests/unit/cli_test.py b/tests/unit/cli_test.py
+index f9b60bff53..f9ce240a37 100644
+--- a/tests/unit/cli_test.py
++++ b/tests/unit/cli_test.py
+@@ -29,36 +29,36 @@ def test_default_project_name(self):
+         test_dir = py._path.local.LocalPath('tests/fixtures/simple-composefile')
+         with test_dir.as_cwd():
+             project_name = get_project_name('.')
+-            self.assertEquals('simplecomposefile', project_name)
++            self.assertEqual('simplecomposefile', project_name)
+ 
+     def test_project_name_with_explicit_base_dir(self):
+         base_dir = 'tests/fixtures/simple-composefile'
+         project_name = get_project_name(base_dir)
+-        self.assertEquals('simplecomposefile', project_name)
++        self.assertEqual('simplecomposefile', project_name)
+ 
+     def test_project_name_with_explicit_uppercase_base_dir(self):
+         base_dir = 'tests/fixtures/UpperCaseDir'
+         project_name = get_project_name(base_dir)
+-        self.assertEquals('uppercasedir', project_name)
++        self.assertEqual('uppercasedir', project_name)
+ 
+     def test_project_name_with_explicit_project_name(self):
+         name = 'explicit-project-name'
+         project_name = get_project_name(None, project_name=name)
+-        self.assertEquals('explicitprojectname', project_name)
++        self.assertEqual('explicitprojectname', project_name)
+ 
+     @mock.patch.dict(os.environ)
+     def test_project_name_from_environment_new_var(self):
+         name = 'namefromenv'
+         os.environ['COMPOSE_PROJECT_NAME'] = name
+         project_name = get_project_name(None)
+-        self.assertEquals(project_name, name)
++        self.assertEqual(project_name, name)
+ 
+     def test_project_name_with_empty_environment_var(self):
+         base_dir = 'tests/fixtures/simple-composefile'
+         with mock.patch.dict(os.environ):
+             os.environ['COMPOSE_PROJECT_NAME'] = ''
+             project_name = get_project_name(base_dir)
+-        self.assertEquals('simplecomposefile', project_name)
++        self.assertEqual('simplecomposefile', project_name)
+ 
+     @mock.patch.dict(os.environ)
+     def test_project_name_with_environment_file(self):
+@@ -119,6 +119,7 @@ def test_run_interactive_passes_logs_false(self, mock_pseudo_terminal, mock_run_
+                 '--entrypoint': None,
+                 '--service-ports': None,
+                 '--publish': [],
++                '--volume': [],
+                 '--rm': None,
+                 '--name': None,
+                 '--workdir': None,
+@@ -153,12 +154,13 @@ def test_run_service_with_restart_always(self):
+             '--entrypoint': None,
+             '--service-ports': None,
+             '--publish': [],
++            '--volume': [],
+             '--rm': None,
+             '--name': None,
+             '--workdir': None,
+         })
+ 
+-        self.assertEquals(
++        self.assertEqual(
+             mock_client.create_host_config.call_args[1]['restart_policy']['Name'],
+             'always'
+         )
+@@ -175,6 +177,7 @@ def test_run_service_with_restart_always(self):
+             '--entrypoint': None,
+             '--service-ports': None,
+             '--publish': [],
++            '--volume': [],
+             '--rm': True,
+             '--name': None,
+             '--workdir': None,
+@@ -184,7 +187,7 @@ def test_run_service_with_restart_always(self):
+             mock_client.create_host_config.call_args[1].get('restart_policy')
+         )
+ 
+-    def test_command_manula_and_service_ports_together(self):
++    def test_command_manual_and_service_ports_together(self):
+         project = Project.from_config(
+             name='composetest',
+             client=None,
+diff --git a/tests/unit/config/config_test.py b/tests/unit/config/config_test.py
+index c26272d9e8..195efe3b95 100644
+--- a/tests/unit/config/config_test.py
++++ b/tests/unit/config/config_test.py
+@@ -10,23 +10,26 @@
+ 
+ import py
+ import pytest
++import yaml
+ 
+ from ...helpers import build_config_details
+ from compose.config import config
+ from compose.config import types
+ from compose.config.config import resolve_build_args
+ from compose.config.config import resolve_environment
+-from compose.config.config import V1
+-from compose.config.config import V2_0
+-from compose.config.config import V2_1
+-from compose.config.config import V3_0
+-from compose.config.config import V3_1
+ from compose.config.environment import Environment
+ from compose.config.errors import ConfigurationError
+ from compose.config.errors import VERSION_EXPLANATION
+ from compose.config.serialize import denormalize_service_dict
++from compose.config.serialize import serialize_config
+ from compose.config.serialize import serialize_ns_time_value
+ from compose.config.types import VolumeSpec
++from compose.const import COMPOSEFILE_V1 as V1
++from compose.const import COMPOSEFILE_V2_0 as V2_0
++from compose.const import COMPOSEFILE_V2_1 as V2_1
++from compose.const import COMPOSEFILE_V3_0 as V3_0
++from compose.const import COMPOSEFILE_V3_1 as V3_1
++from compose.const import COMPOSEFILE_V3_2 as V3_2
+ from compose.const import IS_WINDOWS_PLATFORM
+ from compose.utils import nanoseconds_from_time_seconds
+ from tests import mock
+@@ -59,6 +62,7 @@ def secret_sort(secrets):
+ 
+ 
+ class ConfigTest(unittest.TestCase):
++
+     def test_load(self):
+         service_dicts = config.load(
+             build_config_details(
+@@ -554,6 +558,20 @@ def test_config_integer_service_name_raise_validation_error_v2(self):
+             excinfo.exconly()
+         )
+ 
++    def test_config_invalid_service_name_raise_validation_error(self):
++        with pytest.raises(ConfigurationError) as excinfo:
++            config.load(
++                build_config_details({
++                    'version': '2',
++                    'services': {
++                        'test_app': {'build': '.'},
++                        'mong\\o': {'image': 'mongo'},
++                    }
++                })
++            )
++
++            assert 'Invalid service name \'mong\\o\'' in excinfo.exconly()
++
+     def test_load_with_multiple_files_v1(self):
+         base_file = config.ConfigFile(
+             'base.yaml',
+@@ -947,6 +965,44 @@ def test_load_with_multiple_files_v2(self):
+         ]
+         assert service_sort(service_dicts) == service_sort(expected)
+ 
++    @mock.patch.dict(os.environ)
++    def test_load_with_multiple_files_v3_2(self):
++        os.environ['COMPOSE_CONVERT_WINDOWS_PATHS'] = 'true'
++        base_file = config.ConfigFile(
++            'base.yaml',
++            {
++                'version': '3.2',
++                'services': {
++                    'web': {
++                        'image': 'example/web',
++                        'volumes': [
++                            {'source': '/a', 'target': '/b', 'type': 'bind'},
++                            {'source': 'vol', 'target': '/x', 'type': 'volume', 'read_only': True}
++                        ]
++                    }
++                },
++                'volumes': {'vol': {}}
++            }
++        )
++
++        override_file = config.ConfigFile(
++            'override.yaml',
++            {
++                'version': '3.2',
++                'services': {
++                    'web': {
++                        'volumes': ['/c:/b', '/anonymous']
++                    }
++                }
++            }
++        )
++        details = config.ConfigDetails('.', [base_file, override_file])
++        service_dicts = config.load(details).services
++        svc_volumes = map(lambda v: v.repr(), service_dicts[0]['volumes'])
++        assert sorted(svc_volumes) == sorted(
++            ['/anonymous', '/c:/b:rw', 'vol:/x:ro']
++        )
++
+     def test_undeclared_volume_v2(self):
+         base_file = config.ConfigFile(
+             'base.yaml',
+@@ -1396,7 +1452,6 @@ def test_swappiness_option(self):
+         ]
+ 
+     def test_group_add_option(self):
+-
+         actual = config.load(build_config_details({
+             'version': '2',
+             'services': {
+@@ -1415,6 +1470,25 @@ def test_group_add_option(self):
+             }
+         ]
+ 
++    def test_dns_opt_option(self):
++        actual = config.load(build_config_details({
++            'version': '2',
++            'services': {
++                'web': {
++                    'image': 'alpine',
++                    'dns_opt': ["use-vc", "no-tld-query"]
++                }
++            }
++        }))
++
++        assert actual.services == [
++            {
++                'name': 'web',
++                'image': 'alpine',
++                'dns_opt': ["use-vc", "no-tld-query"]
++            }
++        ]
++
+     def test_isolation_option(self):
+         actual = config.load(build_config_details({
+             'version': V2_1,
+@@ -1471,39 +1545,67 @@ def test_merge_service_dicts_from_files_with_extends_in_override(self):
+             'extends': {'service': 'foo'}
+         }
+ 
+-    def test_merge_build_args(self):
++    def test_merge_service_dicts_heterogeneous(self):
+         base = {
+-            'build': {
+-                'context': '.',
+-                'args': {
+-                    'ONE': '1',
+-                    'TWO': '2',
+-                },
+-            }
++            'volumes': ['.:/app'],
++            'ports': ['5432']
+         }
+         override = {
+-            'build': {
+-                'args': {
+-                    'TWO': 'dos',
+-                    'THREE': '3',
+-                },
+-            }
++            'image': 'alpine:edge',
++            'ports': [5432]
+         }
+-        actual = config.merge_service_dicts(
++        actual = config.merge_service_dicts_from_files(
+             base,
+             override,
+             DEFAULT_VERSION)
+         assert actual == {
+-            'build': {
+-                'context': '.',
+-                'args': {
+-                    'ONE': '1',
+-                    'TWO': 'dos',
+-                    'THREE': '3',
+-                },
+-            }
++            'image': 'alpine:edge',
++            'volumes': ['.:/app'],
++            'ports': types.ServicePort.parse('5432')
+         }
+ 
++    def test_merge_service_dicts_heterogeneous_2(self):
++        base = {
++            'volumes': ['.:/app'],
++            'ports': [5432]
++        }
++        override = {
++            'image': 'alpine:edge',
++            'ports': ['5432']
++        }
++        actual = config.merge_service_dicts_from_files(
++            base,
++            override,
++            DEFAULT_VERSION)
++        assert actual == {
++            'image': 'alpine:edge',
++            'volumes': ['.:/app'],
++            'ports': types.ServicePort.parse('5432')
++        }
++
++    def test_merge_service_dicts_heterogeneous_volumes(self):
++        base = {
++            'volumes': ['/a:/b', '/x:/z'],
++        }
++
++        override = {
++            'image': 'alpine:edge',
++            'volumes': [
++                {'source': '/e', 'target': '/b', 'type': 'bind'},
++                {'source': '/c', 'target': '/d', 'type': 'bind'}
++            ]
++        }
++
++        actual = config.merge_service_dicts_from_files(
++            base, override, V3_2
++        )
++
++        assert actual['volumes'] == [
++            {'source': '/e', 'target': '/b', 'type': 'bind'},
++            {'source': '/c', 'target': '/d', 'type': 'bind'},
++            '/x:/z'
++        ]
++
+     def test_merge_logging_v1(self):
+         base = {
+             'image': 'alpine:edge',
+@@ -1723,6 +1825,30 @@ def test_merge_logging_v2_no_override(self):
+             }
+         }
+ 
++    def test_merge_mixed_ports(self):
++        base = {
++            'image': 'busybox:latest',
++            'command': 'top',
++            'ports': [
++                {
++                    'target': '1245',
++                    'published': '1245',
++                    'protocol': 'tcp',
++                }
++            ]
++        }
++
++        override = {
++            'ports': ['1245:1245/udp']
++        }
++
++        actual = config.merge_service_dicts(base, override, V3_1)
++        assert actual == {
++            'image': 'busybox:latest',
++            'command': 'top',
++            'ports': [types.ServicePort('1245', '1245', 'udp', None, None)]
++        }
++
+     def test_merge_depends_on_no_override(self):
+         base = {
+             'image': 'busybox',
+@@ -1757,6 +1883,23 @@ def test_merge_depends_on_mixed_syntax(self):
+             }
+         }
+ 
++    def test_empty_environment_key_allowed(self):
++        service_dict = config.load(
++            build_config_details(
++                {
++                    'web': {
++                        'build': '.',
++                        'environment': {
++                            'POSTGRES_PASSWORD': ''
++                        },
++                    },
++                },
++                '.',
++                None,
++            )
++        ).services[0]
++        self.assertEqual(service_dict['environment']['POSTGRES_PASSWORD'], '')
++
+     def test_merge_pid(self):
+         # Regression: https://github.com/docker/compose/issues/4184
+         base = {
+@@ -1973,6 +2116,7 @@ def test_load_secrets_multi_file(self):
+ 
+ 
+ class NetworkModeTest(unittest.TestCase):
++
+     def test_network_mode_standard(self):
+         config_data = config.load(build_config_details({
+             'version': '2',
+@@ -2184,6 +2328,7 @@ def check_config(self, cfg):
+ 
+ 
+ class InterpolationTest(unittest.TestCase):
++
+     @mock.patch.dict(os.environ)
+     def test_config_file_with_environment_file(self):
+         project_dir = 'tests/fixtures/default-env-file'
+@@ -2196,7 +2341,10 @@ def test_config_file_with_environment_file(self):
+         self.assertEqual(service_dicts[0], {
+             'name': 'web',
+             'image': 'alpine:latest',
+-            'ports': ['5643', '9999'],
++            'ports': [
++                types.ServicePort.parse('5643')[0],
++                types.ServicePort.parse('9999')[0]
++            ],
+             'command': 'true'
+         })
+ 
+@@ -2219,7 +2367,7 @@ def test_config_file_with_environment_variable(self):
+             {
+                 'name': 'web',
+                 'image': 'busybox',
+-                'ports': ['80:8000'],
++                'ports': types.ServicePort.parse('80:8000'),
+                 'labels': {'mylabel': 'myvalue'},
+                 'hostname': 'host-',
+                 'command': '${ESCAPED}',
+@@ -2266,25 +2414,27 @@ def test_invalid_interpolation(self):
+         self.assertIn('in service "web"', cm.exception.msg)
+         self.assertIn('"${"', cm.exception.msg)
+ 
+-    def test_empty_environment_key_allowed(self):
+-        service_dict = config.load(
+-            build_config_details(
+-                {
+-                    'web': {
+-                        'build': '.',
+-                        'environment': {
+-                            'POSTGRES_PASSWORD': ''
+-                        },
+-                    },
+-                },
+-                '.',
+-                None,
+-            )
+-        ).services[0]
+-        self.assertEquals(service_dict['environment']['POSTGRES_PASSWORD'], '')
++    @mock.patch.dict(os.environ)
++    def test_interpolation_secrets_section(self):
++        os.environ['FOO'] = 'baz.bar'
++        config_dict = config.load(build_config_details({
++            'version': '3.1',
++            'secrets': {
++                'secretdata': {
++                    'external': {'name': '$FOO'}
++                }
++            }
++        }))
++        assert config_dict.secrets == {
++            'secretdata': {
++                'external': {'name': 'baz.bar'},
++                'external_name': 'baz.bar'
++            }
++        }
+ 
+ 
+ class VolumeConfigTest(unittest.TestCase):
++
+     def test_no_binding(self):
+         d = make_service_dict('foo', {'build': '.', 'volumes': ['/data']}, working_dir='.')
+         self.assertEqual(d['volumes'], ['/data'])
+@@ -2429,6 +2579,7 @@ class MergeDevicesTest(unittest.TestCase, MergePathMappingTest):
+ 
+ 
+ class BuildOrImageMergeTest(unittest.TestCase):
++
+     def test_merge_build_or_image_no_override(self):
+         self.assertEqual(
+             config.merge_service_dicts({'build': '.'}, {}, V1),
+@@ -2501,13 +2652,37 @@ class MergePortsTest(unittest.TestCase, MergeListsTest):
+     base_config = ['10:8000', '9000']
+     override_config = ['20:8000']
+ 
++    def merged_config(self):
++        return self.convert(self.base_config) | self.convert(self.override_config)
++
++    def convert(self, port_config):
++        return set(config.merge_service_dicts(
++            {self.config_name: port_config},
++            {self.config_name: []},
++            DEFAULT_VERSION
++        )[self.config_name])
++
+     def test_duplicate_port_mappings(self):
+         service_dict = config.merge_service_dicts(
+             {self.config_name: self.base_config},
+             {self.config_name: self.base_config},
+             DEFAULT_VERSION
+         )
+-        assert set(service_dict[self.config_name]) == set(self.base_config)
++        assert set(service_dict[self.config_name]) == self.convert(self.base_config)
++
++    def test_no_override(self):
++        service_dict = config.merge_service_dicts(
++            {self.config_name: self.base_config},
++            {},
++            DEFAULT_VERSION)
++        assert set(service_dict[self.config_name]) == self.convert(self.base_config)
++
++    def test_no_base(self):
++        service_dict = config.merge_service_dicts(
++            {},
++            {self.config_name: self.base_config},
++            DEFAULT_VERSION)
++        assert set(service_dict[self.config_name]) == self.convert(self.base_config)
+ 
+ 
+ class MergeNetworksTest(unittest.TestCase, MergeListsTest):
+@@ -2517,6 +2692,7 @@ class MergeNetworksTest(unittest.TestCase, MergeListsTest):
+ 
+ 
+ class MergeStringsOrListsTest(unittest.TestCase):
++
+     def test_no_override(self):
+         service_dict = config.merge_service_dicts(
+             {'dns': '8.8.8.8'},
+@@ -2547,6 +2723,7 @@ def test_add_list(self):
+ 
+ 
+ class MergeLabelsTest(unittest.TestCase):
++
+     def test_empty(self):
+         assert 'labels' not in config.merge_service_dicts({}, {}, DEFAULT_VERSION)
+ 
+@@ -2587,6 +2764,7 @@ def test_remove_explicit_value(self):
+ 
+ 
+ class MemoryOptionsTest(unittest.TestCase):
++
+     def test_validation_fails_with_just_memswap_limit(self):
+         """
+         When you set a 'memswap_limit' it is invalid config unless you also set
+@@ -2629,6 +2807,7 @@ def test_memswap_can_be_a_string(self):
+ 
+ 
+ class EnvTest(unittest.TestCase):
++
+     def test_parse_environment_as_list(self):
+         environment = [
+             'NORMAL=F1',
+@@ -2745,7 +2924,7 @@ def test_resolve_build_args(self):
+             }
+         }
+         self.assertEqual(
+-            resolve_build_args(build, Environment.from_env_file(build['context'])),
++            resolve_build_args(build['args'], Environment.from_env_file(build['context'])),
+             {'arg1': 'value1', 'empty_arg': '', 'env_arg': 'value2', 'no_env': None},
+         )
+ 
+@@ -2776,13 +2955,14 @@ def test_resolve_path(self):
+             set([VolumeSpec.parse('/opt/tmp:/opt/host/tmp')]))
+ 
+ 
+-def load_from_filename(filename):
++def load_from_filename(filename, override_dir=None):
+     return config.load(
+-        config.find('.', [filename], Environment.from_env_file('.'))
++        config.find('.', [filename], Environment.from_env_file('.'), override_dir=override_dir)
+     ).services
+ 
+ 
+ class ExtendsTest(unittest.TestCase):
++
+     def test_extends(self):
+         service_dicts = load_from_filename('tests/fixtures/extends/docker-compose.yml')
+ 
+@@ -2974,9 +3154,9 @@ def test_extends_validation_valid_config(self):
+             )
+         ).services
+ 
+-        self.assertEquals(len(service), 1)
++        self.assertEqual(len(service), 1)
+         self.assertIsInstance(service[0], dict)
+-        self.assertEquals(service[0]['command'], "/bin/true")
++        self.assertEqual(service[0]['command'], "/bin/true")
+ 
+     def test_extended_service_with_invalid_config(self):
+         with pytest.raises(ConfigurationError) as exc:
+@@ -2988,7 +3168,7 @@ def test_extended_service_with_invalid_config(self):
+ 
+     def test_extended_service_with_valid_config(self):
+         service = load_from_filename('tests/fixtures/extends/service-with-valid-composite-extends.yml')
+-        self.assertEquals(service[0]['command'], "top")
++        self.assertEqual(service[0]['command'], "top")
+ 
+     def test_extends_file_defaults_to_self(self):
+         """
+@@ -3220,7 +3400,7 @@ def test_extends_with_defined_version_passes(self):
+         """)
+ 
+         service = load_from_filename(str(tmpdir.join('docker-compose.yml')))
+-        self.assertEquals(service[0]['command'], "top")
++        self.assertEqual(service[0]['command'], "top")
+ 
+     def test_extends_with_depends_on(self):
+         tmpdir = py.test.ensuretemp('test_extends_with_defined_version')
+@@ -3279,6 +3459,7 @@ def test_expand_path_with_tilde(self):
+ 
+ 
+ class VolumePathTest(unittest.TestCase):
++
+     def test_split_path_mapping_with_windows_path(self):
+         host_path = "c:\\Users\\msamblanet\\Documents\\anvil\\connect\\config"
+         windows_volume_path = host_path + ":/opt/connect/config:ro"
+@@ -3305,6 +3486,7 @@ def test_split_path_mapping_with_root_mount(self):
+ 
+ @pytest.mark.xfail(IS_WINDOWS_PLATFORM, reason='paths use slash')
+ class BuildPathTest(unittest.TestCase):
++
+     def setUp(self):
+         self.abs_context_path = os.path.join(os.getcwd(), 'tests/fixtures/build-ctx')
+ 
+@@ -3327,7 +3509,7 @@ def test_relative_path(self):
+             {'build': relative_build_path},
+             working_dir='tests/fixtures/build-path'
+         )
+-        self.assertEquals(service_dict['build'], self.abs_context_path)
++        self.assertEqual(service_dict['build'], self.abs_context_path)
+ 
+     def test_absolute_path(self):
+         service_dict = make_service_dict(
+@@ -3335,10 +3517,16 @@ def test_absolute_path(self):
+             {'build': self.abs_context_path},
+             working_dir='tests/fixtures/build-path'
+         )
+-        self.assertEquals(service_dict['build'], self.abs_context_path)
++        self.assertEqual(service_dict['build'], self.abs_context_path)
+ 
+     def test_from_file(self):
+         service_dict = load_from_filename('tests/fixtures/build-path/docker-compose.yml')
++        self.assertEqual(service_dict, [{'name': 'foo', 'build': {'context': self.abs_context_path}}])
++
++    def test_from_file_override_dir(self):
++        override_dir = os.path.join(os.getcwd(), 'tests/fixtures/')
++        service_dict = load_from_filename(
++            'tests/fixtures/build-path-override-dir/docker-compose.yml', override_dir=override_dir)
+         self.assertEquals(service_dict, [{'name': 'foo', 'build': {'context': self.abs_context_path}}])
+ 
+     def test_valid_url_in_build_path(self):
+@@ -3528,23 +3716,50 @@ def test_denormalize_healthcheck(self):
+         assert denormalized_service['healthcheck']['interval'] == '100s'
+         assert denormalized_service['healthcheck']['timeout'] == '30s'
+ 
+-    def test_denormalize_secrets(self):
++    def test_denormalize_image_has_digest(self):
++        service_dict = {
++            'image': 'busybox'
++        }
++        image_digest = 'busybox@sha256:abcde'
++
++        assert denormalize_service_dict(service_dict, V3_0, image_digest) == {
++            'image': 'busybox@sha256:abcde'
++        }
++
++    def test_denormalize_image_no_digest(self):
++        service_dict = {
++            'image': 'busybox'
++        }
++
++        assert denormalize_service_dict(service_dict, V3_0) == {
++            'image': 'busybox'
++        }
++
++    def test_serialize_secrets(self):
+         service_dict = {
+-            'name': 'web',
+             'image': 'example/web',
+             'secrets': [
+-                types.ServiceSecret('one', None, None, None, None),
+-                types.ServiceSecret('source', 'target', '100', '200', 0o777),
+-            ],
++                {'source': 'one'},
++                {
++                    'source': 'source',
++                    'target': 'target',
++                    'uid': '100',
++                    'gid': '200',
++                    'mode': 0o777,
++                }
++            ]
+         }
+-        denormalized_service = denormalize_service_dict(service_dict, V3_1)
+-        assert secret_sort(denormalized_service['secrets']) == secret_sort([
+-            {'source': 'one'},
+-            {
+-                'source': 'source',
+-                'target': 'target',
+-                'uid': '100',
+-                'gid': '200',
+-                'mode': 0o777,
+-            },
+-        ])
++        secrets_dict = {
++            'one': {'file': '/one.txt'},
++            'source': {'file': '/source.pem'}
++        }
++        config_dict = config.load(build_config_details({
++            'version': '3.1',
++            'services': {'web': service_dict},
++            'secrets': secrets_dict
++        }))
++
++        serialized_config = yaml.load(serialize_config(config_dict))
++        serialized_service = serialized_config['services']['web']
++        assert secret_sort(serialized_service['secrets']) == secret_sort(service_dict['secrets'])
++        assert 'secrets' in serialized_config
+diff --git a/tests/unit/config/interpolation_test.py b/tests/unit/config/interpolation_test.py
+index fd40153d21..256c74d9be 100644
+--- a/tests/unit/config/interpolation_test.py
++++ b/tests/unit/config/interpolation_test.py
+@@ -75,7 +75,32 @@ def test_interpolate_environment_variables_in_volumes(mock_env):
+         },
+         'other': {},
+     }
+-    value = interpolate_environment_variables("2.0",  volumes, 'volume', mock_env)
++    value = interpolate_environment_variables("2.0", volumes, 'volume', mock_env)
++    assert value == expected
++
++
++def test_interpolate_environment_variables_in_secrets(mock_env):
++    secrets = {
++        'secretservice': {
++            'file': '$FOO',
++            'labels': {
++                'max': 2,
++                'user': '${USER}'
++            }
++        },
++        'other': None,
++    }
++    expected = {
++        'secretservice': {
++            'file': 'bar',
++            'labels': {
++                'max': 2,
++                'user': 'jenny'
++            }
++        },
++        'other': {},
++    }
++    value = interpolate_environment_variables("3.1", secrets, 'volume', mock_env)
+     assert value == expected
+ 
+ 
+diff --git a/tests/unit/config/types_test.py b/tests/unit/config/types_test.py
+index 114273520e..66588d6294 100644
+--- a/tests/unit/config/types_test.py
++++ b/tests/unit/config/types_test.py
+@@ -3,12 +3,13 @@
+ 
+ import pytest
+ 
+-from compose.config.config import V1
+-from compose.config.config import V2_0
+ from compose.config.errors import ConfigurationError
+ from compose.config.types import parse_extra_hosts
++from compose.config.types import ServicePort
+ from compose.config.types import VolumeFromSpec
+ from compose.config.types import VolumeSpec
++from compose.const import COMPOSEFILE_V1 as V1
++from compose.const import COMPOSEFILE_V2_0 as V2_0
+ 
+ 
+ def test_parse_extra_hosts_list():
+@@ -41,6 +42,49 @@ def test_parse_extra_hosts_dict():
+     }
+ 
+ 
++class TestServicePort(object):
++    def test_parse_dict(self):
++        data = {
++            'target': 8000,
++            'published': 8000,
++            'protocol': 'udp',
++            'mode': 'global',
++        }
++        ports = ServicePort.parse(data)
++        assert len(ports) == 1
++        assert ports[0].repr() == data
++
++    def test_parse_simple_target_port(self):
++        ports = ServicePort.parse(8000)
++        assert len(ports) == 1
++        assert ports[0].target == '8000'
++
++    def test_parse_complete_port_definition(self):
++        port_def = '1.1.1.1:3000:3000/udp'
++        ports = ServicePort.parse(port_def)
++        assert len(ports) == 1
++        assert ports[0].repr() == {
++            'target': '3000',
++            'published': '3000',
++            'external_ip': '1.1.1.1',
++            'protocol': 'udp',
++        }
++        assert ports[0].legacy_repr() == port_def
++
++    def test_parse_port_range(self):
++        ports = ServicePort.parse('25000-25001:4000-4001')
++        assert len(ports) == 2
++        reprs = [p.repr() for p in ports]
++        assert {
++            'target': '4000',
++            'published': '25000'
++        } in reprs
++        assert {
++            'target': '4001',
++            'published': '25001'
++        } in reprs
++
++
+ class TestVolumeSpec(object):
+ 
+     def test_parse_volume_spec_only_one_path(self):
+diff --git a/tests/unit/network_test.py b/tests/unit/network_test.py
+index 12d06f415e..a325f1948f 100644
+--- a/tests/unit/network_test.py
++++ b/tests/unit/network_test.py
+@@ -4,20 +4,62 @@
+ import pytest
+ 
+ from .. import unittest
+-from compose.config import ConfigurationError
+ from compose.network import check_remote_network_config
+ from compose.network import Network
++from compose.network import NetworkConfigChangedError
+ 
+ 
+ class NetworkTest(unittest.TestCase):
+     def test_check_remote_network_config_success(self):
+         options = {'com.docker.network.driver.foo': 'bar'}
++        ipam_config = {
++            'driver': 'default',
++            'config': [
++                {'subnet': '172.0.0.1/16', },
++                {
++                    'subnet': '156.0.0.1/25',
++                    'gateway': '156.0.0.1',
++                    'aux_addresses': ['11.0.0.1', '24.25.26.27'],
++                    'ip_range': '156.0.0.1-254'
++                }
++            ]
++        }
++        labels = {
++            'com.project.tests.istest': 'true',
++            'com.project.sound.track': 'way out of here',
++        }
++        remote_labels = labels.copy()
++        remote_labels.update({
++            'com.docker.compose.project': 'compose_test',
++            'com.docker.compose.network': 'net1',
++        })
+         net = Network(
+             None, 'compose_test', 'net1', 'bridge',
+-            options
++            options, enable_ipv6=True, ipam=ipam_config,
++            labels=labels
+         )
+         check_remote_network_config(
+-            {'Driver': 'bridge', 'Options': options}, net
++            {
++                'Driver': 'bridge',
++                'Options': options,
++                'EnableIPv6': True,
++                'Internal': False,
++                'Attachable': True,
++                'IPAM': {
++                    'Driver': 'default',
++                    'Config': [{
++                        'Subnet': '156.0.0.1/25',
++                        'Gateway': '156.0.0.1',
++                        'AuxiliaryAddresses': ['24.25.26.27', '11.0.0.1'],
++                        'IPRange': '156.0.0.1-254'
++                    }, {
++                        'Subnet': '172.0.0.1/16',
++                        'Gateway': '172.0.0.1'
++                    }],
++                },
++                'Labels': remote_labels
++            },
++            net
+         )
+ 
+     def test_check_remote_network_config_whitelist(self):
+@@ -36,20 +78,42 @@ def test_check_remote_network_config_whitelist(self):
+ 
+     def test_check_remote_network_config_driver_mismatch(self):
+         net = Network(None, 'compose_test', 'net1', 'overlay')
+-        with pytest.raises(ConfigurationError):
++        with pytest.raises(NetworkConfigChangedError) as e:
+             check_remote_network_config(
+                 {'Driver': 'bridge', 'Options': {}}, net
+             )
+ 
++        assert 'driver has changed' in str(e.value)
++
+     def test_check_remote_network_config_options_mismatch(self):
+         net = Network(None, 'compose_test', 'net1', 'overlay')
+-        with pytest.raises(ConfigurationError):
++        with pytest.raises(NetworkConfigChangedError) as e:
+             check_remote_network_config({'Driver': 'overlay', 'Options': {
+                 'com.docker.network.driver.foo': 'baz'
+             }}, net)
+ 
++        assert 'option "com.docker.network.driver.foo" has changed' in str(e.value)
++
+     def test_check_remote_network_config_null_remote(self):
+         net = Network(None, 'compose_test', 'net1', 'overlay')
+         check_remote_network_config(
+             {'Driver': 'overlay', 'Options': None}, net
+         )
++
++    def test_check_remote_network_labels_mismatch(self):
++        net = Network(None, 'compose_test', 'net1', 'overlay', labels={
++            'com.project.touhou.character': 'sakuya.izayoi'
++        })
++        remote = {
++            'Driver': 'overlay',
++            'Options': None,
++            'Labels': {
++                'com.docker.compose.network': 'net1',
++                'com.docker.compose.project': 'compose_test',
++                'com.project.touhou.character': 'marisa.kirisame',
++            }
++        }
++        with pytest.raises(NetworkConfigChangedError) as e:
++            check_remote_network_config(remote, net)
++
++        assert 'label "com.project.touhou.character" has changed' in str(e.value)
+diff --git a/tests/unit/parallel_test.py b/tests/unit/parallel_test.py
+index 2a50b71894..d10948eb07 100644
+--- a/tests/unit/parallel_test.py
++++ b/tests/unit/parallel_test.py
+@@ -1,6 +1,8 @@
+ from __future__ import absolute_import
+ from __future__ import unicode_literals
+ 
++from threading import Lock
++
+ import six
+ from docker.errors import APIError
+ 
+@@ -40,6 +42,30 @@ def test_parallel_execute():
+     assert errors == {}
+ 
+ 
++def test_parallel_execute_with_limit():
++    limit = 1
++    tasks = 20
++    lock = Lock()
++
++    def f(obj):
++        locked = lock.acquire(False)
++        # we should always get the lock because we're the only thread running
++        assert locked
++        lock.release()
++        return None
++
++    results, errors = parallel_execute(
++        objects=list(range(tasks)),
++        func=f,
++        get_name=six.text_type,
++        msg="Testing",
++        limit=limit,
++    )
++
++    assert results == tasks*[None]
++    assert errors == {}
++
++
+ def test_parallel_execute_with_deps():
+     log = []
+ 
+@@ -82,7 +108,7 @@ def process(x):
+     events = [
+         (obj, result, type(exception))
+         for obj, result, exception
+-        in parallel_execute_iter(objects, process, get_deps)
++        in parallel_execute_iter(objects, process, get_deps, None)
+     ]
+ 
+     assert (cache, None, type(None)) in events
+diff --git a/tests/unit/service_test.py b/tests/unit/service_test.py
+index 2d5b176195..f3f3a2a83e 100644
+--- a/tests/unit/service_test.py
++++ b/tests/unit/service_test.py
+@@ -7,6 +7,8 @@
+ 
+ from .. import mock
+ from .. import unittest
++from compose.config.errors import DependencyError
++from compose.config.types import ServicePort
+ from compose.config.types import VolumeFromSpec
+ from compose.config.types import VolumeSpec
+ from compose.const import LABEL_CONFIG_HASH
+@@ -19,6 +21,7 @@
+ from compose.service import build_volume_binding
+ from compose.service import BuildAction
+ from compose.service import ContainerNetworkMode
++from compose.service import formatted_ports
+ from compose.service import get_container_data_volumes
+ from compose.service import ImageType
+ from compose.service import merge_volume_bindings
+@@ -168,6 +171,28 @@ def test_memory_swap_limit(self):
+             2000000000
+         )
+ 
++    def test_self_reference_external_link(self):
++        service = Service(
++            name='foo',
++            external_links=['default_foo_1']
++        )
++        with self.assertRaises(DependencyError):
++            service.get_container_name(1)
++
++    def test_mem_reservation(self):
++        self.mock_client.create_host_config.return_value = {}
++
++        service = Service(
++            name='foo',
++            image='foo',
++            hostname='name',
++            client=self.mock_client,
++            mem_reservation='512m'
++        )
++        service._get_container_create_options({'some': 'overrides'}, 1)
++        assert self.mock_client.create_host_config.called is True
++        assert self.mock_client.create_host_config.call_args[1]['mem_reservation'] == '512m'
++
+     def test_cgroup_parent(self):
+         self.mock_client.create_host_config.return_value = {}
+ 
+@@ -445,7 +470,8 @@ def test_create_container(self):
+             forcerm=False,
+             nocache=False,
+             rm=True,
+-            buildargs=None,
++            buildargs={},
++            cache_from=None,
+         )
+ 
+     def test_ensure_image_exists_no_build(self):
+@@ -481,7 +507,8 @@ def test_ensure_image_exists_force_build(self):
+             forcerm=False,
+             nocache=False,
+             rm=True,
+-            buildargs=None,
++            buildargs={},
++            cache_from=None,
+         )
+ 
+     def test_build_does_not_pull(self):
+@@ -495,6 +522,23 @@ def test_build_does_not_pull(self):
+         self.assertEqual(self.mock_client.build.call_count, 1)
+         self.assertFalse(self.mock_client.build.call_args[1]['pull'])
+ 
++    def test_build_with_override_build_args(self):
++        self.mock_client.build.return_value = [
++            b'{"stream": "Successfully built 12345"}',
++        ]
++
++        build_args = {
++            'arg1': 'arg1_new_value',
++        }
++        service = Service('foo', client=self.mock_client,
++                          build={'context': '.', 'args': {'arg1': 'arg1', 'arg2': 'arg2'}})
++        service.build(build_args_override=build_args)
++
++        called_build_args = self.mock_client.build.call_args[1]['buildargs']
++
++        assert called_build_args['arg1'] == build_args['arg1']
++        assert called_build_args['arg2'] == 'arg2'
++
+     def test_config_dict(self):
+         self.mock_client.inspect_image.return_value = {'Id': 'abcd'}
+         service = Service(
+@@ -776,6 +820,25 @@ def test_network_mode_service_no_containers(self):
+         self.assertEqual(network_mode.service_name, service_name)
+ 
+ 
++class ServicePortsTest(unittest.TestCase):
++    def test_formatted_ports(self):
++        ports = [
++            '3000',
++            '0.0.0.0:4025-4030:23000-23005',
++            ServicePort(6000, None, None, None, None),
++            ServicePort(8080, 8080, None, None, None),
++            ServicePort('20000', '20000', 'udp', 'ingress', None),
++            ServicePort(30000, '30000', 'tcp', None, '127.0.0.1'),
++        ]
++        formatted = formatted_ports(ports)
++        assert ports[0] in formatted
++        assert ports[1] in formatted
++        assert '6000/tcp' in formatted
++        assert '8080:8080/tcp' in formatted
++        assert '20000:20000/udp' in formatted
++        assert '127.0.0.1:30000:30000/tcp' in formatted
++
++
+ def build_mount(destination, source, mode='rw'):
+     return {'Source': source, 'Destination': destination, 'Mode': mode}
+ 

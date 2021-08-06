@@ -1,0 +1,76 @@
+diff --git a/homeassistant/helpers/condition.py b/homeassistant/helpers/condition.py
+index 1b09348415c16..f67b9a4b0abc6 100644
+--- a/homeassistant/helpers/condition.py
++++ b/homeassistant/helpers/condition.py
+@@ -649,13 +649,16 @@ async def async_validate_condition_config(
+ 
+ 
+ @callback
+-def async_extract_entities(config: ConfigType) -> Set[str]:
++def async_extract_entities(config: Union[ConfigType, Template]) -> Set[str]:
+     """Extract entities from a condition."""
+     referenced: Set[str] = set()
+     to_process = deque([config])
+ 
+     while to_process:
+         config = to_process.popleft()
++        if isinstance(config, Template):
++            continue
++
+         condition = config[CONF_CONDITION] # 여기서 에러 발생
+
+# config가 not subscriptable한 문제이므로
+# 타입체킹해서 continue 처리.. continue는 어떻게??
+# while문 안이라서?? 아니면 같은 함수 내 다른 곳에 continue가 쓰여서???
+ 
+ 
+         if condition in ("and", "not", "or"):
+@@ -674,13 +677,16 @@ def async_extract_entities(config: ConfigType) -> Set[str]:
+ 
+ 
+ @callback
+-def async_extract_devices(config: ConfigType) -> Set[str]:
++def async_extract_devices(config: Union[ConfigType, Template]) -> Set[str]:
+     """Extract devices from a condition."""
+     referenced = set()
+     to_process = deque([config])
+ 
+     while to_process:
+         config = to_process.popleft()
++        if isinstance(config, Template):
++            continue
++
+         condition = config[CONF_CONDITION] # 여기서 에러 발생
+
+# config가 not subscriptable한 문제이므로
+# 타입체킹해서 continue 처리.. continue는 어떻게??
+ 
+         if condition in ("and", "not", "or"):
+diff --git a/tests/helpers/test_condition.py b/tests/helpers/test_condition.py
+index af01163bfd5b0..71770d21186fb 100644
+--- a/tests/helpers/test_condition.py
++++ b/tests/helpers/test_condition.py
+@@ -5,6 +5,7 @@
+ 
+ from homeassistant.exceptions import HomeAssistantError
+ from homeassistant.helpers import condition
++from homeassistant.helpers.template import Template
+ from homeassistant.setup import async_setup_component
+ from homeassistant.util import dt
+ 
+@@ -807,6 +808,7 @@ async def test_extract_entities():
+                     "entity_id": ["sensor.temperature_9", "sensor.temperature_10"],
+                     "below": 110,
+                 },
++                Template("{{ is_state('light.example', 'on') }}"),
+             ],
+         }
+     ) == {
+@@ -867,6 +869,7 @@ async def test_extract_devices():
+                             },
+                         ],
+                     },
++                    Template("{{ is_state('light.example', 'on') }}"),
+                 ],
+             }
+         )

@@ -1,0 +1,42 @@
+diff --git a/salt/cli/batch.py b/salt/cli/batch.py
+index e3a7bf9bcf538..6c92769ed0d04 100644
+--- a/salt/cli/batch.py
++++ b/salt/cli/batch.py
+@@ -85,7 +85,7 @@ def get_bnum(self):
+         '''
+         partition = lambda x: float(x) / 100.0 * len(self.minions)
+         try:
+-            if '%' in self.opts['batch']:
++            if isinstance(self.opts['batch'], six.string_types) and '%' in self.opts['batch']:
+                 res = partition(float(self.opts['batch'].strip('%')))
+                 if res < 1:
+                     return int(math.ceil(res))
+diff --git a/tests/unit/cli/test_batch.py b/tests/unit/cli/test_batch.py
+index 1ca413287fbaa..fdb2da7d6597a 100644
+--- a/tests/unit/cli/test_batch.py
++++ b/tests/unit/cli/test_batch.py
+@@ -35,14 +35,22 @@ def setUp(self):
+ 
+     # get_bnum tests
+ 
+-    def test_get_bnum(self):
++    def test_get_bnum_str(self):
+         '''
+-        Tests passing batch value as a number
++        Tests passing batch value as a number(str)
+         '''
+         self.batch.opts = {'batch': '2', 'timeout': 5}
+         self.batch.minions = ['foo', 'bar']
+         self.assertEqual(Batch.get_bnum(self.batch), 2)
+ 
++    def test_get_bnum_int(self):
++        '''
++        Tests passing batch value as a number(int)
++        '''
++        self.batch.opts = {'batch': 2, 'timeout': 5}
++        self.batch.minions = ['foo', 'bar']
++        self.assertEqual(Batch.get_bnum(self.batch), 2)
++
+     def test_get_bnum_percentage(self):
+         '''
+         Tests passing batch value as percentage

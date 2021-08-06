@@ -1,0 +1,327 @@
+diff --git a/homeassistant/components/coronavirus/__init__.py b/homeassistant/components/coronavirus/__init__.py
+index 95c3cd1c024eb..04976a1e4c58d 100644
+--- a/homeassistant/components/coronavirus/__init__.py
++++ b/homeassistant/components/coronavirus/__init__.py
+@@ -8,8 +8,8 @@
+ import coronavirus
+ 
+ from homeassistant.config_entries import ConfigEntry
+-from homeassistant.core import HomeAssistant
+-from homeassistant.helpers import aiohttp_client, update_coordinator
++from homeassistant.core import HomeAssistant, callback
++from homeassistant.helpers import aiohttp_client, entity_registry, update_coordinator
+ 
+ from .const import DOMAIN
+ 
+@@ -25,6 +25,26 @@ async def async_setup(hass: HomeAssistant, config: dict):
+ 
+ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
+     """Set up Coronavirus from a config entry."""
++    if isinstance(entry.data["country"], int):
++        hass.config_entries.async_update_entry(
++            entry, data={**entry.data, "country": entry.title}
++        )
++
++        @callback
++        def _async_migrator(entity_entry: entity_registry.RegistryEntry):
++            """Migrate away from unstable ID."""
++            country, info_type = entity_entry.unique_id.rsplit("-", 1)
++            if not country.isnumeric():
++                return None
++            return {"new_unique_id": f"{entry.title}-{info_type}"}
++
++        await entity_registry.async_migrate_entries(
++            hass, entry.entry_id, _async_migrator
++        )
++
++    if not entry.unique_id:
++        hass.config_entries.async_update_entry(entry, unique_id=entry.data["country"])
++
+     for component in PLATFORMS:
+         hass.async_create_task(
+             hass.config_entries.async_forward_entry_setup(entry, component)
+@@ -56,7 +76,7 @@ async def async_get_cases():
+         try:
+             with async_timeout.timeout(10):
+                 return {
+-                    case.id: case
++                    case.country: case
+                     for case in await coronavirus.get_cases(
+                         aiohttp_client.async_get_clientsession(hass)
+                     )
+diff --git a/homeassistant/components/coronavirus/config_flow.py b/homeassistant/components/coronavirus/config_flow.py
+index 59d25e1670927..49183dd028eeb 100644
+--- a/homeassistant/components/coronavirus/config_flow.py
++++ b/homeassistant/components/coronavirus/config_flow.py
+@@ -26,10 +26,14 @@ async def async_step_user(self, user_input=None):
+         if self._options is None:
+             self._options = {OPTION_WORLDWIDE: "Worldwide"}
+             coordinator = await get_coordinator(self.hass)
+-            for case_id in sorted(coordinator.data):
+-                self._options[case_id] = coordinator.data[case_id].country
++            for case in sorted(
++                coordinator.data.values(), key=lambda case: case.country
++            ):
++                self._options[case.country] = case.country
+ 
+         if user_input is not None:
++            await self.async_set_unique_id(user_input["country"])
++            self._abort_if_unique_id_configured()
+             return self.async_create_entry(
+                 title=self._options[user_input["country"]], data=user_input
+             )
+diff --git a/homeassistant/components/coronavirus/sensor.py b/homeassistant/components/coronavirus/sensor.py
+index 770ab78b43ea1..20f188964317d 100644
+--- a/homeassistant/components/coronavirus/sensor.py
++++ b/homeassistant/components/coronavirus/sensor.py
+@@ -25,9 +25,9 @@ class CoronavirusSensor(Entity):
+     def __init__(self, coordinator, country, info_type):
+         """Initialize coronavirus sensor."""
+         if country == OPTION_WORLDWIDE:
+-            self.name = f"Worldwide {info_type}"
++            self.name = f"Worldwide Coronavirus {info_type}"
+         else:
+-            self.name = f"{coordinator.data[country].country} {info_type}"
++            self.name = f"{coordinator.data[country].country} Coronavirus {info_type}"
+         self.unique_id = f"{country}-{info_type}"
+         self.coordinator = coordinator
+         self.country = country
+diff --git a/homeassistant/components/coronavirus/strings.json b/homeassistant/components/coronavirus/strings.json
+index 13cd5f04012f4..fd4873c808cca 100644
+--- a/homeassistant/components/coronavirus/strings.json
++++ b/homeassistant/components/coronavirus/strings.json
+@@ -8,6 +8,9 @@
+           "country": "Country"
+         }
+       }
++    },
++    "abort": {
++      "already_configured": "This country is already configured."
+     }
+   }
+ }
+diff --git a/homeassistant/components/eight_sleep/manifest.json b/homeassistant/components/eight_sleep/manifest.json
+index 6372967b42b90..ac7a11eed3c84 100644
+--- a/homeassistant/components/eight_sleep/manifest.json
++++ b/homeassistant/components/eight_sleep/manifest.json
+@@ -2,7 +2,7 @@
+   "domain": "eight_sleep",
+   "name": "Eight Sleep",
+   "documentation": "https://www.home-assistant.io/integrations/eight_sleep",
+-  "requirements": ["pyeight==0.1.3"],
++  "requirements": ["pyeight==0.1.4"],
+   "dependencies": [],
+   "codeowners": ["@mezz64"]
+ }
+diff --git a/homeassistant/components/eight_sleep/sensor.py b/homeassistant/components/eight_sleep/sensor.py
+index af6de2657ce0c..f0fc4b5d1d653 100644
+--- a/homeassistant/components/eight_sleep/sensor.py
++++ b/homeassistant/components/eight_sleep/sensor.py
+@@ -261,14 +261,26 @@ def device_state_attributes(self):
+             bed_temp = None
+ 
+         if "current" in self._sensor_root:
+-            state_attr[ATTR_RESP_RATE] = round(self._attr["resp_rate"], 2)
+-            state_attr[ATTR_HEART_RATE] = round(self._attr["heart_rate"], 2)
++            try:
++                state_attr[ATTR_RESP_RATE] = round(self._attr["resp_rate"], 2)
++            except TypeError:
++                state_attr[ATTR_RESP_RATE] = None
++            try:
++                state_attr[ATTR_HEART_RATE] = round(self._attr["heart_rate"], 2)
++            except TypeError:
++                state_attr[ATTR_HEART_RATE] = None
+             state_attr[ATTR_SLEEP_STAGE] = self._attr["stage"]
+             state_attr[ATTR_ROOM_TEMP] = room_temp
+             state_attr[ATTR_BED_TEMP] = bed_temp
+         elif "last" in self._sensor_root:
+-            state_attr[ATTR_AVG_RESP_RATE] = round(self._attr["resp_rate"], 2)
+-            state_attr[ATTR_AVG_HEART_RATE] = round(self._attr["heart_rate"], 2)
++            try:
++                state_attr[ATTR_AVG_RESP_RATE] = round(self._attr["resp_rate"], 2)
++            except TypeError:
++                state_attr[ATTR_AVG_RESP_RATE] = None
++            try:
++                state_attr[ATTR_AVG_HEART_RATE] = round(self._attr["heart_rate"], 2)
++            except TypeError:
++                state_attr[ATTR_AVG_HEART_RATE] = None
+             state_attr[ATTR_AVG_ROOM_TEMP] = room_temp
+             state_attr[ATTR_AVG_BED_TEMP] = bed_temp
+ 
+diff --git a/homeassistant/components/minecraft_server/__init__.py b/homeassistant/components/minecraft_server/__init__.py
+index 789e4d8f1b83f..a025c44e33c59 100644
+--- a/homeassistant/components/minecraft_server/__init__.py
++++ b/homeassistant/components/minecraft_server/__init__.py
+@@ -47,7 +47,7 @@ async def async_setup_entry(hass: HomeAssistantType, config_entry: ConfigEntry)
+     await server.async_update()
+     server.start_periodic_update()
+ 
+-    # Set up platform(s).
++    # Set up platforms.
+     for platform in PLATFORMS:
+         hass.async_create_task(
+             hass.config_entries.async_forward_entry_setup(config_entry, platform)
+@@ -103,7 +103,6 @@ def __init__(
+         self._mc_status = MCStatus(self.host, self.port)
+ 
+         # Data provided by 3rd party library
+-        self.description = None
+         self.version = None
+         self.protocol_version = None
+         self.latency_time = None
+@@ -168,7 +167,6 @@ async def _async_status_request(self) -> None:
+             )
+ 
+             # Got answer to request, update properties.
+-            self.description = status_response.description["text"]
+             self.version = status_response.version.name
+             self.protocol_version = status_response.version.protocol
+             self.players_online = status_response.players.online
+@@ -185,7 +183,6 @@ async def _async_status_request(self) -> None:
+             self._last_status_request_failed = False
+         except OSError as error:
+             # No answer to request, set all properties to unknown.
+-            self.description = None
+             self.version = None
+             self.protocol_version = None
+             self.players_online = None
+diff --git a/homeassistant/const.py b/homeassistant/const.py
+index 473fe1e3aced7..fd4ac8cc1a168 100644
+--- a/homeassistant/const.py
++++ b/homeassistant/const.py
+@@ -1,7 +1,7 @@
+ """Constants used by Home Assistant components."""
+ MAJOR_VERSION = 0
+ MINOR_VERSION = 106
+-PATCH_VERSION = "3"
++PATCH_VERSION = "4"
+ __short_version__ = f"{MAJOR_VERSION}.{MINOR_VERSION}"
+ __version__ = f"{__short_version__}.{PATCH_VERSION}"
+ REQUIRED_PYTHON_VER = (3, 7, 0)
+diff --git a/homeassistant/helpers/entity_registry.py b/homeassistant/helpers/entity_registry.py
+index 5996fb6eaf708..87383d4563513 100644
+--- a/homeassistant/helpers/entity_registry.py
++++ b/homeassistant/helpers/entity_registry.py
+@@ -11,7 +11,7 @@
+ from collections import OrderedDict
+ from itertools import chain
+ import logging
+-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, cast
++from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, cast
+ 
+ import attr
+ 
+@@ -560,3 +560,21 @@ def _write_unavailable_states(_: Event) -> None:
+             states.async_set(entry.entity_id, STATE_UNAVAILABLE, attrs)
+ 
+     hass.bus.async_listen(EVENT_HOMEASSISTANT_START, _write_unavailable_states)
++
++
++async def async_migrate_entries(
++    hass: HomeAssistantType,
++    config_entry_id: str,
++    entry_callback: Callable[[RegistryEntry], Optional[dict]],
++) -> None:
++    """Migrator of unique IDs."""
++    ent_reg = await async_get_registry(hass)
++
++    for entry in ent_reg.entities.values():
++        if entry.config_entry_id != config_entry_id:
++            continue
++
++        updates = entry_callback(entry)
++
++        if updates is not None:
++            ent_reg.async_update_entity(entry.entity_id, **updates)  # type: ignore
+diff --git a/requirements_all.txt b/requirements_all.txt
+index 52f06eda1bfab..3cae53619bf0f 100644
+--- a/requirements_all.txt
++++ b/requirements_all.txt
+@@ -1226,7 +1226,7 @@ pyeconet==0.0.11
+ pyedimax==0.2.1
+ 
+ # homeassistant.components.eight_sleep
+-pyeight==0.1.3
++pyeight==0.1.4
+ 
+ # homeassistant.components.emby
+ pyemby==1.6
+diff --git a/tests/components/coronavirus/test_config_flow.py b/tests/components/coronavirus/test_config_flow.py
+index 6d940d8e53da0..ef04d0df07ae1 100644
+--- a/tests/components/coronavirus/test_config_flow.py
++++ b/tests/components/coronavirus/test_config_flow.py
+@@ -22,9 +22,9 @@ async def test_form(hass):
+         result2 = await hass.config_entries.flow.async_configure(
+             result["flow_id"], {"country": OPTION_WORLDWIDE},
+         )
+-
+     assert result2["type"] == "create_entry"
+     assert result2["title"] == "Worldwide"
++    assert result2["result"].unique_id == OPTION_WORLDWIDE
+     assert result2["data"] == {
+         "country": OPTION_WORLDWIDE,
+     }
+diff --git a/tests/components/coronavirus/test_init.py b/tests/components/coronavirus/test_init.py
+new file mode 100644
+index 0000000000000..57293635570f1
+--- /dev/null
++++ b/tests/components/coronavirus/test_init.py
+@@ -0,0 +1,58 @@
++"""Test init of Coronavirus integration."""
++from asynctest import Mock, patch
++
++from homeassistant.components.coronavirus.const import DOMAIN, OPTION_WORLDWIDE
++from homeassistant.helpers import entity_registry
++from homeassistant.setup import async_setup_component
++
++from tests.common import MockConfigEntry, mock_registry
++
++
++async def test_migration(hass):
++    """Test that we can migrate coronavirus to stable unique ID."""
++    nl_entry = MockConfigEntry(domain=DOMAIN, title="Netherlands", data={"country": 34})
++    nl_entry.add_to_hass(hass)
++    worldwide_entry = MockConfigEntry(
++        domain=DOMAIN, title="Worldwide", data={"country": OPTION_WORLDWIDE}
++    )
++    worldwide_entry.add_to_hass(hass)
++    mock_registry(
++        hass,
++        {
++            "sensor.netherlands_confirmed": entity_registry.RegistryEntry(
++                entity_id="sensor.netherlands_confirmed",
++                unique_id="34-confirmed",
++                platform="coronavirus",
++                config_entry_id=nl_entry.entry_id,
++            ),
++            "sensor.worldwide_confirmed": entity_registry.RegistryEntry(
++                entity_id="sensor.worldwide_confirmed",
++                unique_id="__worldwide-confirmed",
++                platform="coronavirus",
++                config_entry_id=worldwide_entry.entry_id,
++            ),
++        },
++    )
++    with patch(
++        "coronavirus.get_cases",
++        return_value=[
++            Mock(country="Netherlands", confirmed=10, recovered=8, deaths=1, current=1),
++            Mock(country="Germany", confirmed=1, recovered=0, deaths=0, current=0),
++        ],
++    ):
++        assert await async_setup_component(hass, DOMAIN, {})
++        await hass.async_block_till_done()
++
++    ent_reg = await entity_registry.async_get_registry(hass)
++
++    sensor_nl = ent_reg.async_get("sensor.netherlands_confirmed")
++    assert sensor_nl.unique_id == "Netherlands-confirmed"
++
++    sensor_worldwide = ent_reg.async_get("sensor.worldwide_confirmed")
++    assert sensor_worldwide.unique_id == "__worldwide-confirmed"
++
++    assert hass.states.get("sensor.netherlands_confirmed").state == "10"
++    assert hass.states.get("sensor.worldwide_confirmed").state == "11"
++
++    assert nl_entry.unique_id == "Netherlands"
++    assert worldwide_entry.unique_id == OPTION_WORLDWIDE

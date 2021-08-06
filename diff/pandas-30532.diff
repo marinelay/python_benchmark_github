@@ -1,0 +1,84 @@
+diff --git a/doc/source/whatsnew/v1.0.0.rst b/doc/source/whatsnew/v1.0.0.rst
+index 96ea682dd3caf..fb636935f1480 100755
+--- a/doc/source/whatsnew/v1.0.0.rst
++++ b/doc/source/whatsnew/v1.0.0.rst
+@@ -869,6 +869,7 @@ Groupby/resample/rolling
+ - Bug in :meth:`DataFrame.groupby` when using axis=1 and having a single level columns index (:issue:`30208`)
+ - Bug in :meth:`DataFrame.groupby` when using nunique on axis=1 (:issue:`30253`)
+ - Bug in :meth:`GroupBy.quantile` with multiple list-like q value and integer column names (:issue:`30289`)
++- Bug in :meth:`GroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` causes ``TypeError`` when ``fill_method`` is ``None`` (:issue:`30463`)
+ 
+ Reshaping
+ ^^^^^^^^^
+diff --git a/pandas/core/groupby/generic.py b/pandas/core/groupby/generic.py
+index 6b110a0c80c07..be94fa5484496 100644
+--- a/pandas/core/groupby/generic.py
++++ b/pandas/core/groupby/generic.py
+@@ -809,6 +809,9 @@ def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
+                     periods=periods, fill_method=fill_method, limit=limit, freq=freq
+                 )
+             )
++        if fill_method is None:  # GH30463
++            fill_method = "pad"
++            limit = 0
+         filled = getattr(self, fill_method)(limit=limit) # 여기서 에러남
+         fill_grp = filled.groupby(self.grouper.codes)
+         shifted = fill_grp.shift(periods=periods, freq=freq)
+diff --git a/pandas/core/groupby/groupby.py b/pandas/core/groupby/groupby.py
+index 227547daf3668..150651709047c 100644
+--- a/pandas/core/groupby/groupby.py
++++ b/pandas/core/groupby/groupby.py
+@@ -2362,6 +2362,9 @@ def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0
+                     axis=axis,
+                 )
+             )
++        if fill_method is None:  # GH30463
++            fill_method = "pad"
++            limit = 0
+         filled = getattr(self, fill_method)(limit=limit) # 여기서 에러남
+         fill_grp = filled.groupby(self.grouper.codes)
+         shifted = fill_grp.shift(periods=periods, freq=freq)
+
+# 오류가 2개로 나눠져 있는듯 (테스트도 그러함)
+# pct_change의 fille_method의 기본값은 pad
+# limit = 0으로 해야하는게 조금 빡셀수도
+
+diff --git a/pandas/tests/groupby/test_transform.py b/pandas/tests/groupby/test_transform.py
+index c46180c1d11cd..a9bae8ecfcf3d 100644
+--- a/pandas/tests/groupby/test_transform.py
++++ b/pandas/tests/groupby/test_transform.py
+@@ -874,27 +874,19 @@ def test_pad_stable_sorting(fill_method):
+         ),
+     ],
+ )
+-@pytest.mark.parametrize(
+-    "periods,fill_method,limit",
+-    [
+-        (1, "ffill", None),
+-        (1, "ffill", 1),
+-        (1, "bfill", None),
+-        (1, "bfill", 1),
+-        (-1, "ffill", None),
+-        (-1, "ffill", 1),
+-        (-1, "bfill", None),
+-        (-1, "bfill", 1),
+-    ],
+-)
++@pytest.mark.parametrize("periods", [1, -1])
++@pytest.mark.parametrize("fill_method", ["ffill", "bfill", None])
++@pytest.mark.parametrize("limit", [None, 1])
+ def test_pct_change(test_series, freq, periods, fill_method, limit):
+-    # GH  21200, 21621
++    # GH  21200, 21621, 30463
+     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
+     keys = ["a", "b"]
+     key_v = np.repeat(keys, len(vals))
+     df = DataFrame({"key": key_v, "vals": vals * 2})
+ 
+-    df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
++    df_g = df
++    if fill_method is not None:
++        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
+     grp = df_g.groupby(df.key)
+ 
+     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1

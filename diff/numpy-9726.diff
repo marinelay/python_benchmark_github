@@ -1,0 +1,42 @@
+diff --git a/numpy/lib/npyio.py b/numpy/lib/npyio.py
+index e7303fc65ff..7598b2c6b76 100644
+--- a/numpy/lib/npyio.py
++++ b/numpy/lib/npyio.py
+@@ -1071,7 +1071,7 @@ def savetxt(fname, X, fmt='%.18e', delimiter=' ', newline='\n', header='',
+         If the filename ends in ``.gz``, the file is automatically saved in
+         compressed gzip format.  `loadtxt` understands gzipped files
+         transparently.
+-    X : array_like
++    X : 1D or 2D array_like
+         Data to be saved to a text file.
+     fmt : str or sequence of strs, optional
+         A single format (%10.5f), a sequence of formats, or a
+@@ -1201,7 +1201,10 @@ def savetxt(fname, X, fmt='%.18e', delimiter=' ', newline='\n', header='',
+         X = np.asarray(X)
+ 
+         # Handle 1-dimensional arrays
+-        if X.ndim == 1:
++        if X.ndim == 0 or X.ndim > 2:
++            raise ValueError(
++                "Expected 1D or 2D array, got %dD array instead" % X.ndim)
++        elif X.ndim == 1:
+             # Common case -- 1d array of numbers
+             if X.dtype.names is None:
+                 X = np.atleast_2d(X).T
+diff --git a/numpy/lib/tests/test_io.py b/numpy/lib/tests/test_io.py
+index e6b1eac7af1..6f7fcc54cb5 100644
+--- a/numpy/lib/tests/test_io.py
++++ b/numpy/lib/tests/test_io.py
+@@ -329,6 +329,12 @@ def test_1D(self):
+         lines = c.readlines()
+         assert_equal(lines, [b'1\n', b'2\n', b'3\n', b'4\n'])
+ 
++    def test_0D_3D(self):
++        c = BytesIO()
++        assert_raises(ValueError, np.savetxt, c, np.array(1)) 
++        assert_raises(ValueError, np.savetxt, c, np.array([[[1], [2]]])) 
++
++
+     def test_record(self):
+         a = np.array([(1, 2), (3, 4)], dtype=[('x', 'i4'), ('y', 'i4')])
+         c = BytesIO()

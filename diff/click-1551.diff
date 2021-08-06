@@ -1,0 +1,43 @@
+diff --git a/CHANGES.rst b/CHANGES.rst
+index 4b70796a2..03d1cf941 100644
+--- a/CHANGES.rst
++++ b/CHANGES.rst
+@@ -144,7 +144,7 @@ Unreleased
+     ``is_flag=False``, and the value can instead be prompted for or
+     passed in as a default value.
+     :issue:`549, 736, 764, 921, 1015, 1618`
+-
++-   Fix formatting when ``Command.options_metavar`` is empty. :pr:`1551`
+ 
+ Version 7.1.2
+ -------------
+diff --git a/src/click/core.py b/src/click/core.py
+index 403a2826a..227025dc0 100644
+--- a/src/click/core.py
++++ b/src/click/core.py
+@@ -1139,7 +1139,7 @@ def collect_usage_pieces(self, ctx):
+         """Returns all the pieces that go into the usage line and returns
+         it as a list of strings.
+         """
+-        rv = [self.options_metavar]
++        rv = [self.options_metavar] if self.options_metavar else []
+# self.options_metavar는 현재 NoneType (PR에 그렇게 적혀있음)
+# None check를 잘해서 rv의 원래 타입이 뭔지 잘 분석해보면 될 듯
+
+         for param in self.get_params(ctx):
+             rv.extend(param.get_usage_pieces(ctx))
+         return rv
+diff --git a/tests/test_formatting.py b/tests/test_formatting.py
+index 407f0aa09..f292c1671 100644
+--- a/tests/test_formatting.py
++++ b/tests/test_formatting.py
+@@ -350,3 +350,9 @@ def cli():
+         "  --bar TEXT  This help message will be padded if it wraps.",
+         "  --help      Show this message and exit.",
+     ]
++
++
++def test_formatting_with_options_metavar_empty(runner):
++    cli = click.Command("cli", options_metavar="", params=[click.Argument(["var"])])
++    result = runner.invoke(cli, ["--help"])
++    assert "Usage: cli VAR\n" in result.output

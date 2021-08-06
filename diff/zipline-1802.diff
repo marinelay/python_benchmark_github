@@ -1,0 +1,39 @@
+diff --git a/tests/calendars/test_nyse_calendar.py b/tests/calendars/test_nyse_calendar.py
+index fcaedc78c7..26bd879c57 100644
+--- a/tests/calendars/test_nyse_calendar.py
++++ b/tests/calendars/test_nyse_calendar.py
+@@ -226,3 +226,17 @@ def test_early_close_independence_day_thursday(self):
+         self.assertFalse(self.calendar.is_open_on_minute(wednesday_before))
+         self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
+         self.assertTrue(self.calendar.is_open_on_minute(friday_after))
++
++
++class CalendarStartEndTestCase(TestCase):
++    def test_start_end(self):
++        """
++        Check TradingCalendar with defined start/end dates.
++        """
++        start = pd.Timestamp('2010-1-3', tz='UTC')
++        end = pd.Timestamp('2010-1-10', tz='UTC')
++        calendar = NYSEExchangeCalendar(start=start, end=end)
++        expected_first = pd.Timestamp('2010-1-4', tz='UTC')
++        expected_last = pd.Timestamp('2010-1-8', tz='UTC')
++        self.assertTrue(calendar.first_trading_session == expected_first)
++        self.assertTrue(calendar.last_trading_session == expected_last)
+diff --git a/zipline/utils/calendars/trading_calendar.py b/zipline/utils/calendars/trading_calendar.py
+index 9a09c56660..2de92e2720 100644
+--- a/zipline/utils/calendars/trading_calendar.py
++++ b/zipline/utils/calendars/trading_calendar.py
+@@ -889,11 +889,7 @@ def days_at_time(days, t, tz, day_offset=0):
+ 
+ def holidays_at_time(calendar, start, end, time, tz):
+     return days_at_time(
+-        calendar.holidays(
+-            # Workaround for https://github.com/pydata/pandas/issues/9825.
+-            start.tz_localize(None),
+-            end.tz_localize(None),
+-        ),
++        calendar.holidays(start, end),
+         time,
+         tz=tz,
+     )

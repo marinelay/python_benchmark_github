@@ -1,0 +1,48 @@
+diff --git a/changelog/8704.misc.md b/changelog/8704.misc.md
+new file mode 100644
+index 000000000000..df7cd2b2ffe7
+--- /dev/null
++++ b/changelog/8704.misc.md
+@@ -0,0 +1 @@
++Fix pickling for `UnsupportedModelError` and `InvalidModelError`. This is important for propagating exceptions from child processes to the parent process for tracking purposes. It is common to run Rasa (and subsequently tensorflow) in a multiprocess environment since tensorflow takes over the whole process when it runs, requiring process isolation.
+diff --git a/rasa/nlu/model.py b/rasa/nlu/model.py
+index 2a16ea01d292..3e91d6a6a32f 100644
+--- a/rasa/nlu/model.py
++++ b/rasa/nlu/model.py
+@@ -41,8 +41,9 @@ class InvalidModelError(RasaException):
+     """
+ 
+     def __init__(self, message: Text) -> None:
++        """Initialize message attribute."""
+         self.message = message
+-        super(InvalidModelError, self).__init__()
++        super(InvalidModelError, self).__init__(message)
+ 
+     def __str__(self) -> Text:
+         return self.message
+@@ -56,8 +57,9 @@ class UnsupportedModelError(RasaException):
+     """
+ 
+     def __init__(self, message: Text) -> None:
++        """Initialize message attribute."""
+         self.message = message
+-        super(UnsupportedModelError, self).__init__()
++        super(UnsupportedModelError, self).__init__(message)
+ 
+     def __str__(self) -> Text:
+         return self.message
+diff --git a/tests/nlu/test_model.py b/tests/nlu/test_model.py
+new file mode 100644
+index 000000000000..90bab3830824
+--- /dev/null
++++ b/tests/nlu/test_model.py
+@@ -0,0 +1,9 @@
++import pickle
++
++from rasa.nlu.model import UnsupportedModelError
++
++
++def test_exception_pickling():
++    exception = UnsupportedModelError("test run")
++    cycled_exception = pickle.loads(pickle.dumps(exception))
++    assert exception.message == cycled_exception.message

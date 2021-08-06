@@ -1,0 +1,316 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0aa3acf65a..8d49ddea79 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,7 +1,7 @@
+ Change log
+ ==========
+ 
+-1.12.0 (2017-03-21)
++1.12.0 (2017-04-04)
+ -------------------
+ 
+ ### New features
+@@ -74,6 +74,9 @@ Change log
+ - Fixed a bug where override files containing port lists would cause a
+   TypeError to be raised
+ 
++- Fixed a bug where the `deploy` key would be missing from the output of
++  `docker-compose config`
++
+ - Fixed a bug where scaling services up or down would sometimes re-use
+   obsolete containers
+ 
+diff --git a/compose/__init__.py b/compose/__init__.py
+index 4399b28af6..bf126ebb74 100644
+--- a/compose/__init__.py
++++ b/compose/__init__.py
+@@ -1,4 +1,4 @@
+ from __future__ import absolute_import
+ from __future__ import unicode_literals
+ 
+-__version__ = '1.12.0-rc2'
++__version__ = '1.12.0'
+diff --git a/compose/config/config.py b/compose/config/config.py
+index 72687d756c..3292845f56 100644
+--- a/compose/config/config.py
++++ b/compose/config/config.py
+@@ -879,6 +879,7 @@ def merge_service_dicts(base, override, version):
+     md.merge_mapping('depends_on', parse_depends_on)
+     md.merge_sequence('links', ServiceLink.parse)
+     md.merge_sequence('secrets', types.ServiceSecret.parse)
++    md.merge_mapping('deploy', parse_deploy)
+ 
+     for field in ['volumes', 'devices']:
+         md.merge_field(field, merge_path_mappings)
+@@ -1003,6 +1004,7 @@ def parse_dict_or_list(split_func, type_name, arguments):
+ parse_depends_on = functools.partial(
+     parse_dict_or_list, lambda k: (k, {'condition': 'service_started'}), 'depends_on'
+ )
++parse_deploy = functools.partial(parse_dict_or_list, split_kv, 'deploy')
+ 
+ 
+ def parse_ulimits(ulimits):
+diff --git a/compose/config/errors.py b/compose/config/errors.py
+index 0f78d4a94e..9b82df0ab5 100644
+--- a/compose/config/errors.py
++++ b/compose/config/errors.py
+@@ -4,8 +4,8 @@
+ 
+ VERSION_EXPLANATION = (
+     'You might be seeing this error because you\'re using the wrong Compose file version. '
+-    'Either specify a supported version ("2.0", "2.1", "3.0", "3.1") and place your '
+-    'service definitions under the `services` key, or omit the `version` key '
++    'Either specify a supported version ("2.0", "2.1", "3.0", "3.1", "3.2") and place '
++    'your service definitions under the `services` key, or omit the `version` key '
+     'and place your service definitions at the root of the file to use '
+     'version 1.\nFor more on the Compose file format versions, see '
+     'https://docs.docker.com/compose/compose-file/')
+diff --git a/contrib/completion/bash/docker-compose b/contrib/completion/bash/docker-compose
+index 4d134b5cb7..739ba39b04 100644
+--- a/contrib/completion/bash/docker-compose
++++ b/contrib/completion/bash/docker-compose
+@@ -142,7 +142,7 @@ _docker_compose_bundle() {
+ 
+ 
+ _docker_compose_config() {
+-	COMPREPLY=( $( compgen -W "--help --quiet -q --services" -- "$cur" ) )
++	COMPREPLY=( $( compgen -W "--help --quiet -q --resolve-image-digests --services --volumes" -- "$cur" ) )
+ }
+ 
+ 
+@@ -341,7 +341,7 @@ _docker_compose_ps() {
+ _docker_compose_pull() {
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "--help --ignore-pull-failures" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "--help --ignore-pull-failures --parallel" -- "$cur" ) )
+ 			;;
+ 		*)
+ 			__docker_compose_services_from_image
+@@ -498,6 +498,10 @@ _docker_compose_unpause() {
+ 
+ _docker_compose_up() {
+ 	case "$prev" in
++		--exit-code-from)
++			__docker_compose_services_all
++			return
++			;;
+ 		--timeout|-t)
+ 			return
+ 			;;
+@@ -505,7 +509,7 @@ _docker_compose_up() {
+ 
+ 	case "$cur" in
+ 		-*)
+-			COMPREPLY=( $( compgen -W "--exit-code-from --abort-on-container-exit --build -d --force-recreate --help --no-build --no-color --no-deps --no-recreate --timeout -t --remove-orphans" -- "$cur" ) )
++			COMPREPLY=( $( compgen -W "--abort-on-container-exit --build -d --exit-code-from --force-recreate --help --no-build --no-color --no-deps --no-recreate --timeout -t --remove-orphans" -- "$cur" ) )
+ 			;;
+ 		*)
+ 			__docker_compose_services_all
+diff --git a/contrib/completion/zsh/_docker-compose b/contrib/completion/zsh/_docker-compose
+index 66d924f73a..8513884bcd 100644
+--- a/contrib/completion/zsh/_docker-compose
++++ b/contrib/completion/zsh/_docker-compose
+@@ -3,11 +3,6 @@
+ # Description
+ # -----------
+ #  zsh completion for docker-compose
+-#  https://github.com/sdurrheimer/docker-compose-zsh-completion
+-# -------------------------------------------------------------------------
+-# Version
+-# -------
+-#  1.5.0
+ # -------------------------------------------------------------------------
+ # Authors
+ # -------
+@@ -199,6 +194,7 @@ __docker-compose_subcommand() {
+         (build)
+             _arguments \
+                 $opts_help \
++                "*--build-arg=[Set build-time variables for one service.]:<varname>=<value>: " \
+                 '--force-rm[Always remove intermediate containers.]' \
+                 '--no-cache[Do not use cache when building the image.]' \
+                 '--pull[Always attempt to pull a newer version of the image.]' \
+@@ -214,7 +210,9 @@ __docker-compose_subcommand() {
+             _arguments \
+                 $opts_help \
+                 '(--quiet -q)'{--quiet,-q}"[Only validate the configuration, don't print anything.]" \
+-                '--services[Print the service names, one per line.]' && ret=0
++                '--resolve-image-digests[Pin image tags to digests.]' \
++                '--services[Print the service names, one per line.]' \
++                '--volumes[Print the volume names, one per line.]' && ret=0
+             ;;
+         (create)
+             _arguments \
+@@ -253,6 +251,12 @@ __docker-compose_subcommand() {
+         (help)
+             _arguments ':subcommand:__docker-compose_commands' && ret=0
+             ;;
++	(images)
++	    _arguments \
++		$opts_help \
++		'-q[Only display IDs]' \
++		'*:services:__docker-compose_services_all' && ret=0
++	    ;;
+         (kill)
+             _arguments \
+                 $opts_help \
+@@ -309,16 +313,17 @@ __docker-compose_subcommand() {
+         (run)
+             _arguments \
+                 $opts_help \
++                $opts_no_deps \
+                 '-d[Detached mode: Run container in the background, print new container name.]' \
+                 '*-e[KEY=VAL Set an environment variable (can be used multiple times)]:environment variable KEY=VAL: ' \
+                 '--entrypoint[Overwrite the entrypoint of the image.]:entry point: ' \
+                 '--name=[Assign a name to the container]:name: ' \
+-                $opts_no_deps \
+                 '(-p --publish)'{-p,--publish=}"[Publish a container's port(s) to the host]" \
+                 '--rm[Remove container after run. Ignored in detached mode.]' \
+                 "--service-ports[Run command with the service's ports enabled and mapped to the host.]" \
+                 '-T[Disable pseudo-tty allocation. By default `docker-compose run` allocates a TTY.]' \
+                 '(-u --user)'{-u,--user=}'[Run as specified username or uid]:username or uid:_users' \
++                '(-v --volume)*'{-v,--volume=}'[Bind mount a volume]:volume: ' \
+                 '(-w --workdir)'{-w,--workdir=}'[Working directory inside the container]:workdir: ' \
+                 '(-):services:__docker-compose_services' \
+                 '(-):command: _command_names -e' \
+diff --git a/docker-compose.spec b/docker-compose.spec
+index ef0e2593e0..f4280dd425 100644
+--- a/docker-compose.spec
++++ b/docker-compose.spec
+@@ -42,6 +42,11 @@ exe = EXE(pyz,
+                 'compose/config/config_schema_v3.1.json',
+                 'DATA'
+             ),
++            (
++                'compose/config/config_schema_v3.2.json',
++                'compose/config/config_schema_v3.2.json',
++                'DATA'
++            ),
+             (
+                 'compose/GITSHA',
+                 'compose/GITSHA',
+diff --git a/requirements.txt b/requirements.txt
+index 53b9294ce1..f8061af83b 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -2,7 +2,7 @@ PyYAML==3.11
+ backports.ssl-match-hostname==3.5.0.1; python_version < '3'
+ cached-property==1.2.0
+ colorama==0.3.7
+-docker==2.1.0
++docker==2.2.1
+ dockerpty==0.4.1
+ docopt==0.6.1
+ enum34==1.0.4; python_version < '3.4'
+diff --git a/script/ci b/script/ci
+index 7b3489a1b2..34bf9a4be6 100755
+--- a/script/ci
++++ b/script/ci
+@@ -1,6 +1,6 @@
+ #!/bin/bash
+ #
+-# Backwards compatiblity for jenkins
++# Backwards compatibility for jenkins
+ #
+ # TODO: remove this script after all current PRs and jenkins are updated with
+ # the new script/test/ci change
+diff --git a/script/run/run.sh b/script/run/run.sh
+index 62c065bbc5..9fd097d751 100755
+--- a/script/run/run.sh
++++ b/script/run/run.sh
+@@ -15,7 +15,7 @@
+ 
+ set -e
+ 
+-VERSION="1.12.0-rc2"
++VERSION="1.12.0"
+ IMAGE="docker/compose:$VERSION"
+ 
+ 
+diff --git a/setup.py b/setup.py
+index 13fe59b224..19a0d4aa00 100644
+--- a/setup.py
++++ b/setup.py
+@@ -37,7 +37,7 @@ def find_version(*file_paths):
+     'requests >= 2.6.1, != 2.11.0, < 2.12',
+     'texttable >= 0.8.1, < 0.9',
+     'websocket-client >= 0.32.0, < 1.0',
+-    'docker >= 2.1.0, < 3.0',
++    'docker >= 2.2.1, < 3.0',
+     'dockerpty >= 0.4.1, < 0.5',
+     'six >= 1.3.0, < 2',
+     'jsonschema >= 2.5.1, < 3',
+diff --git a/tests/unit/config/config_test.py b/tests/unit/config/config_test.py
+index 4db87ecb65..b7e4cc9bfa 100644
+--- a/tests/unit/config/config_test.py
++++ b/tests/unit/config/config_test.py
+@@ -1950,6 +1950,57 @@ def test_merge_secrets_override(self):
+         actual = config.merge_service_dicts(base, override, V3_1)
+         assert actual['secrets'] == override['secrets']
+ 
++    def test_merge_deploy(self):
++        base = {
++            'image': 'busybox',
++        }
++        override = {
++            'deploy': {
++                'mode': 'global',
++                'restart_policy': {
++                    'condition': 'on-failure'
++                }
++            }
++        }
++        actual = config.merge_service_dicts(base, override, V3_0)
++        assert actual['deploy'] == override['deploy']
++
++    def test_merge_deploy_override(self):
++        base = {
++            'image': 'busybox',
++            'deploy': {
++                'mode': 'global',
++                'restart_policy': {
++                    'condition': 'on-failure'
++                },
++                'placement': {
++                    'constraints': [
++                        'node.role == manager'
++                    ]
++                }
++            }
++        }
++        override = {
++            'deploy': {
++                'mode': 'replicated',
++                'restart_policy': {
++                    'condition': 'any'
++                }
++            }
++        }
++        actual = config.merge_service_dicts(base, override, V3_0)
++        assert actual['deploy'] == {
++            'mode': 'replicated',
++            'restart_policy': {
++                'condition': 'any'
++            },
++            'placement': {
++                'constraints': [
++                    'node.role == manager'
++                ]
++            }
++        }
++
+     def test_external_volume_config(self):
+         config_details = build_config_details({
+             'version': '2',
+@@ -2249,7 +2300,8 @@ class PortsTest(unittest.TestCase):
+     ]
+ 
+     INVALID_PORT_MAPPINGS = [
+-        ["8000-8001:8000"],
++        ["8000-8004:8000-8002"],
++        ["4242:4242-4244"],
+     ]
+ 
+     VALID_SINGLE_PORTS = [

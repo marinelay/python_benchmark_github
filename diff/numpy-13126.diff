@@ -1,0 +1,664 @@
+diff --git a/doc/release/1.17.0-notes.rst b/doc/release/1.17.0-notes.rst
+index 8b3cf30c124..b9b27da7924 100644
+--- a/doc/release/1.17.0-notes.rst
++++ b/doc/release/1.17.0-notes.rst
+@@ -18,6 +18,15 @@ New functions
+ Deprecations
+ ============
+ 
++``np.polynomial`` functions warn when passed ``float``s in place of ``int``s
++----------------------------------------------------------------------------
++Previously functions in this module would accept ``float``s provided their
++values were integral. For consistency with the rest of numpy, doing so is now
++deprecated, and in future will raise a ``TypeError``.
++
++Similarly, passing a float like ``0.5`` in place of an integer will now raise a
++``TypeError`` instead of the previous ``ValueError``.
++
+ Deprecate ``numpy.distutils.exec_command`` and ``numpy.distutils.temp_file_name``
+ ---------------------------------------------------------------------------------
+ The internal use of these functions has been refactored and there are better
+diff --git a/numpy/polynomial/chebyshev.py b/numpy/polynomial/chebyshev.py
+index 5f69bf338e4..475582fdc1d 100644
+--- a/numpy/polynomial/chebyshev.py
++++ b/numpy/polynomial/chebyshev.py
+@@ -910,14 +910,10 @@ def chebder(c, m=1, scl=1, axis=0):
+     c = np.array(c, ndmin=1, copy=1)
+     if c.dtype.char in '?bBhHiIlLqQpP':
+         c = c.astype(np.double)
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of derivation must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of derivation")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of derivation must be non-negative")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1033,10 +1029,8 @@ def chebint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         c = c.astype(np.double)
+     if not np.iterable(k):
+         k = [k]
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of integration must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of integration")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of integration must be non-negative")
+     if len(k) > cnt:
+@@ -1045,8 +1039,6 @@ def chebint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         raise ValueError("lbnd must be a scalar.")
+     if np.ndim(scl) != 0:
+         raise ValueError("scl must be a scalar.")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1406,9 +1398,7 @@ def chebvander(x, deg):
+         the converted `x`.
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg:
+-        raise ValueError("deg must be integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
+     if ideg < 0:
+         raise ValueError("deg must be non-negative")
+ 
+@@ -1858,9 +1848,9 @@ def chebgauss(deg):
+     .. math:: w_i = \\pi / n
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg or ideg < 1:
+-        raise ValueError("deg must be a non-negative integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
++    if ideg <= 0:
++        raise ValueError("deg must be a positive integer")
+ 
+     x = np.cos(np.pi * np.arange(1, 2*ideg, 2) / (2.0*ideg))
+     w = np.ones(ideg)*(np.pi/ideg)
+diff --git a/numpy/polynomial/hermite.py b/numpy/polynomial/hermite.py
+index 1ee5a6a278b..6dee0b35928 100644
+--- a/numpy/polynomial/hermite.py
++++ b/numpy/polynomial/hermite.py
+@@ -648,14 +648,10 @@ def hermder(c, m=1, scl=1, axis=0):
+     c = np.array(c, ndmin=1, copy=1)
+     if c.dtype.char in '?bBhHiIlLqQpP':
+         c = c.astype(np.double)
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of derivation must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of derivation")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of derivation must be non-negative")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -765,10 +761,8 @@ def hermint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         c = c.astype(np.double)
+     if not np.iterable(k):
+         k = [k]
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of integration must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of integration")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of integration must be non-negative")
+     if len(k) > cnt:
+@@ -777,8 +771,6 @@ def hermint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         raise ValueError("lbnd must be a scalar.")
+     if np.ndim(scl) != 0:
+         raise ValueError("scl must be a scalar.")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1152,9 +1144,7 @@ def hermvander(x, deg):
+            [ 1.,  2.,  2., -4.]])
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg:
+-        raise ValueError("deg must be integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
+     if ideg < 0:
+         raise ValueError("deg must be non-negative")
+ 
+@@ -1588,9 +1578,9 @@ def hermgauss(deg):
+     the right value when integrating 1.
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg or ideg < 1:
+-        raise ValueError("deg must be a non-negative integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
++    if ideg <= 0:
++        raise ValueError("deg must be a positive integer")
+ 
+     # first approximation of roots. We use the fact that the companion
+     # matrix is symmetric in this case in order to obtain better zeros.
+diff --git a/numpy/polynomial/hermite_e.py b/numpy/polynomial/hermite_e.py
+index 834e26a6054..8ae8c7f95a7 100644
+--- a/numpy/polynomial/hermite_e.py
++++ b/numpy/polynomial/hermite_e.py
+@@ -643,14 +643,10 @@ def hermeder(c, m=1, scl=1, axis=0):
+     c = np.array(c, ndmin=1, copy=1)
+     if c.dtype.char in '?bBhHiIlLqQpP':
+         c = c.astype(np.double)
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of derivation must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of derivation")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of derivation must be non-negative")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -760,10 +756,8 @@ def hermeint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         c = c.astype(np.double)
+     if not np.iterable(k):
+         k = [k]
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of integration must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of integration")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of integration must be non-negative")
+     if len(k) > cnt:
+@@ -772,8 +766,6 @@ def hermeint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         raise ValueError("lbnd must be a scalar.")
+     if np.ndim(scl) != 0:
+         raise ValueError("scl must be a scalar.")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1146,9 +1138,7 @@ def hermevander(x, deg):
+            [ 1.,  1.,  0., -2.]])
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg:
+-        raise ValueError("deg must be integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
+     if ideg < 0:
+         raise ValueError("deg must be non-negative")
+ 
+@@ -1583,9 +1573,9 @@ def hermegauss(deg):
+     the right value when integrating 1.
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg or ideg < 1:
+-        raise ValueError("deg must be a non-negative integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
++    if ideg <= 0:
++        raise ValueError("deg must be a positive integer")
+ 
+     # first approximation of roots. We use the fact that the companion
+     # matrix is symmetric in this case in order to obtain better zeros.
+diff --git a/numpy/polynomial/laguerre.py b/numpy/polynomial/laguerre.py
+index 5085ea908d2..89e053ffa64 100644
+--- a/numpy/polynomial/laguerre.py
++++ b/numpy/polynomial/laguerre.py
+@@ -645,14 +645,11 @@ def lagder(c, m=1, scl=1, axis=0):
+     c = np.array(c, ndmin=1, copy=1)
+     if c.dtype.char in '?bBhHiIlLqQpP':
+         c = c.astype(np.double)
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+ 
+-    if cnt != m:
+-        raise ValueError("The order of derivation must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of derivation")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of derivation must be non-negative")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -765,10 +762,8 @@ def lagint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         c = c.astype(np.double)
+     if not np.iterable(k):
+         k = [k]
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of integration must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of integration")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of integration must be non-negative")
+     if len(k) > cnt:
+@@ -777,8 +772,6 @@ def lagint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         raise ValueError("lbnd must be a scalar.")
+     if np.ndim(scl) != 0:
+         raise ValueError("scl must be a scalar.")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1152,9 +1145,7 @@ def lagvander(x, deg):
+            [ 1.        , -1.        , -1.        , -0.33333333]])
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg:
+-        raise ValueError("deg must be integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
+     if ideg < 0:
+         raise ValueError("deg must be non-negative")
+ 
+@@ -1543,9 +1534,9 @@ def laggauss(deg):
+     the right value when integrating 1.
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg or ideg < 1:
+-        raise ValueError("deg must be a non-negative integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
++    if ideg <= 0:
++        raise ValueError("deg must be a positive integer")
+ 
+     # first approximation of roots. We use the fact that the companion
+     # matrix is symmetric in this case in order to obtain better zeros.
+diff --git a/numpy/polynomial/legendre.py b/numpy/polynomial/legendre.py
+index beccdfe5e03..4b56f82f412 100644
+--- a/numpy/polynomial/legendre.py
++++ b/numpy/polynomial/legendre.py
+@@ -690,14 +690,10 @@ def legder(c, m=1, scl=1, axis=0):
+     c = np.array(c, ndmin=1, copy=1)
+     if c.dtype.char in '?bBhHiIlLqQpP':
+         c = c.astype(np.double)
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of derivation must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of derivation")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of derivation must be non-negative")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -813,10 +809,8 @@ def legint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         c = c.astype(np.double)
+     if not np.iterable(k):
+         k = [k]
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of integration must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of integration")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of integration must be non-negative")
+     if len(k) > cnt:
+@@ -825,8 +819,6 @@ def legint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         raise ValueError("lbnd must be a scalar.")
+     if np.ndim(scl) != 0:
+         raise ValueError("scl must be a scalar.")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1187,9 +1179,7 @@ def legvander(x, deg):
+         the converted `x`.
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg:
+-        raise ValueError("deg must be integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
+     if ideg < 0:
+         raise ValueError("deg must be non-negative")
+ 
+@@ -1574,9 +1564,9 @@ def leggauss(deg):
+     the right value when integrating 1.
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg or ideg < 1:
+-        raise ValueError("deg must be a non-negative integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
++    if ideg <= 0:
++        raise ValueError("deg must be a positive integer")
+ 
+     # first approximation of roots. We use the fact that the companion
+     # matrix is symmetric in this case in order to obtain better zeros.
+diff --git a/numpy/polynomial/polynomial.py b/numpy/polynomial/polynomial.py
+index df92e92c248..44e1cbb3f37 100644
+--- a/numpy/polynomial/polynomial.py
++++ b/numpy/polynomial/polynomial.py
+@@ -511,14 +511,10 @@ def polyder(c, m=1, scl=1, axis=0):
+         # astype fails with NA
+         c = c + 0.0
+     cdt = c.dtype
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of derivation must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of derivation")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of derivation must be non-negative")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -625,10 +621,8 @@ def polyint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+     cdt = c.dtype
+     if not np.iterable(k):
+         k = [k]
+-    cnt, iaxis = [int(t) for t in [m, axis]]
+-
+-    if cnt != m:
+-        raise ValueError("The order of integration must be integer")
++    cnt = pu._deprecate_as_int(m, "the order of integration")
++    iaxis = pu._deprecate_as_int(axis, "the axis")
+     if cnt < 0:
+         raise ValueError("The order of integration must be non-negative")
+     if len(k) > cnt:
+@@ -637,8 +631,6 @@ def polyint(c, m=1, k=[], lbnd=0, scl=1, axis=0):
+         raise ValueError("lbnd must be a scalar.")
+     if np.ndim(scl) != 0:
+         raise ValueError("scl must be a scalar.")
+-    if iaxis != axis:
+-        raise ValueError("The axis must be integer")
+     iaxis = normalize_axis_index(iaxis, c.ndim)
+ 
+     if cnt == 0:
+@@ -1095,9 +1087,7 @@ def polyvander(x, deg):
+     polyvander2d, polyvander3d
+ 
+     """
+-    ideg = int(deg)
+-    if ideg != deg:
+-        raise ValueError("deg must be integer")
++    ideg = pu._deprecate_as_int(deg, "deg")
+     if ideg < 0:
+         raise ValueError("deg must be non-negative")
+ 
+diff --git a/numpy/polynomial/polyutils.py b/numpy/polynomial/polyutils.py
+index fb3ebe44ac6..1a73f47d81e 100644
+--- a/numpy/polynomial/polyutils.py
++++ b/numpy/polynomial/polyutils.py
+@@ -45,6 +45,8 @@
+ """
+ from __future__ import division, absolute_import, print_function
+ 
++import operator
++
+ import numpy as np
+ 
+ __all__ = [
+@@ -423,11 +425,10 @@ def _vander2d(vander_f, x, y, deg):
+     x, y, deg :
+         See the ``<type>vander2d`` functions for more detail
+     """
+-    ideg = [int(d) for d in deg]
+-    is_valid = [id == d and id >= 0 for id, d in zip(ideg, deg)]
+-    if is_valid != [1, 1]:
+-        raise ValueError("degrees must be non-negative integers")
+-    degx, degy = ideg
++    degx, degy = [
++        _deprecate_as_int(d, "degrees")
++        for d in deg
++    ]
+     x, y = np.array((x, y), copy=0) + 0.0
+ 
+     vx = vander_f(x, degx)
+@@ -447,11 +448,10 @@ def _vander3d(vander_f, x, y, z, deg):
+     x, y, z, deg :
+         See the ``<type>vander3d`` functions for more detail
+     """
+-    ideg = [int(d) for d in deg]
+-    is_valid = [id == d and id >= 0 for id, d in zip(ideg, deg)]
+-    if is_valid != [1, 1, 1]:
+-        raise ValueError("degrees must be non-negative integers")
+-    degx, degy, degz = ideg
++    degx, degy, degz = [
++        _deprecate_as_int(d, "degrees")
++        for d in deg
++    ]
+     x, y, z = np.array((x, y, z), copy=0) + 0.0
+ 
+     vx = vander_f(x, degx)
+@@ -688,3 +688,41 @@ def _fit(vander_f, x, y, deg, rcond=None, full=False, w=None):
+         return c, [resids, rank, s, rcond]
+     else:
+         return c
++
++
++def _deprecate_as_int(x, desc):
++    """
++    Like `operator.index`, but emits a deprecation warning when passed a float
++
++    Parameters
++    ----------
++    x : int-like, or float with integral value
++        Value to interpret as an integer
++    desc : str
++        description to include in any error message
++
++    Raises
++    ------
++    TypeError : if x is a non-integral float or non-numeric
++    DeprecationWarning : if x is an integral float
++    """
++    try:
++        return operator.index(x)
++    except TypeError:
++        # Numpy 1.17.0, 2019-03-11
++        try:
++            ix = int(x)
++        except TypeError:
++            pass
++        else:
++            if ix == x:
++                warnings.warn(
++                    "In future, this will raise TypeError, as {} will need to "
++                    "be an integer not just an integral float."
++                    .format(desc),
++                    DeprecationWarning,
++                    stacklevel=3
++                )
++                return ix
++
++        raise TypeError("{} must be an integer".format(desc))
+diff --git a/numpy/polynomial/tests/test_chebyshev.py b/numpy/polynomial/tests/test_chebyshev.py
+index 7fb7492c620..c8d2d6dbaae 100644
+--- a/numpy/polynomial/tests/test_chebyshev.py
++++ b/numpy/polynomial/tests/test_chebyshev.py
+@@ -221,12 +221,12 @@ class TestIntegral(object):
+ 
+     def test_chebint(self):
+         # check exceptions
+-        assert_raises(ValueError, cheb.chebint, [0], .5)
++        assert_raises(TypeError, cheb.chebint, [0], .5)
+         assert_raises(ValueError, cheb.chebint, [0], -1)
+         assert_raises(ValueError, cheb.chebint, [0], 1, [0, 0])
+         assert_raises(ValueError, cheb.chebint, [0], lbnd=[0])
+         assert_raises(ValueError, cheb.chebint, [0], scl=[0])
+-        assert_raises(ValueError, cheb.chebint, [0], axis=.5)
++        assert_raises(TypeError, cheb.chebint, [0], axis=.5)
+ 
+         # test integration of zero polynomial
+         for i in range(2, 5):
+@@ -323,7 +323,7 @@ class TestDerivative(object):
+ 
+     def test_chebder(self):
+         # check exceptions
+-        assert_raises(ValueError, cheb.chebder, [0], .5)
++        assert_raises(TypeError, cheb.chebder, [0], .5)
+         assert_raises(ValueError, cheb.chebder, [0], -1)
+ 
+         # check that zeroth derivative does nothing
+diff --git a/numpy/polynomial/tests/test_hermite.py b/numpy/polynomial/tests/test_hermite.py
+index 1287ef3fe17..271c1964b09 100644
+--- a/numpy/polynomial/tests/test_hermite.py
++++ b/numpy/polynomial/tests/test_hermite.py
+@@ -209,12 +209,12 @@ class TestIntegral(object):
+ 
+     def test_hermint(self):
+         # check exceptions
+-        assert_raises(ValueError, herm.hermint, [0], .5)
++        assert_raises(TypeError, herm.hermint, [0], .5)
+         assert_raises(ValueError, herm.hermint, [0], -1)
+         assert_raises(ValueError, herm.hermint, [0], 1, [0, 0])
+         assert_raises(ValueError, herm.hermint, [0], lbnd=[0])
+         assert_raises(ValueError, herm.hermint, [0], scl=[0])
+-        assert_raises(ValueError, herm.hermint, [0], axis=.5)
++        assert_raises(TypeError, herm.hermint, [0], axis=.5)
+ 
+         # test integration of zero polynomial
+         for i in range(2, 5):
+@@ -311,7 +311,7 @@ class TestDerivative(object):
+ 
+     def test_hermder(self):
+         # check exceptions
+-        assert_raises(ValueError, herm.hermder, [0], .5)
++        assert_raises(TypeError, herm.hermder, [0], .5)
+         assert_raises(ValueError, herm.hermder, [0], -1)
+ 
+         # check that zeroth derivative does nothing
+diff --git a/numpy/polynomial/tests/test_hermite_e.py b/numpy/polynomial/tests/test_hermite_e.py
+index ccb44ad73ce..434b30e7bb2 100644
+--- a/numpy/polynomial/tests/test_hermite_e.py
++++ b/numpy/polynomial/tests/test_hermite_e.py
+@@ -209,12 +209,12 @@ class TestIntegral(object):
+ 
+     def test_hermeint(self):
+         # check exceptions
+-        assert_raises(ValueError, herme.hermeint, [0], .5)
++        assert_raises(TypeError, herme.hermeint, [0], .5)
+         assert_raises(ValueError, herme.hermeint, [0], -1)
+         assert_raises(ValueError, herme.hermeint, [0], 1, [0, 0])
+         assert_raises(ValueError, herme.hermeint, [0], lbnd=[0])
+         assert_raises(ValueError, herme.hermeint, [0], scl=[0])
+-        assert_raises(ValueError, herme.hermeint, [0], axis=.5)
++        assert_raises(TypeError, herme.hermeint, [0], axis=.5)
+ 
+         # test integration of zero polynomial
+         for i in range(2, 5):
+@@ -311,7 +311,7 @@ class TestDerivative(object):
+ 
+     def test_hermeder(self):
+         # check exceptions
+-        assert_raises(ValueError, herme.hermeder, [0], .5)
++        assert_raises(TypeError, herme.hermeder, [0], .5)
+         assert_raises(ValueError, herme.hermeder, [0], -1)
+ 
+         # check that zeroth derivative does nothing
+diff --git a/numpy/polynomial/tests/test_laguerre.py b/numpy/polynomial/tests/test_laguerre.py
+index 3ababec5e9b..4b9b2863757 100644
+--- a/numpy/polynomial/tests/test_laguerre.py
++++ b/numpy/polynomial/tests/test_laguerre.py
+@@ -206,12 +206,12 @@ class TestIntegral(object):
+ 
+     def test_lagint(self):
+         # check exceptions
+-        assert_raises(ValueError, lag.lagint, [0], .5)
++        assert_raises(TypeError, lag.lagint, [0], .5)
+         assert_raises(ValueError, lag.lagint, [0], -1)
+         assert_raises(ValueError, lag.lagint, [0], 1, [0, 0])
+         assert_raises(ValueError, lag.lagint, [0], lbnd=[0])
+         assert_raises(ValueError, lag.lagint, [0], scl=[0])
+-        assert_raises(ValueError, lag.lagint, [0], axis=.5)
++        assert_raises(TypeError, lag.lagint, [0], axis=.5)
+ 
+         # test integration of zero polynomial
+         for i in range(2, 5):
+@@ -308,7 +308,7 @@ class TestDerivative(object):
+ 
+     def test_lagder(self):
+         # check exceptions
+-        assert_raises(ValueError, lag.lagder, [0], .5)
++        assert_raises(TypeError, lag.lagder, [0], .5)
+         assert_raises(ValueError, lag.lagder, [0], -1)
+ 
+         # check that zeroth derivative does nothing
+diff --git a/numpy/polynomial/tests/test_legendre.py b/numpy/polynomial/tests/test_legendre.py
+index a23086d5948..917a7e03afd 100644
+--- a/numpy/polynomial/tests/test_legendre.py
++++ b/numpy/polynomial/tests/test_legendre.py
+@@ -210,12 +210,12 @@ class TestIntegral(object):
+ 
+     def test_legint(self):
+         # check exceptions
+-        assert_raises(ValueError, leg.legint, [0], .5)
++        assert_raises(TypeError, leg.legint, [0], .5)
+         assert_raises(ValueError, leg.legint, [0], -1)
+         assert_raises(ValueError, leg.legint, [0], 1, [0, 0])
+         assert_raises(ValueError, leg.legint, [0], lbnd=[0])
+         assert_raises(ValueError, leg.legint, [0], scl=[0])
+-        assert_raises(ValueError, leg.legint, [0], axis=.5)
++        assert_raises(TypeError, leg.legint, [0], axis=.5)
+ 
+         # test integration of zero polynomial
+         for i in range(2, 5):
+@@ -312,7 +312,7 @@ class TestDerivative(object):
+ 
+     def test_legder(self):
+         # check exceptions
+-        assert_raises(ValueError, leg.legder, [0], .5)
++        assert_raises(TypeError, leg.legder, [0], .5)
+         assert_raises(ValueError, leg.legder, [0], -1)
+ 
+         # check that zeroth derivative does nothing
+diff --git a/numpy/polynomial/tests/test_polynomial.py b/numpy/polynomial/tests/test_polynomial.py
+index 562aa904d20..08b73da15d8 100644
+--- a/numpy/polynomial/tests/test_polynomial.py
++++ b/numpy/polynomial/tests/test_polynomial.py
+@@ -291,12 +291,12 @@ class TestIntegral(object):
+ 
+     def test_polyint(self):
+         # check exceptions
+-        assert_raises(ValueError, poly.polyint, [0], .5)
++        assert_raises(TypeError, poly.polyint, [0], .5)
+         assert_raises(ValueError, poly.polyint, [0], -1)
+         assert_raises(ValueError, poly.polyint, [0], 1, [0, 0])
+         assert_raises(ValueError, poly.polyint, [0], lbnd=[0])
+         assert_raises(ValueError, poly.polyint, [0], scl=[0])
+-        assert_raises(ValueError, poly.polyint, [0], axis=.5)
++        assert_raises(TypeError, poly.polyint, [0], axis=.5)
+ 
+         # test integration of zero polynomial
+         for i in range(2, 5):
+@@ -388,7 +388,7 @@ class TestDerivative(object):
+ 
+     def test_polyder(self):
+         # check exceptions
+-        assert_raises(ValueError, poly.polyder, [0], .5)
++        assert_raises(TypeError, poly.polyder, [0], .5)
+         assert_raises(ValueError, poly.polyder, [0], -1)
+ 
+         # check that zeroth derivative does nothing

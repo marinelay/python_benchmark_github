@@ -1,0 +1,59 @@
+diff --git a/CHANGES.rst b/CHANGES.rst
+index d3795e173..ac11bf313 100644
+--- a/CHANGES.rst
++++ b/CHANGES.rst
+@@ -182,6 +182,8 @@ Unreleased
+     previous item. :issue:`1353`
+ -   The ``Path`` param type can be passed ``path_type=pathlib.Path`` to
+     return a path object instead of a string. :issue:`405`
++-   ``TypeError`` is raised when parameter with ``multiple=True`` or
++    ``nargs > 1`` has non-iterable default. :issue:`1749`
+ 
+ 
+ Version 7.1.2
+diff --git a/src/click/core.py b/src/click/core.py
+index cc3aa141c..f3192c5e3 100644
+--- a/src/click/core.py
++++ b/src/click/core.py
+@@ -2011,7 +2011,15 @@ def _convert(value, level):
+             if level == 0:
+                 return self.type(value, self, ctx)
+ 
+-            return tuple(_convert(x, level - 1) for x in value)
++            try:
++                iter_value = iter(value)
++            except TypeError:
++                raise TypeError(
++                    "Value for parameter with multiple = True or nargs > 1"
++                    " should be an iterable."
++                )
++
++            return tuple(_convert(x, level - 1) for x in iter_value)
+ 
+         return _convert(value, (self.nargs != 1) + bool(self.multiple))
+ 
+diff --git a/tests/test_options.py b/tests/test_options.py
+index 128b86034..65109d69a 100644
+--- a/tests/test_options.py
++++ b/tests/test_options.py
+@@ -117,6 +117,20 @@ def cli(message):
+     assert "Error: Missing option '-m' / '--message'." in result.output
+ 
+ 
++def test_multiple_bad_default(runner):
++    @click.command()
++    @click.option("--flags", multiple=True, default=False)
++    def cli(flags):
++        pass
++
++    result = runner.invoke(cli, [])
++    assert result.exception
++    assert (
++        "Value for parameter with multiple = True or nargs > 1 should be an iterable."
++        in result.exception.args
++    )
++
++
+ def test_empty_envvar(runner):
+     @click.command()
+     @click.option("--mypath", type=click.Path(exists=True), envvar="MYPATH")

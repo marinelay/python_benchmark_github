@@ -1,0 +1,48 @@
+diff --git a/pandas/core/ops.py b/pandas/core/ops.py
+index 10418ccbb1f64..ddd82de2da5fc 100644
+--- a/pandas/core/ops.py
++++ b/pandas/core/ops.py
+@@ -1228,8 +1228,8 @@ def wrapper(left, right):
+                             "{op}".format(typ=type(left).__name__, op=str_rep))
+ 
+         elif (is_extension_array_dtype(left) or
+-                is_extension_array_dtype(right)):
+-            # TODO: should this include `not is_scalar(right)`?
++                (is_extension_array_dtype(right) and not is_scalar(right))):
++            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
+             return dispatch_to_extension_op(op, left, right)
+
+
+# right는 str type
+# 테스트케이스들이 이 부근을 많이 지나 localization ok
+# 근데 if isinstance(right, str) 로 될텐데...
+# 테스트 통과되긴 하는데.............. 되는건가
+ 
+         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+diff --git a/pandas/tests/arithmetic/test_object.py b/pandas/tests/arithmetic/test_object.py
+index c02c3becbd556..2c1cc83c09f88 100644
+--- a/pandas/tests/arithmetic/test_object.py
++++ b/pandas/tests/arithmetic/test_object.py
+@@ -73,6 +73,22 @@ def test_more_na_comparisons(self, dtype):
+ 
+ class TestArithmetic(object):
+ 
++    @pytest.mark.parametrize("op", [operator.add, ops.radd])
++    @pytest.mark.parametrize("other", ["category", "Int64"])
++    def test_add_extension_scalar(self, other, box, op):
++        # GH#22378
++        # Check that scalars satisfying is_extension_array_dtype(obj)
++        # do not incorrectly try to dispatch to an ExtensionArray operation
++
++        arr = pd.Series(['a', 'b', 'c'])
++        expected = pd.Series([op(x, other) for x in arr])
++
++        arr = tm.box_expected(arr, box)
++        expected = tm.box_expected(expected, box)
++
++        result = op(arr, other)
++        tm.assert_equal(result, expected)
++
+     @pytest.mark.parametrize('box', [
+         pytest.param(pd.Index,
+                      marks=pytest.mark.xfail(reason="Does not mask nulls",

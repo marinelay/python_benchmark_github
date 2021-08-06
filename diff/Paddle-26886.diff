@@ -1,0 +1,135 @@
+diff --git a/python/paddle/fluid/layers/nn.py b/python/paddle/fluid/layers/nn.py
+index e77f58d31f7c..c0b11b52fa51 100755
+--- a/python/paddle/fluid/layers/nn.py
++++ b/python/paddle/fluid/layers/nn.py
+@@ -10018,15 +10018,16 @@ def stack(x, axis=0, name=None):
+ 
+ 
+     Args:
+-        x (Variable|list(Variable)): Input :code:`x` can be a single Tensor, a :code:`list` of Tensors.
+-                                     If :code:`x` is a :code:`list`, the shapes of all these Tensors
++        x (list(Variable)|tuple(Variable)): Input :code:`x` can be a :code:`list` or :code:`tuple` of Tensors, the shapes of all these Tensors
+                                      must be the same. Supposing input is N dims
+                                      Tensors :math:`[d_0, d_1, ..., d_{n-1}]`, the output is N+1 dims
+                                      Tensor :math:`[d_0, d_1, d_{axis-1}, len(x), d_{axis}, ..., d_{n-1}]`.
+                                      Supported data types: float32, float64, int32, int64.
+-        axis (int, optional): The axis along which all inputs are stacked. ``axis`` range is :math:`[-(R+1), R+1)`.
+-                              R is the first tensor of inputs. If ``axis`` < 0, :math:`axis=axis+rank(x[0])+1`.
+-                              The default value of axis is 0.
++        axis (int, optional): The axis along which all inputs are stacked. ``axis`` range is ``[-(R+1), R+1)``,
++                              where ``R`` is the number of dimensions of the first input tensor ``x[0]``. 
++                              If ``axis < 0``, ``axis = axis+R+1``. The default value of axis is 0.
++        name (str, optional): Please refer to :ref:`api_guide_Name`, Default None.
++    
+ 
+     Returns:
+         Variable: The stacked Tensor, has same data type with input Tensors. Output dim is :math:`rank(x[0])+1`.
+@@ -10044,18 +10045,27 @@ def stack(x, axis=0, name=None):
+ 
+             data = layers.stack([x1,x2], axis=1) # stack according to axis 1, data.shape=[None, 2, 1, 2]
+ 
+-            # stack single Tensor
+-            data = layers.stack(x1)  # stack according to axis 0, data.shape=[1, None, 1, 2]
+ 
+     """
+     axis = 0 if axis is None else axis
+-    if not isinstance(x, list) and not isinstance(x, tuple):
+-        x = [x]
+ 
+     if in_dygraph_mode():
+         return core.ops.stack(x, 'axis', axis)
+ 
++    if not isinstance(x, list) and not isinstance(x, tuple):
++        # NOTE:(zhiqiu) Only support Variable as input if the Variable is a LOD_TENSOR_ARRAY create by create_array, array_write, array_read, etc.
++        # In that case, Variable is array of tensors indeed.
++        if isinstance(x, Variable) and x.desc.type(
++        ) == core.VarDesc.VarType.LOD_TENSOR_ARRAY:
++            x = [x]
++        else:
++            raise TypeError("The type of '%s' in %s must be %s, but received %s"
++                            % ('x', 'stack',
++                               'list[Tensor], tuple[Tensor] or TensorArray',
++                               type(x)))
++
+     helper = LayerHelper('stack', **locals())
++
+     out = helper.create_variable_for_type_inference(x[0].dtype)
+     if x[0].desc.type() == core.VarDesc.VarType.LOD_TENSOR_ARRAY:
+         assert len(x) == 1, "If the elements of 'x' in stack are Variable(LoDTensorArray), " \
+diff --git a/python/paddle/fluid/tests/unittests/test_stack_op.py b/python/paddle/fluid/tests/unittests/test_stack_op.py
+index fd5c02c55db4..8dd71c5a5580 100644
+--- a/python/paddle/fluid/tests/unittests/test_stack_op.py
++++ b/python/paddle/fluid/tests/unittests/test_stack_op.py
+@@ -182,6 +182,11 @@ def test_out(self):
+             expected_result = np.stack([input1, input2, input3], axis=0)
+             self.assertTrue(np.allclose(expected_result, result))
+ 
++    def test_single_tensor_error(self):
++        with fluid.program_guard(fluid.Program(), fluid.Program()):
++            x = paddle.rand([2, 3])
++            self.assertRaises(TypeError, paddle.stack, x)
++
+ 
+ class API_DygraphTest(unittest.TestCase):
+     def test_out(self):
+@@ -192,18 +197,23 @@ def test_out(self):
+             x1 = fluid.dygraph.to_variable(data1)
+             x2 = fluid.dygraph.to_variable(data2)
+             x3 = fluid.dygraph.to_variable(data3)
+-            result = paddle.stack([x1, x2, x3], axis=0)
++            result = paddle.stack([x1, x2, x3])
+             result_np = result.numpy()
+-        expected_result = np.stack([data1, data2, data3], axis=0)
++        expected_result = np.stack([data1, data2, data3])
+         self.assertTrue(np.allclose(expected_result, result_np))
+ 
+         with fluid.dygraph.guard():
+             y1 = fluid.dygraph.to_variable(data1)
+-            result = paddle.stack(y1, axis=0)
++            result = paddle.stack([y1], axis=0)
+             result_np_2 = result.numpy()
+-        expected_result_2 = np.stack(data1, axis=0)
++        expected_result_2 = np.stack([data1], axis=0)
+         self.assertTrue(np.allclose(expected_result_2, result_np_2))
+ 
++    def test_single_tensor_error(self):
++        with fluid.dygraph.guard():
++            x = paddle.to_tensor([1, 2, 3])
++            self.assertRaises(Exception, paddle.stack, x)
++
+ 
+ if __name__ == '__main__':
+     unittest.main()
+diff --git a/python/paddle/tensor/manipulation.py b/python/paddle/tensor/manipulation.py
+index 5a01fff88c16..040af7731842 100644
+--- a/python/paddle/tensor/manipulation.py
++++ b/python/paddle/tensor/manipulation.py
+@@ -433,8 +433,7 @@ def stack(x, axis=0, name=None):
+                           [5.0, 6.0] ] ]
+ 
+     Args:
+-        x (Tensor|list[Tensor]|tuple[Tensor]): Input ``x`` can be a single tensor, or a ``list`` or ``tuple`` of tensors.
+-                                     If ``x`` is a ``list`` or ``tuple`` , the Tensors in ``x``
++        x (list[Tensor]|tuple[Tensor]): Input ``x`` can be a ``list`` or ``tuple`` of tensors, the Tensors in ``x``
+                                      must be of the same shape and dtype. Supported data types: float32, float64, int32, int64.
+         axis (int, optional): The axis along which all inputs are stacked. ``axis`` range is ``[-(R+1), R+1)``,
+                               where ``R`` is the number of dimensions of the first input tensor ``x[0]``. 
+@@ -450,15 +449,10 @@ def stack(x, axis=0, name=None):
+             import paddle
+             import numpy as np
+ 
+-            data1 = np.array([[1.0, 2.0]])
+-            data2 = np.array([[3.0, 4.0]])
+-            data3 = np.array([[5.0, 6.0]])
+-
+             paddle.disable_static()
+-            x1 = paddle.to_variable(data1)
+-            x2 = paddle.to_variable(data2)
+-            x3 = paddle.to_variable(data3)
+-
++            x1 = paddle.to_tensor([[1.0, 2.0]])
++            x2 = paddle.to_tensor([[3.0, 4.0]])
++            x3 = paddle.to_tensor([[5.0, 6.0]])
+             out = paddle.stack([x1, x2, x3], axis=0)
+             print(out.shape)  # [3, 1, 2]
+             print(out.numpy())

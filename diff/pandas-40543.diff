@@ -1,0 +1,61 @@
+diff --git a/pandas/core/apply.py b/pandas/core/apply.py
+index 3a2c2d7124963..cb20f6c69e6f1 100644
+--- a/pandas/core/apply.py
++++ b/pandas/core/apply.py
+@@ -633,25 +633,18 @@ def agg(self):
+         obj = self.obj
+         axis = self.axis
+ 
+-        try:
+-            if axis == 1:
+-                result = FrameRowApply(
+-                    obj.T,
+-                    self.orig_f,
+-                    self.raw,
+-                    self.result_type,
+-                    self.args,
+-                    self.kwargs,
+-                ).agg()
+-                result = result.T if result is not None else result
+-            else:
+-                result = super().agg()
+-        except TypeError as err:
+-            exc = TypeError(
+-                "DataFrame constructor called with "
+-                f"incompatible data and dtype: {err}"
+-            )
+-            raise exc from err
++        if axis == 1:
++            result = FrameRowApply(
++                obj.T,
++                self.orig_f,
++                self.raw,
++                self.result_type,
++                self.args,
++                self.kwargs,
++            ).agg()
++            result = result.T if result is not None else result
++        else:
++            result = super().agg()
+ 
+         if result is None:
+             result = obj.apply(self.orig_f, axis, args=self.args, **self.kwargs)
+diff --git a/pandas/tests/apply/test_invalid_arg.py b/pandas/tests/apply/test_invalid_arg.py
+index 690d6bed0cb9b..73bc5b14335d4 100644
+--- a/pandas/tests/apply/test_invalid_arg.py
++++ b/pandas/tests/apply/test_invalid_arg.py
+@@ -272,6 +272,14 @@ def test_agg_cython_table_raises_series(series, func, expected):
+         series.agg(func)
+ 
+ 
++def test_agg_none_to_type():
++    # GH 40543
++    df = DataFrame({"a": [None]})
++    msg = re.escape("int() argument must be a string")
++    with pytest.raises(TypeError, match=msg):
++        df.agg({"a": int})
++
++
+ def test_transform_none_to_type():
+     # GH#34377
+     df = DataFrame({"a": [None]})

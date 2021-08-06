@@ -1,0 +1,88 @@
+diff --git a/pandas/_libs/tslibs/timedeltas.pyx b/pandas/_libs/tslibs/timedeltas.pyx
+index a5b502f3f4071..1c3e69e21aa18 100644
+--- a/pandas/_libs/tslibs/timedeltas.pyx
++++ b/pandas/_libs/tslibs/timedeltas.pyx
+@@ -237,7 +237,7 @@ def array_to_timedelta64(object[:] values, unit=None, errors='raise'):
+ 
+     if unit is not None:
+         for i in range(n):
+-            if isinstance(values[i], str):
++            if isinstance(values[i], str) and errors != "coerce":
+                 raise ValueError(
+                     "unit must not be specified if the input contains a str"
+                 )
+diff --git a/pandas/core/arrays/timedeltas.py b/pandas/core/arrays/timedeltas.py
+index d0657994dd81c..f33b569b3d1f7 100644
+--- a/pandas/core/arrays/timedeltas.py
++++ b/pandas/core/arrays/timedeltas.py
+@@ -882,9 +882,10 @@ def sequence_to_td64ns(data, copy=False, unit=None, errors="raise"):
+     ----------
+     data : list-like
+     copy : bool, default False
+-    unit : str, default "ns"
+-        The timedelta unit to treat integers as multiples of.
+-        Must be un-specifed if the data contains a str.
++    unit : str, optional
++        The timedelta unit to treat integers as multiples of. For numeric
++        data this defaults to ``'ns'``.
++        Must be un-specified if the data contains a str and ``errors=="raise"``.
+     errors : {"raise", "coerce", "ignore"}, default "raise"
+         How to handle elements that cannot be converted to timedelta64[ns].
+         See ``pandas.to_timedelta`` for details.
+diff --git a/pandas/core/tools/timedeltas.py b/pandas/core/tools/timedeltas.py
+index 87eac93a6072c..a643c312ec358 100644
+--- a/pandas/core/tools/timedeltas.py
++++ b/pandas/core/tools/timedeltas.py
+@@ -26,15 +26,24 @@ def to_timedelta(arg, unit=None, errors="raise"):
+     ----------
+     arg : str, timedelta, list-like or Series
+         The data to be converted to timedelta.
+-    unit : str, default 'ns'
+-        Must not be specified if the arg is/contains a str.
+-        Denotes the unit of the arg. Possible values:
+-        ('W', 'D', 'days', 'day', 'hours', hour', 'hr', 'h',
+-        'm', 'minute', 'min', 'minutes', 'T', 'S', 'seconds',
+-        'sec', 'second', 'ms', 'milliseconds', 'millisecond',
+-        'milli', 'millis', 'L', 'us', 'microseconds', 'microsecond',
+-        'micro', 'micros', 'U', 'ns', 'nanoseconds', 'nano', 'nanos',
+-        'nanosecond', 'N').
++    unit : str, optional
++        Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
++
++        Possible values:
++
++        * 'W'
++        * 'D' / 'days' / 'day'
++        * 'hours' / 'hour' / 'hr' / 'h'
++        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
++        * 'S' / 'seconds' / 'sec' / 'second'
++        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
++        * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
++        * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
++
++        .. versionchanged:: 1.1.0
++
++           Must not be specified when `arg` context strings and
++           ``errors="raise"``.
+ 
+     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+         - If 'raise', then invalid parsing will raise an exception.
+diff --git a/pandas/tests/tools/test_to_timedelta.py b/pandas/tests/tools/test_to_timedelta.py
+index e3cf3a7f16a82..1e193f22a6698 100644
+--- a/pandas/tests/tools/test_to_timedelta.py
++++ b/pandas/tests/tools/test_to_timedelta.py
+@@ -155,3 +155,14 @@ def test_to_timedelta_float(self):
+         result = pd.to_timedelta(arr, unit="s")
+         expected_asi8 = np.arange(999990000, int(1e9), 1000, dtype="int64")
+         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
++
++    def test_to_timedelta_coerce_strings_unit(self):
++        arr = np.array([1, 2, "error"], dtype=object)
++        result = pd.to_timedelta(arr, unit="ns", errors="coerce")
++        expected = pd.to_timedelta([1, 2, pd.NaT], unit="ns")
++        tm.assert_index_equal(result, expected)
++
++    def test_to_timedelta_ignore_strings_unit(self):
++        arr = np.array([1, 2, "error"], dtype=object)
++        result = pd.to_timedelta(arr, unit="ns", errors="ignore")
++        tm.assert_numpy_array_equal(result, arr)

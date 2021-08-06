@@ -1,0 +1,81 @@
+diff --git a/python/ray/autoscaler/_private/command_runner.py b/python/ray/autoscaler/_private/command_runner.py
+index 7f11ae176c5..6da60fbb163 100644
+--- a/python/ray/autoscaler/_private/command_runner.py
++++ b/python/ray/autoscaler/_private/command_runner.py
+@@ -235,6 +235,7 @@ def run(
+             if environment_variables:
+                 cmd = _with_environment_variables(cmd, environment_variables)
+             cmd = _with_interactive(cmd)
++            cmd_prefix = " ".join(final_cmd)
+             final_cmd += cmd
+             # `kubectl exec` + subprocess w/ list of args has unexpected
+             # side-effects.
+@@ -248,8 +249,7 @@ def run(
+                     self.process_runner.check_call(final_cmd, shell=True)
+             except subprocess.CalledProcessError:
+                 if exit_on_fail:
+-                    quoted_cmd = " ".join(final_cmd[:-1] +
+-                                          [quote(final_cmd[-1])])
++                    quoted_cmd = cmd_prefix + quote(" ".join(cmd))
+                     logger.error(
+                         self.log_prefix +
+                         "Command failed: \n\n  {}\n".format(quoted_cmd))
+diff --git a/python/ray/tests/test_autoscaler.py b/python/ray/tests/test_autoscaler.py
+index 752d3c354a8..f09fe07025e 100644
+--- a/python/ray/tests/test_autoscaler.py
++++ b/python/ray/tests/test_autoscaler.py
+@@ -1,5 +1,6 @@
+ import os
+ import shutil
++from subprocess import CalledProcessError
+ import tempfile
+ import threading
+ import time
+@@ -48,7 +49,8 @@ def __init__(self, fail_cmds=[]):
+     def check_call(self, cmd, *args, **kwargs):
+         for token in self.fail_cmds:
+             if token in str(cmd):
+-                raise Exception("Failing command on purpose")
++                raise CalledProcessError(1, token,
++                                         "Failing command on purpose")
+         self.calls.append(cmd)
+ 
+     def check_output(self, cmd):
+diff --git a/python/ray/tests/test_command_runner.py b/python/ray/tests/test_command_runner.py
+index bb87a44d2ea..7944c792b1a 100644
+--- a/python/ray/tests/test_command_runner.py
++++ b/python/ray/tests/test_command_runner.py
+@@ -1,4 +1,6 @@
++import logging
+ import pytest
++from unittest.mock import patch
+ from ray.tests.test_autoscaler import MockProvider, MockProcessRunner
+ from ray.autoscaler._private.command_runner import CommandRunnerInterface, \
+     SSHCommandRunner, _with_environment_variables, DockerCommandRunner, \
+@@ -123,7 +125,8 @@ def test_ssh_command_runner():
+ 
+ 
+ def test_kubernetes_command_runner():
+-    process_runner = MockProcessRunner()
++    fail_cmd = "fail command"
++    process_runner = MockProcessRunner([fail_cmd])
+     provider = MockProvider()
+     provider.create_node({}, {}, 1)
+     args = {
+@@ -155,6 +158,16 @@ def test_kubernetes_command_runner():
+ 
+     assert process_runner.calls[0] == " ".join(expected)
+ 
++    logger = logging.getLogger("ray.autoscaler._private.command_runner")
++    with pytest.raises(SystemExit) as pytest_wrapped_e, patch.object(
++            logger, "error") as mock_logger_error:
++        cmd_runner.run(fail_cmd, exit_on_fail=True)
++
++    failed_cmd_expected = f'prefixCommand failed: \n\n  kubectl -n namespace exec -it 0 --\'bash --login -c -i \'"\'"\'true && source ~/.bashrc && export OMP_NUM_THREADS=1 PYTHONWARNINGS=ignore && ({fail_cmd})\'"\'"\'\'\n'  # noqa: E501
++    mock_logger_error.assert_called_once_with(failed_cmd_expected)
++    assert pytest_wrapped_e.type == SystemExit
++    assert pytest_wrapped_e.value.code == 1
++
+ 
+ def test_docker_command_runner():
+     process_runner = MockProcessRunner()

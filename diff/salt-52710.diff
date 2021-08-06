@@ -1,0 +1,62 @@
+diff --git a/salt/states/grains.py b/salt/states/grains.py
+index ca3a0bc9248f5..7121d9701bf33 100644
+--- a/salt/states/grains.py
++++ b/salt/states/grains.py
+@@ -45,6 +45,30 @@ def exists(name, delimiter=DEFAULT_TARGET_DELIM):
+     return ret
+ 
+ 
++def make_hashable(list_grain, result=None):
++    '''
++    Ensure that a list grain is hashable.
++
++    list_grain
++        The list grain that should be hashable
++
++    result
++        This function is recursive, so it must be possible to use a
++        sublist as parameter to the function. Should not be used by a caller
++        outside of the function.
++
++    Make it possible to compare two list grains to each other if the list
++    contains complex objects.
++    '''
++    result = result or set()
++    for sublist in list_grain:
++        if type(sublist) == list:
++            make_hashable(sublist, result)
++        else:
++            result.add(frozenset(sublist))
++    return result
++
++
+ def present(name, value, delimiter=DEFAULT_TARGET_DELIM, force=False):
+     '''
+     Ensure that a grain is set
+@@ -174,7 +198,7 @@ def list_present(name, value, delimiter=DEFAULT_TARGET_DELIM):
+             ret['comment'] = 'Grain {0} is not a valid list'.format(name)
+             return ret
+         if isinstance(value, list):
+-            if set(value).issubset(set(__salt__['grains.get'](name))):
++            if make_hashable(value).issubset(make_hashable(__salt__['grains.get'](name))):
+                 ret['comment'] = 'Value {1} is already in grain {0}'.format(name, value)
+                 return ret
+             elif name in __context__.get('pending_grains', {}):
+diff --git a/tests/unit/states/test_grains.py b/tests/unit/states/test_grains.py
+index 15aac46adbe6c..c30d38817bb88 100644
+--- a/tests/unit/states/test_grains.py
++++ b/tests/unit/states/test_grains.py
+@@ -100,6 +100,13 @@ def test_exists_found(self):
+             self.assertEqual(ret['comment'], 'Grain exists')
+             self.assertEqual(ret['changes'], {})
+ 
++    # 'make_hashable' function tests: 1
++
++    def test_make_hashable(self):
++        with self.setGrains({'cmplx_lst_grain': [{'a': 'aval'}, {'foo': 'bar'}]}):
++            hashable_list = {'cmplx_lst_grain': [{'a': 'aval'}, {'foo': 'bar'}]}
++            self.assertEqual(grains.make_hashable(grains.__grains__).issubset(grains.make_hashable(hashable_list)), True)
++
+     # 'present' function tests: 12
+ 
+     def test_present_add(self):

@@ -1,0 +1,45 @@
+diff --git a/homeassistant/helpers/script.py b/homeassistant/helpers/script.py
+index de5951a3ad491..48a4bffc6a3ef 100644
+--- a/homeassistant/helpers/script.py
++++ b/homeassistant/helpers/script.py
+@@ -118,7 +118,7 @@ def _fire_event(self, action):
+     def _check_condition(self, action, variables):
+         """Test if condition is matching."""
+         self.last_action = action.get(CONF_ALIAS, action[CONF_CONDITION])
+-        check = condition.from_config(action)(self.hass, False)
++        check = condition.from_config(action)(self.hass, variables)
+# 넘길 때 애초에 잘못 넘긴건데...
+# variables라는 인자는 다 variables로 넘기고 있는데
+# 여기서 bool로 넘김
+
+# 애초에 bool이 non-iterableg해서 난 에러이므로
+# 여기를 고치면 된다??
+
+         self._log("Test condition {}: {}".format(self.last_action, check))
+         return check
+ 
+diff --git a/tests/helpers/test_script.py b/tests/helpers/test_script.py
+index 38b9b467d00a3..3fcb144ac1f75 100644
+--- a/tests/helpers/test_script.py
++++ b/tests/helpers/test_script.py
+@@ -3,6 +3,8 @@
+ from datetime import timedelta
+ import unittest
+ 
++# Otherwise can't test just this file (import order issue)
++import homeassistant.components  # noqa
+ import homeassistant.util.dt as dt_util
+ from homeassistant.helpers import script
+ 
+@@ -233,9 +235,8 @@ def record_event(event):
+         script_obj = script.Script(self.hass, [
+             {'event': event},
+             {
+-                'condition': 'state',
+-                'entity_id': 'test.entity',
+-                'state': 'hello',
++                'condition': 'template',
++                'value_template': '{{ states.test.entity.state == "hello" }}',
+             },
+             {'event': event},
+         ])

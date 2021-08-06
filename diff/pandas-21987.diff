@@ -1,0 +1,187 @@
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index 06498b28cb77b..8751e882b825b 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -179,7 +179,7 @@ Other Enhancements
+ - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
+ - :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
+ - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
+--
++- :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
+ 
+ .. _whatsnew_0240.api_breaking:
+ 
+diff --git a/pandas/core/frame.py b/pandas/core/frame.py
+index 078e176ff2b99..16332738ce610 100644
+--- a/pandas/core/frame.py
++++ b/pandas/core/frame.py
+@@ -16,7 +16,6 @@
+ import collections
+ import itertools
+ import sys
+-import types
+ import warnings
+ from textwrap import dedent
+ 
+@@ -75,7 +74,8 @@
+ from pandas.core.arrays import Categorical, ExtensionArray
+ import pandas.core.algorithms as algorithms
+ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
+-                           OrderedDict, raise_with_traceback)
++                           OrderedDict, raise_with_traceback,
++                           string_and_binary_types)
+ from pandas import compat
+ from pandas.compat import PY36
+ from pandas.compat.numpy import function as nv
+@@ -267,7 +267,7 @@ class DataFrame(NDFrame):
+ 
+     Parameters
+     ----------
+-    data : numpy ndarray (structured or homogeneous), dict, or DataFrame
++    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
+         Dict can contain Series, arrays, constants, or list-like objects
+ 
+         .. versionchanged :: 0.23.0
+@@ -391,8 +391,11 @@ def __init__(self, data=None, index=None, columns=None, dtype=None,
+             else:
+                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
+                                          copy=copy)
+-        elif isinstance(data, (list, types.GeneratorType)):
+-            if isinstance(data, types.GeneratorType):
++
++        # For data is list-like, or Iterable (will consume into list)
++        elif (isinstance(data, collections.Iterable)
++              and not isinstance(data, string_and_binary_types)):
++            if not isinstance(data, collections.Sequence):
+                 data = list(data)
+             if len(data) > 0:
+                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
+@@ -417,8 +420,6 @@ def __init__(self, data=None, index=None, columns=None, dtype=None,
+                                              copy=copy)
+             else:
+                 mgr = self._init_dict({}, index, columns, dtype=dtype)
+-        elif isinstance(data, collections.Iterator):
+-            raise TypeError("data argument can't be an iterator")
+         else:
+             try:
+                 arr = np.array(data, dtype=dtype, copy=copy)
+diff --git a/pandas/core/series.py b/pandas/core/series.py
+index d4c11b19082ab..08b77c505463e 100644
+--- a/pandas/core/series.py
++++ b/pandas/core/series.py
+@@ -6,7 +6,7 @@
+ # pylint: disable=E1101,E1103
+ # pylint: disable=W0703,W0622,W0613,W0201
+ 
+-import types
++import collections
+ import warnings
+ from textwrap import dedent
+ 
+@@ -144,7 +144,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
+ 
+     Parameters
+     ----------
+-    data : array-like, dict, or scalar value
++    data : array-like, Iterable, dict, or scalar value
+         Contains data stored in Series
+ 
+         .. versionchanged :: 0.23.0
+@@ -238,12 +238,13 @@ def __init__(self, data=None, index=None, dtype=None, name=None,
+ 
+             elif is_extension_array_dtype(data):
+                 pass
+-            elif (isinstance(data, types.GeneratorType) or
+-                  (compat.PY3 and isinstance(data, map))):
+-                data = list(data)
+             elif isinstance(data, (set, frozenset)):
+                 raise TypeError("{0!r} type is unordered"
+                                 "".format(data.__class__.__name__))
++            # If data is Iterable but not list-like, consume into list.
++            elif (isinstance(data, collections.Iterable)
++                  and not isinstance(data, collections.Sized)):
++                data = list(data)
+             else:
+ 
+                 # handle sparse passed here (and force conversion)
+diff --git a/pandas/tests/frame/test_constructors.py b/pandas/tests/frame/test_constructors.py
+index bef38288ff3a5..4426d4ba8ead1 100644
+--- a/pandas/tests/frame/test_constructors.py
++++ b/pandas/tests/frame/test_constructors.py
+@@ -865,12 +865,6 @@ def test_constructor_more(self):
+         dm = DataFrame(index=np.arange(10))
+         assert dm.values.shape == (10, 0)
+ 
+-        # corner, silly
+-        # TODO: Fix this Exception to be better...
+-        with tm.assert_raises_regex(ValueError, 'constructor not '
+-                                    'properly called'):
+-            DataFrame((1, 2, 3))
+-
+         # can't cast
+         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
+         with tm.assert_raises_regex(ValueError, 'cast'):
+@@ -953,6 +947,17 @@ def __len__(self, n):
+                             array.array('i', range(10))])
+         tm.assert_frame_equal(result, expected, check_dtype=False)
+ 
++    def test_constructor_iterable(self):
++        # GH 21987
++        class Iter():
++            def __iter__(self):
++                for i in range(10):
++                    yield [1, 2, 3]
++
++        expected = DataFrame([[1, 2, 3]] * 10)
++        result = DataFrame(Iter())
++        tm.assert_frame_equal(result, expected)
++
+     def test_constructor_iterator(self):
+ 
+         expected = DataFrame([list(range(10)), list(range(10))])
+@@ -1374,10 +1379,6 @@ def test_constructor_miscast_na_int_dtype(self):
+         expected = DataFrame([[np.nan, 1], [1, 0]])
+         tm.assert_frame_equal(df, expected)
+ 
+-    def test_constructor_iterator_failure(self):
+-        with tm.assert_raises_regex(TypeError, 'iterator'):
+-            DataFrame(iter([1, 2, 3]))
+-
+     def test_constructor_column_duplicates(self):
+         # it works! #2079
+         df = DataFrame([[8, 5]], columns=['a', 'a'])
+diff --git a/pandas/tests/series/test_constructors.py b/pandas/tests/series/test_constructors.py
+index e95e41bbdeefa..145682e5be863 100644
+--- a/pandas/tests/series/test_constructors.py
++++ b/pandas/tests/series/test_constructors.py
+@@ -156,12 +156,29 @@ def test_constructor_series(self):
+ 
+         assert_series_equal(s2, s1.sort_index())
+ 
+-    def test_constructor_iterator(self):
++    def test_constructor_iterable(self):
++        # GH 21987
++        class Iter():
++            def __iter__(self):
++                for i in range(10):
++                    yield i
+ 
++        expected = Series(list(range(10)), dtype='int64')
++        result = Series(Iter(), dtype='int64')
++        assert_series_equal(result, expected)
++
++    def test_constructor_sequence(self):
++        # GH 21987
+         expected = Series(list(range(10)), dtype='int64')
+         result = Series(range(10), dtype='int64')
+         assert_series_equal(result, expected)
+ 
++    def test_constructor_single_str(self):
++        # GH 21987
++        expected = Series(['abc'])
++        result = Series('abc')
++        assert_series_equal(result, expected)
++
+     def test_constructor_list_like(self):
+ 
+         # make sure that we are coercing different

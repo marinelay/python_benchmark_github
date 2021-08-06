@@ -1,0 +1,313 @@
+diff --git a/paddle/fluid/operators/reshape_op.cc b/paddle/fluid/operators/reshape_op.cc
+index 0059921c0466..ccf43330840b 100644
+--- a/paddle/fluid/operators/reshape_op.cc
++++ b/paddle/fluid/operators/reshape_op.cc
+@@ -27,8 +27,12 @@ inline std::vector<int> get_new_shape(
+   std::vector<int> vec_new_shape;
+   for (size_t i = 0; i < list_new_shape_tensor.size(); ++i) {
+     auto tensor = list_new_shape_tensor[i];
+-    PADDLE_ENFORCE_EQ(tensor->dims(), framework::make_ddim({1}),
+-                      "shape of dim tensor should be [1]");
++    PADDLE_ENFORCE_EQ(
++        tensor->dims(), framework::make_ddim({1}),
++        "ShapeError: If the element type of 'shape' in ReshapeOp is Tensor, "
++        "the element's shape must be [1]. But received the element's shape "
++        "is [%s]",
++        tensor->dims());
+     if (platform::is_gpu_place(tensor->place())) {
+       framework::Tensor temp;
+       TensorCopySync(*tensor, platform::CPUPlace(), &temp);
+@@ -58,8 +62,12 @@ class ReshapeOp : public framework::OperatorWithKernel {
+     if (ctx->HasInputs("ShapeTensor")) {
+       // top prority shape
+       auto ShapeTensor = ctx->Inputs("ShapeTensor");
+-      PADDLE_ENFORCE_GT(ShapeTensor.size(), 0,
+-                        "The size of Input(ShapeTensor) can't be zero");
++      PADDLE_ENFORCE_GT(
++          ShapeTensor.size(), 0,
++          "ShapeError: When `shape` in ReshapeOp is a list or tuple "
++          "which contains Tensor, the shape's size can't be zero. "
++          "But received shape's size is %d.",
++          ShapeTensor.size());
+       auto infer_shape = ctx->Attrs().Get<std::vector<int>>("shape");
+       const int64_t copy_dim_val = 0;
+       auto in_dims = ctx->GetInputDim("X");
+@@ -67,8 +75,10 @@ class ReshapeOp : public framework::OperatorWithKernel {
+         if (infer_shape[i] == copy_dim_val) {
+           PADDLE_ENFORCE_LT(
+               static_cast<int>(i), in_dims.size(),
+-              "The dimension of data to copy from input must be less "
+-              "than the dimension of input.");
++              "ShapeError: The index of 0 in `shape` must be less than "
++              "the input tensor X's dimensions. But received shape[%d] "
++              "= 0, X's dimensions = %d, X's shape = [%s].",
++              i, in_dims.size(), in_dims);
+           infer_shape[i] = in_dims[i];
+         }
+       }
+@@ -98,8 +108,10 @@ class ReshapeOp : public framework::OperatorWithKernel {
+       return;
+     }
+ 
+-    PADDLE_ENFORCE_EQ(!shape.empty(), true,
+-                      "The shape information must be set by Attr(shape).");
++    PADDLE_ENFORCE_EQ(
++        !shape.empty(), true,
++        "ShapeError: The parameter 'shape' in ReshapeOp must be set. "
++        "But received 'shape' is empty.");
+     auto x_dims = ctx->GetInputDim("X");
+     auto out_dims = ValidateShape(shape, x_dims);
+     ctx->SetOutputDim("Out", out_dims);
+@@ -128,18 +140,25 @@ class ReshapeOp : public framework::OperatorWithKernel {
+       if (shape[i] == unk_dim_val) {
+         PADDLE_ENFORCE_EQ(
+             unk_dim_idx, -1,
+-            "Only one input dimension of Attr(shape) can be unknown.");
++            "ShapeError: Only one dimension value of 'shape' in ReshapeOp can "
++            "be -1. But received shape = [%s], shape[%d] is also -1.",
++            framework::make_ddim(shape), i);
+         unk_dim_idx = i;
+       } else if (shape[i] == copy_dim_val) {
+         PADDLE_ENFORCE_LT(
+             static_cast<int>(i), in_dims.size(),
+-            "The index of dimension to copy from input shape must be less "
+-            "than the size of input shape.");
++            "ShapeError: The index of 0 in `shape` must be less than "
++            "the input tensor X's dimensions. "
++            "But received shape = [%s], shape[%d] = 0, X's shape = [%s], "
++            "X's dimensions = %d.",
++            framework::make_ddim(shape), i, in_dims, in_dims.size());
+       } else {
+         PADDLE_ENFORCE_GT(
+             shape[i], 0,
+-            "Each input dimension of Attr(shape) must not be negtive except "
+-            "one unknown dimension.");
++            "ShapeError: Each dimension value of 'shape' in ReshapeOp must not "
++            "be negtive except one unknown dimension. "
++            "But received  shape = [%s], shape[%d] = %d.",
++            framework::make_ddim(shape), i, shape[i]);
+       }
+ 
+       capacity *= (shape[i] ? shape[i] : in_dims[i]);
+@@ -155,12 +174,25 @@ class ReshapeOp : public framework::OperatorWithKernel {
+         // the following check will fail.
+         output_shape[unk_dim_idx] = -in_size / capacity;
+         PADDLE_ENFORCE_EQ(output_shape[unk_dim_idx] * capacity, -in_size,
+-                          "Invalid shape is given.");
++                          "ShapeError: The 'shape' in ReshapeOp is invalid. "
++                          "The input tensor X'size must be divisible by known "
++                          "capacity of 'shape'. "
++                          "But received X's shape = [%s], X's size = %d, "
++                          "'shape' is [%s], known "
++                          "capacity of 'shape' is %d.",
++                          in_dims, in_size, framework::make_ddim(shape),
++                          capacity);
+       } else {
+         output_shape[unk_dim_idx] = -1;
+       }
+     } else {
+-      PADDLE_ENFORCE_EQ(capacity, in_size, "Invalid shape is given.");
++      PADDLE_ENFORCE_EQ(
++          capacity, in_size,
++          "ShapeError: The 'shape' in ReshapeOp is invalid. "
++          "The input tensor X'size must be equal to the capacity of 'shape'. "
++          "But received X's shape = [%s], X's size = %d, 'shape' is [%s], the "
++          "capacity of 'shape' is %d.",
++          in_dims, in_size, framework::make_ddim(shape), capacity);
+     }
+     return framework::make_ddim(output_shape);
+   }
+@@ -188,22 +220,25 @@ class ReshapeOpMaker : public framework::OpProtoAndCheckerMaker {
+   void Make() override {
+     AddInput("X", "(Tensor). The input tensor of reshape operator.");
+     AddInput("Shape",
+-             "(Tensor<int32>, optional). If provided, reshape according to "
+-             "this given shape. That is to say it has a higher priority than "
+-             "the shape attribute, while the shape attribute still should be "
++             "(Tensor<int32>, optional). Target shape of reshape operator. "
++             "It has a higher priority than Attr(shape) but a lower priority "
++             "than Input(ShapeTensor). The Attr(shape) still should be "
+              "set correctly to gurantee shape inference in compile time.")
+         .AsDispensable();
+     AddInput(
+         "ShapeTensor",
+-        "(vector<Tensor<int32>>, optional). If provided, reshape will use this"
+-        "The shape of the tensor in vector MUST BE [1]"
+-        "it has the highest priority compare with Input(Shape) and "
+-        "attr(shape).")
++        "(vector<Tensor<int32>>, optional). Target shape of reshape operator. "
++        "It has the highest priority compare with Input(Shape) and "
++        "Attr(shape)."
++        "The shape of the element in vector must be [1].")
+         .AsDuplicable()
+         .AsDispensable();
+     AddOutput("Out", "(Tensor). The output tensor of reshape operator.");
+     AddAttr<std::vector<int>>(
+-        "shape", "(std::vector<int>) Target shape of reshape operator.")
++        "shape",
++        "(std::vector<int>) Target shape of reshape operator."
++        "It has the lowest priority compare with Input(Shape) and "
++        " Input(ShapeTensor).")
+         .SetDefault({});
+     AddComment(R"DOC(
+ Reshape Operator.
+diff --git a/python/paddle/fluid/layers/nn.py b/python/paddle/fluid/layers/nn.py
+index a2687985e15c..ef359bac0eea 100755
+--- a/python/paddle/fluid/layers/nn.py
++++ b/python/paddle/fluid/layers/nn.py
+@@ -7922,13 +7922,25 @@ def reshape(x, shape, actual_shape=None, act=None, inplace=False, name=None):
+             dim = fluid.layers.fill_constant([1], "int32", 5)
+             reshaped_2 = fluid.layers.reshape(data_2, shape=[dim, 10])
+     """
++    if not isinstance(x, Variable):
++        raise TypeError(
++            "The type of 'x' in reshape must be Variable, but received %s." %
++            (type(x)))
++
++    if convert_dtype(x.dtype) not in ['float32', 'float64', 'int32', 'int64']:
++        raise TypeError(
++            "The data type of 'x' in reshape must be float32, float64, int32 or int64, "
++            "but received %s." % (convert_dtype(x.dtype)))
+ 
+     if not isinstance(shape, (list, tuple, Variable)):
+         raise TypeError(
+-            "Input shape must be an Variable or python list or tuple.")
++            "The type of 'shape' in reshape must be Variable, list or tuple, but "
++            "received %s." % (type(shape)))
+ 
+     if not isinstance(actual_shape, Variable) and (actual_shape is not None):
+-        raise TypeError("actual_shape should either be Variable or None.")
++        raise TypeError(
++            "The type of 'actual_shape' in reshape must be Variable "
++            "or None, but received %s." % (type(actual_shape)))
+ 
+     helper = LayerHelper("reshape2", **locals())
+     inputs = {"X": x}
+@@ -7963,15 +7975,21 @@ def get_attr_shape(list_shape):
+                 attrs_shape.append(dim_size)
+                 if dim_size == -1:
+                     assert unk_dim_idx == -1, (
+-                        "Only one dimension in shape can be unknown.")
++                        "Only one dimension value of 'shape' in reshape can "
++                        "be -1. But received shape[%d] is also -1." % dim_idx)
+                     unk_dim_idx = dim_idx
+                 elif dim_size == 0:
+                     assert dim_idx < len(x.shape), (
+-                        "The indice of 0s in shape can not exceed Rank(X).")
++                        "The index of 0 in `shape` must be less than "
++                        "the input tensor X's dimensions. "
++                        "But received shape[%d] = 0, X's dimensions = %d." %
++                        (dim_idx, len(x.shape)))
+                 else:
+                     assert dim_size > 0, (
+-                        "Each dimension size given in shape must not be negtive "
+-                        "except one unknown dimension.")
++                        "Each dimension value of 'shape' in reshape must not "
++                        "be negtive except one unknown dimension. "
++                        "But received shape[%d] = %s." %
++                        (dim_idx, str(dim_size)))
+         return attrs_shape
+ 
+     if in_dygraph_mode():
+@@ -7983,7 +8001,8 @@ def get_attr_shape(list_shape):
+             inputs["Shape"] = shape
+         elif isinstance(shape, (list, tuple)):
+             assert len(shape) > 0, (
+-                "The size of argument(shape) can't be zero.")
++                "The size of 'shape' in reshape can't be zero, "
++                "but received %s." % len(shape))
+             attrs["shape"] = get_attr_shape(shape)
+             if contain_var(shape):
+                 inputs['ShapeTensor'] = get_new_shape_tensor(shape)
+diff --git a/python/paddle/fluid/tests/unittests/test_reshape_op.py b/python/paddle/fluid/tests/unittests/test_reshape_op.py
+index beaffd055c11..ea43b6b603ba 100644
+--- a/python/paddle/fluid/tests/unittests/test_reshape_op.py
++++ b/python/paddle/fluid/tests/unittests/test_reshape_op.py
+@@ -19,6 +19,7 @@
+ 
+ from op_test import OpTest
+ import paddle.fluid as fluid
++from paddle.fluid import compiler, Program, program_guard
+ 
+ 
+ # situation 1: have shape( list, no tensor), no actual shape(Tensor)
+@@ -202,10 +203,13 @@ def test_1(self):
+ 
+         # situation 1: have shape( list, no tensor), no actual shape(Tensor)
+         out_1 = fluid.layers.reshape(x, shape)
++
+         # situation 2: have shape(list, no tensor), have actual shape(Tensor)
+         out_2 = fluid.layers.reshape(x, shape=shape, actual_shape=actual_shape)
++
+         # Situation 3: have shape(list, have tensor), no actual shape(Tensor)
+         out_3 = fluid.layers.reshape(x, shape=[positive_five, 10])
++
+         # Situation 4: have shape(Tensor), no actual shape(Tensor)
+         out_4 = fluid.layers.reshape(x, shape=actual_shape)
+ 
+@@ -222,5 +226,65 @@ def test_1(self):
+         assert np.array_equal(res_4, input.reshape(shape))
+ 
+ 
++# Test Input Error
++class TestReshapeOpError(OpTest):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # The x type of reshape_op must be Variable.
++            def test_x_type():
++                x1 = fluid.create_lod_tensor(
++                    np.array([[-1]]), [[1]], fluid.CPUPlace())
++                fluid.layers.reshape(x1, shape=[1])
++
++            self.assertRaises(TypeError, test_x_type)
++
++            # The x dtype of reshape_op must be float32, float64, int32 or int64.
++            def test_x_dtype():
++                x2 = fluid.layers.data(
++                    name="x2",
++                    shape=[2, 25],
++                    append_batch_size=False,
++                    dtype="float16")
++                fluid.layers.reshape(x2, shape=[2, 5, 5])
++
++            self.assertRaises(TypeError, test_x_dtype)
++
++            x3 = fluid.layers.data(
++                name="x3",
++                shape=[2, 25],
++                append_batch_size=False,
++                dtype="float32")
++
++            # The argument shape's type of reshape_op must be list, tuple or Variable.
++            def test_shape_type():
++                fluid.layers.reshape(x3, shape=1)
++
++            self.assertRaises(TypeError, test_shape_type)
++
++            # The argument actual_shape's type of reshape_op must be Variable or None.
++            def test_actual_shape_type():
++                fluid.layers.reshape(x3, shape=[25, 2], actual_shape=1)
++
++            self.assertRaises(TypeError, test_actual_shape_type)
++
++            # The argument shape have more than one -1.
++            def test_shape_1():
++                fluid.layers.reshape(x3, shape=[-1, -1, 5])
++
++            self.assertRaises(AssertionError, test_shape_1)
++
++            # The argument shape have element 0 whose index exceed the input dimension.
++            def test_shape_2():
++                fluid.layers.reshape(x3, [2, 5, 5, 0])
++
++            self.assertRaises(AssertionError, test_shape_2)
++
++            # The argument shape have more than one negtive value.
++            def test_shape_3():
++                fluid.layers.reshape(x3, [-1, -2, 5])
++
++            self.assertRaises(AssertionError, test_shape_3)
++
++
+ if __name__ == "__main__":
+     unittest.main()

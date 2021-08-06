@@ -1,0 +1,207 @@
+diff --git a/paddle/fluid/operators/select_input_op.cc b/paddle/fluid/operators/select_input_op.cc
+index fa0c3ac04d23..c35d18178fc3 100644
+--- a/paddle/fluid/operators/select_input_op.cc
++++ b/paddle/fluid/operators/select_input_op.cc
+@@ -40,9 +40,13 @@ class SelectInputOp : public framework::OperatorBase {
+     size_t output_branch = static_cast<size_t>(GetBranchNumber(mask));
+ 
+     const std::vector<std::string> &x_names = Inputs("X");
+-    PADDLE_ENFORCE_LT(output_branch, x_names.size(),
+-                      "Selected branch number is greater than actual branch "
+-                      "num in SelectInputOp");
++    PADDLE_ENFORCE_LT(
++        output_branch, x_names.size(),
++        platform::errors::InvalidArgument(
++            "Input 'Mask' in SelectInputOp is invalid. "
++            "'Mask' must be less than the size of input vector 'X'. "
++            "But received Mask = %d, X's size = %d.",
++            output_branch, x_names.size()));
+ 
+     const framework::Variable *selected_x =
+         scope.FindVar(x_names[output_branch]);
+diff --git a/paddle/fluid/operators/select_op_helper.h b/paddle/fluid/operators/select_op_helper.h
+index a159530d2a34..5df4f8c4a543 100644
+--- a/paddle/fluid/operators/select_op_helper.h
++++ b/paddle/fluid/operators/select_op_helper.h
+@@ -27,7 +27,11 @@ namespace operators {
+ // selected branch number.
+ inline int GetBranchNumber(const framework::LoDTensor &mask) {
+   PADDLE_ENFORCE_EQ(mask.numel(), 1,
+-                    "Mask in SelectOutputOp must have numel 1.");
++                    platform::errors::InvalidArgument(
++                        "The numel of Input(Mask) in SelectInputOp or "
++                        "SelectOutputOp must be 1. "
++                        "But received %d, and it's shape is [%s].",
++                        mask.numel(), mask.dims()));
+   if (platform::is_cpu_place(mask.place())) {
+     return mask.data<int>()[0];
+   }
+@@ -36,9 +40,10 @@ inline int GetBranchNumber(const framework::LoDTensor &mask) {
+ #ifdef PADDLE_WITH_CUDA
+   framework::TensorCopySync(mask, platform::CPUPlace(), cpu_mask.get());
+ #else
+-  PADDLE_THROW(
+-      "This version of PaddlePaddle doen NOT support GPU but got GPU tensor "
+-      "Mask in SelectOutputOp. Please compile WITH_GPU option");
++  PADDLE_THROW(platform::errors::PreconditionNotMet(
++      "This version of PaddlePaddle does NOT support GPU, "
++      "but got GPU tensor 'Mask' in SelectInputOp or SelectOutputOp. "
++      "Please compile PaddlePaddle WITH_GPU first."));
+ #endif
+   return cpu_mask->data<int>()[0];
+ }
+diff --git a/paddle/fluid/operators/select_output_op.cc b/paddle/fluid/operators/select_output_op.cc
+index 2db2c75396e3..8885c67295af 100644
+--- a/paddle/fluid/operators/select_output_op.cc
++++ b/paddle/fluid/operators/select_output_op.cc
+@@ -41,9 +41,13 @@ class SelectOutputOp : public framework::OperatorBase {
+     size_t output_branch = static_cast<size_t>(GetBranchNumber(mask));
+ 
+     const std::vector<std::string> &out_names = Outputs("Out");
+-    PADDLE_ENFORCE_LT(output_branch, out_names.size(),
+-                      "Selected branch number is greater than actual branch "
+-                      "num in SelectOutputOp");
++    PADDLE_ENFORCE_LT(
++        output_branch, out_names.size(),
++        platform::errors::InvalidArgument(
++            "Input 'Mask' in SelectOutputOp is invalid. "
++            "'Mask' must be less than the size of output vector 'Out'. "
++            "But received Mask = %d, Out's size = %d.",
++            output_branch, out_names.size()));
+ 
+     const framework::Variable *x = scope.FindVar(Input("X"));
+     framework::Variable *selected_out = scope.FindVar(out_names[output_branch]);
+diff --git a/python/paddle/fluid/layers/control_flow.py b/python/paddle/fluid/layers/control_flow.py
+index 4e301a212004..aca66e0118d9 100755
+--- a/python/paddle/fluid/layers/control_flow.py
++++ b/python/paddle/fluid/layers/control_flow.py
+@@ -56,6 +56,10 @@ def select_output(input, outputs, mask):
+         Variable: The outputs variables
+     """
+     helper = LayerHelper('select_output', **locals())
++    check_type(input, 'input', (Variable), 'select_output')
++    check_variable_and_dtype(mask, 'mask', ['int32'], 'select_output')
++    check_type(outputs, 'outputs', (list, tuple), 'select_output')
++
+     helper.append_op(
+         type='select_output',
+         inputs={'X': input,
+@@ -80,14 +84,12 @@ def select_input(inputs, mask):
+         Variable: The selected input variable
+     """
+     helper = LayerHelper('select_input', **locals())
+-    if isinstance(inputs, list) or isinstance(inputs, tuple):
+-        input_dtype = inputs[0].dtype
+-        input_shape = inputs[0].shape
+-        input_type = inputs[0].type
+-    else:
+-        input_dtype = inputs.dtype
+-        input_shape = inputs.shape
+-        input_type = inputs.type
++    check_type(inputs, 'inputs', (list, tuple), 'select_input')
++    check_variable_and_dtype(mask, 'mask', ['int32'], 'select_input')
++
++    input_dtype = inputs[0].dtype
++    input_shape = inputs[0].shape
++    input_type = inputs[0].type
+ 
+     out = helper.create_variable(
+         dtype=input_dtype, shape=input_shape, type=input_type)
+diff --git a/python/paddle/fluid/tests/unittests/test_select_input_output_op.py b/python/paddle/fluid/tests/unittests/test_select_input_output_op.py
+index bd66bf81b061..23b394516fc1 100644
+--- a/python/paddle/fluid/tests/unittests/test_select_input_output_op.py
++++ b/python/paddle/fluid/tests/unittests/test_select_input_output_op.py
+@@ -60,34 +60,67 @@ def test_forward_backward_list_output(self):
+                 self.assertTrue(np.allclose(np.asarray(ret[0]), feed_x))
+                 self.assertTrue(np.allclose(np.asarray(ret[1]), x_grad))
+ 
+-    def test_forward_backward_single_tensor_output(self):
+-        program = Program()
+-        with program_guard(program):
+-            x = layers.data(name='x', shape=[2], dtype='float32')
+-            x.stop_gradient = False  # For test gradient
++
++class TestSelectInputOpError(unittest.TestCase):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
+             mask = layers.data(name='mask', shape=[1], dtype='int32')
++            in1 = layers.data(name='in1', shape=[1], dtype='int32')
++
++            # 1. The type of inputs in select_input must be list or tuple.
++            def test_inputs_type():
++                select_input(1, mask)
++
++            self.assertRaises(TypeError, test_inputs_type)
++
++            # 2. The type of mask in select_input must be Variable.
++            def test_mask_type():
++                select_input([in1], mask=1)
++
++            self.assertRaises(TypeError, test_mask_type)
++
++            # 3. The dtype of mask in select_input must be int32 or int64.
++            def test_mask_dtype():
++                mask = layers.data(name='mask2', shape=[1], dtype='float32')
++                select_input([in1], mask)
++
++            self.assertRaises(TypeError, test_mask_dtype)
++
++
++class TestSelectOutput_Error(unittest.TestCase):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++
++            in1 = layers.data(name='in1', shape=[1], dtype='int32')
++            mask_int32 = layers.data(
++                name='mask_int32', shape=[1], dtype='int32')
++            mask_float32 = layers.data(
++                name='mask_float32', shape=[1], dtype='float32')
++            out1 = layers.data(name='out1', shape=[1], dtype='int32')
++
++            # 1. The type of input in select_output must Variable.
++            def test_input_type():
++                select_output(1, [out1], mask_int32)
++
++            self.assertRaises(TypeError, test_input_type)
++
++            # 2. The type of mask in select_output must be Variable.
++            def test_mask_type():
++                select_output(in1, [out1], mask=1)
++
++            self.assertRaises(TypeError, test_mask_type)
++
++            # 3. The dtype of mask in select_output must be int32 or int64.
++            def test_mask_dtype():
++                select_output(in1, [out1], mask=mask_float32)
++
++            self.assertRaises(TypeError, test_mask_dtype)
++
++            # 4. The type of mask in select_output must be list or tuple.
++            def test_outputs_type():
++                select_output(in1, out1, mask=mask_int32)
+ 
+-            out = program.current_block().create_var(
+-                dtype='float32', type=core.VarDesc.VarType.LOD_TENSOR)
+-
+-            select_output(x, out, mask)
+-            y = select_input(out, mask)
+-            mean = layers.mean(y)
+-            append_backward(mean)
+-
+-        place = fluid.CUDAPlace(0) if core.is_compiled_with_cuda(
+-        ) else fluid.CPUPlace()
+-        exe = Executor(place)
+-
+-        feed_x = np.asarray([1.3, -1.4]).astype(np.float32)
+-        feed_mask = np.asarray([0]).astype(np.int32)
+-        ret = exe.run(program,
+-                      feed={'x': feed_x,
+-                            'mask': feed_mask},
+-                      fetch_list=[y.name, x.grad_name])
+-        x_grad = np.asarray([0.5, 0.5]).astype(np.float32)
+-        self.assertTrue(np.allclose(np.asarray(ret[0]), feed_x))
+-        self.assertTrue(np.allclose(np.asarray(ret[1]), x_grad))
++            self.assertRaises(TypeError, test_outputs_type)
+ 
+ 
+ if __name__ == '__main__':

@@ -1,0 +1,89 @@
+diff --git a/doc/release/upcoming_changes/15802.expired.rst b/doc/release/upcoming_changes/15802.expired.rst
+new file mode 100644
+index 00000000000..1a1b373a77f
+--- /dev/null
++++ b/doc/release/upcoming_changes/15802.expired.rst
+@@ -0,0 +1,9 @@
++`numpy.insert` and `numpy.delete` can no longer be passed an axis on 0d arrays
++------------------------------------------------------------------------------
++This concludes a deprecation from 1.9, where when an ``axis`` argument was
++passed to a call to `~numpy.insert` and `~numpy.delete` on a 0d array, the
++``axis`` and ``obj`` argument and indices would be completely ignored.
++In these cases, ``insert(arr, "nonsense", 42, axis=0)`` would actually overwrite the
++entire array, while ``delete(arr, "nonsense", axis=0)`` would be ``arr.copy()``
++
++Now passing ``axis`` on a 0d array raises `~numpy.AxisError`.
+diff --git a/numpy/lib/function_base.py b/numpy/lib/function_base.py
+index 1c67f7c990c..5b2dec1c14b 100644
+--- a/numpy/lib/function_base.py
++++ b/numpy/lib/function_base.py
+@@ -4273,15 +4273,6 @@ def delete(arr, obj, axis=None):
+         # needed for np.matrix, which is still not 1d after being ravelled
+         ndim = arr.ndim
+         axis = ndim - 1
+-    elif ndim == 0:
+-        # 2013-09-24, 1.9
+-        warnings.warn(
+-            "in the future the special handling of scalars will be removed "
+-            "from delete and raise an error", DeprecationWarning, stacklevel=3)
+-        if wrap:
+-            return wrap(arr)
+-        else:
+-            return arr.copy(order=arrorder)
+     else:
+         axis = normalize_axis_index(axis, ndim)
+ 
+@@ -4515,17 +4506,6 @@ def insert(arr, obj, values, axis=None):
+         # needed for np.matrix, which is still not 1d after being ravelled
+         ndim = arr.ndim
+         axis = ndim - 1
+-    elif ndim == 0:
+-        # 2013-09-24, 1.9
+-        warnings.warn(
+-            "in the future the special handling of scalars will be removed "
+-            "from insert and raise an error", DeprecationWarning, stacklevel=3)
+-        arr = arr.copy(order=arrorder)
+-        arr[...] = values
+-        if wrap:
+-            return wrap(arr)
+-        else:
+-            return arr
+     else:
+         axis = normalize_axis_index(axis, ndim)
+     slobj = [slice(None)]*ndim
+diff --git a/numpy/lib/tests/test_function_base.py b/numpy/lib/tests/test_function_base.py
+index 860cf452bf7..65bc9f1ec5a 100644
+--- a/numpy/lib/tests/test_function_base.py
++++ b/numpy/lib/tests/test_function_base.py
+@@ -509,12 +509,11 @@ def test_multidim(self):
+                      insert(a, 1, a[:, 2, :], axis=1))
+ 
+     def test_0d(self):
+-        # This is an error in the future
+         a = np.array(1)
+-        with warnings.catch_warnings(record=True) as w:
+-            warnings.filterwarnings('always', '', DeprecationWarning)
+-            assert_equal(insert(a, [], 2, axis=0), np.array(2))
+-            assert_(w[0].category is DeprecationWarning)
++        with pytest.raises(np.AxisError):
++            insert(a, [], 2, axis=0)
++        with pytest.raises(TypeError):
++            insert(a, [], 2, axis="nonsense")
+ 
+     def test_subclass(self):
+         class SubClass(np.ndarray):
+@@ -843,10 +842,10 @@ def test_single(self):
+ 
+     def test_0d(self):
+         a = np.array(1)
+-        with warnings.catch_warnings(record=True) as w:
+-            warnings.filterwarnings('always', '', DeprecationWarning)
+-            assert_equal(delete(a, [], axis=0), a)
+-            assert_(w[0].category is DeprecationWarning)
++        with pytest.raises(np.AxisError):
++            delete(a, [], axis=0)
++        with pytest.raises(TypeError):
++            delete(a, [], axis="nonsense")
+ 
+     def test_subclass(self):
+         class SubClass(np.ndarray):

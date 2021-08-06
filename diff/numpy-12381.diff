@@ -1,0 +1,36 @@
+diff --git a/numpy/lib/_datasource.py b/numpy/lib/_datasource.py
+index ab00b144471..3bba9d8ce85 100644
+--- a/numpy/lib/_datasource.py
++++ b/numpy/lib/_datasource.py
+@@ -323,7 +323,7 @@ def __init__(self, destpath=os.curdir):
+ 
+     def __del__(self):
+         # Remove temp directories
+-        if self._istmpdest:
++        if hasattr(self, '_istmpdest') and self._istmpdest:
+             shutil.rmtree(self._destpath)
+ 
+     def _iszip(self, filename):
+diff --git a/numpy/lib/tests/test__datasource.py b/numpy/lib/tests/test__datasource.py
+index 1df8bebf6b9..8eac16b589a 100644
+--- a/numpy/lib/tests/test__datasource.py
++++ b/numpy/lib/tests/test__datasource.py
+@@ -361,3 +361,18 @@ def test_DataSourceOpen(self):
+         fp = datasource.open(local_file)
+         assert_(fp)
+         fp.close()
++
++def test_del_attr_handling():
++    # DataSource __del__ can be called
++    # even if __init__ fails when the
++    # Exception object is caught by the
++    # caller as happens in refguide_check
++    # is_deprecated() function
++
++    ds = datasource.DataSource()
++    # simulate failed __init__ by removing key attribute
++    # produced within __init__ and expected by __del__
++    del ds._istmpdest
++    # should not raise an AttributeError if __del__
++    # gracefully handles failed __init__:
++    ds.__del__()

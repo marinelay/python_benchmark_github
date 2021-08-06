@@ -1,0 +1,62 @@
+diff --git a/compose/config/config.py b/compose/config/config.py
+index be73e1dee7..91f6ac9a03 100644
+--- a/compose/config/config.py
++++ b/compose/config/config.py
+@@ -778,6 +778,8 @@ def merge_service_dicts(base, override, version):
+ 
+ 
+ def merge_unique_items_lists(base, override):
++    override = [str(o) for o in override]
++    base = [str(b) for b in base]
+     return sorted(set().union(base, override))
+ 
+ 
+diff --git a/tests/unit/config/config_test.py b/tests/unit/config/config_test.py
+index d9269ab437..3fcfec162a 100644
+--- a/tests/unit/config/config_test.py
++++ b/tests/unit/config/config_test.py
+@@ -1378,6 +1378,44 @@ def test_merge_service_dicts_from_files_with_extends_in_override(self):
+             'extends': {'service': 'foo'}
+         }
+ 
++    def test_merge_service_dicts_heterogeneous(self):
++        base = {
++            'volumes': ['.:/app'],
++            'ports': ['5432']
++        }
++        override = {
++            'image': 'alpine:edge',
++            'ports': [5432]
++        }
++        actual = config.merge_service_dicts_from_files(
++            base,
++            override,
++            DEFAULT_VERSION)
++        assert actual == {
++            'image': 'alpine:edge',
++            'volumes': ['.:/app'],
++            'ports': ['5432']
++        }
++
++    def test_merge_service_dicts_heterogeneous_2(self):
++        base = {
++            'volumes': ['.:/app'],
++            'ports': [5432]
++        }
++        override = {
++            'image': 'alpine:edge',
++            'ports': ['5432']
++        }
++        actual = config.merge_service_dicts_from_files(
++            base,
++            override,
++            DEFAULT_VERSION)
++        assert actual == {
++            'image': 'alpine:edge',
++            'volumes': ['.:/app'],
++            'ports': ['5432']
++        }
++
+     def test_merge_build_args(self):
+         base = {
+             'build': {

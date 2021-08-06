@@ -1,0 +1,41 @@
+diff --git a/numpy/lib/polynomial.py b/numpy/lib/polynomial.py
+index f49b7e295f9..41b5e2f648e 100644
+--- a/numpy/lib/polynomial.py
++++ b/numpy/lib/polynomial.py
+@@ -897,7 +897,7 @@ def polydiv(u, v):
+     n = len(v) - 1
+     scale = 1. / v[0]
+     q = NX.zeros((max(m - n + 1, 1),), w.dtype)
+-    r = u.copy()
++    r = u.astype(w.dtype)
+
+# astype 함수를 어떻게 가져와????
+# 일단 r = r.astype(complex) 를 추가해도 됨 => complex라는 코드는 어딘가에 있긴함
+# 이거 어떻게 가져오는데?
+
+# 1. numpy ndarray 타입은 astype으로 형변환을 한다 => 다른 함수를 봐야하는데......
+# 2. astype을 이용해 v.dtype (ndarray의 attribute) 타입으로 변환 시킨다
+# 3. how??
+
+     for k in range(0, m-n+1):
+         d = scale * r[k]
+         q[k] = d
+diff --git a/numpy/lib/tests/test_polynomial.py b/numpy/lib/tests/test_polynomial.py
+index 9a465082598..03915ceadda 100644
+--- a/numpy/lib/tests/test_polynomial.py
++++ b/numpy/lib/tests/test_polynomial.py
+@@ -222,6 +222,14 @@ def test_poly_eq(self):
+         assert_equal(p == p2, False)
+         assert_equal(p != p2, True)
+ 
++    def test_polydiv(self):
++        b = np.poly1d([2, 6, 6, 1])
++        a = np.poly1d([-1j, (1+2j), -(2+1j), 1])
++        q, r = np.polydiv(b, a)
++        assert_equal(q.coeffs.dtype, np.complex128)
++        assert_equal(r.coeffs.dtype, np.complex128)
++        assert_equal(q*a + r, b)
++
+     def test_poly_coeffs_immutable(self):
+         """ Coefficients should not be modifiable """
+         p = np.poly1d([1, 2, 3])

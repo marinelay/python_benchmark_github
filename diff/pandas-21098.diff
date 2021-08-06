@@ -1,0 +1,53 @@
+diff --git a/doc/source/whatsnew/v0.23.1.txt b/doc/source/whatsnew/v0.23.1.txt
+index 35d150dc263b8..9c19d4d6bbaad 100644
+--- a/doc/source/whatsnew/v0.23.1.txt
++++ b/doc/source/whatsnew/v0.23.1.txt
+@@ -48,6 +48,11 @@ Groupby/Resample/Rolling
+ ^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+ - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
++
++Strings
++^^^^^^^
++
++- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
+ -
+ 
+ Conversion
+diff --git a/pandas/compat/__init__.py b/pandas/compat/__init__.py
+index 12517372fedd1..5ae22694d0da7 100644
+--- a/pandas/compat/__init__.py
++++ b/pandas/compat/__init__.py
+@@ -425,7 +425,7 @@ def raise_with_traceback(exc, traceback=Ellipsis):
+ 
+ # In Python 3.7, the private re._pattern_type is removed.
+ # Python 3.5+ have typing.re.Pattern
+-if PY35:
++if PY36:
+     import typing
+     re_type = typing.re.Pattern
+ else:
+diff --git a/pandas/tests/test_compat.py b/pandas/tests/test_compat.py
+index ead9ba1e26e2d..79d3aad493182 100644
+--- a/pandas/tests/test_compat.py
++++ b/pandas/tests/test_compat.py
+@@ -4,9 +4,10 @@
+ """
+ 
+ import pytest
++import re
+ from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
+                            lfilter, builtins, iterkeys, itervalues, iteritems,
+-                           next, get_range_parameters, PY2)
++                           next, get_range_parameters, PY2, re_type)
+ 
+ 
+ class TestBuiltinIterators(object):
+@@ -89,3 +90,7 @@ def test_get_range_parameters(self, start, stop, step):
+         assert start_result == start_expected
+         assert stop_result == stop_expected
+         assert step_result == step_expected
++
++
++def test_re_type():
++    assert isinstance(re.compile(''), re_type)

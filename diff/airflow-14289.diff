@@ -1,0 +1,32 @@
+diff --git a/airflow/providers/slack/hooks/slack.py b/airflow/providers/slack/hooks/slack.py
+index da449a7f0c349..1c55b8bf969e6 100644
+--- a/airflow/providers/slack/hooks/slack.py
++++ b/airflow/providers/slack/hooks/slack.py
+@@ -82,7 +82,7 @@ def __get_token(self, token: Any, slack_conn_id: Any) -> str:
+ 
+         raise AirflowException('Cannot get token: No valid Slack token nor slack_conn_id supplied.')
+ 
+-    def call(self, api_method: str, *args, **kwargs) -> None:
++    def call(self, api_method: str, **kwargs) -> None:
+         """
+         Calls Slack WebClient `WebClient.api_call` with given arguments.
+ 
+@@ -100,4 +100,4 @@ def call(self, api_method: str, *args, **kwargs) -> None:
+         :param json: JSON for the body to attach to the request. Optional.
+         :type json: dict
+         """
+-        self.client.api_call(api_method, *args, **kwargs)
++        self.client.api_call(api_method, **kwargs)
+diff --git a/tests/providers/slack/hooks/test_slack.py b/tests/providers/slack/hooks/test_slack.py
+index 5fef4095cf0f7..0998aacfb162d 100644
+--- a/tests/providers/slack/hooks/test_slack.py
++++ b/tests/providers/slack/hooks/test_slack.py
+@@ -120,7 +120,7 @@ def test_call_with_failure(self, slack_client_class_mock):
+         test_api_params = {'key1': 'value1', 'key2': 'value2'}
+ 
+         with pytest.raises(SlackApiError):
+-            slack_hook.call(test_method, test_api_params)
++            slack_hook.call(test_method, data=test_api_params)
+ 
+     @mock.patch('airflow.providers.slack.hooks.slack.WebClient.api_call', autospec=True)
+     @mock.patch('airflow.providers.slack.hooks.slack.WebClient')

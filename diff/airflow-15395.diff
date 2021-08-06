@@ -1,0 +1,98 @@
+diff --git a/airflow/serialization/serialized_objects.py b/airflow/serialization/serialized_objects.py
+index 25eb1feed0e8f..8a6fdc89d2062 100644
+--- a/airflow/serialization/serialized_objects.py
++++ b/airflow/serialization/serialized_objects.py
+@@ -214,7 +214,7 @@ def _serialize(cls, var: Any) -> Any:  # Unfortunately there is no support for r
+         elif isinstance(var, dict):
+             return cls._encode({str(k): cls._serialize(v) for k, v in var.items()}, type_=DAT.DICT)
+         elif isinstance(var, list):
+-            return sorted(cls._serialize(v) for v in var)
++            return [cls._serialize(v) for v in var]
+         elif HAS_KUBERNETES and isinstance(var, k8s.V1Pod):
+             json_pod = PodGenerator.serialize_pod(var)
+             return cls._encode(json_pod, type_=DAT.POD)
+@@ -240,10 +240,13 @@ def _serialize(cls, var: Any) -> Any:  # Unfortunately there is no support for r
+             return str(get_python_source(var))
+         elif isinstance(var, set):
+             # FIXME: casts set to list in customized serialization in future.
+-            return cls._encode(sorted(cls._serialize(v) for v in var), type_=DAT.SET)
++            try:
++                return cls._encode(sorted(cls._serialize(v) for v in var), type_=DAT.SET)
++            except TypeError:
++                return cls._encode([cls._serialize(v) for v in var], type_=DAT.SET)
+         elif isinstance(var, tuple):
+             # FIXME: casts tuple to list in customized serialization in future.
+-            return cls._encode(sorted(cls._serialize(v) for v in var), type_=DAT.TUPLE)
++            return cls._encode([cls._serialize(v) for v in var], type_=DAT.TUPLE)
+         elif isinstance(var, TaskGroup):
+             return SerializedTaskGroup.serialize_task_group(var)
+         else:
+diff --git a/tests/serialization/test_dag_serialization.py b/tests/serialization/test_dag_serialization.py
+index 830388d6fe95e..6a186c5e57f3f 100644
+--- a/tests/serialization/test_dag_serialization.py
++++ b/tests/serialization/test_dag_serialization.py
+@@ -357,10 +357,9 @@ def validate_deserialized_dag(self, serialized_dag, dag):
+             "_task_group",
+         }
+         for field in fields_to_check:
+-            dag_field = getattr(dag, field)
+-            if isinstance(dag_field, list):
+-                dag_field = sorted(dag_field)
+-            assert getattr(serialized_dag, field) == dag_field, f'{dag.dag_id}.{field} does not match'
++            assert getattr(serialized_dag, field) == getattr(
++                dag, field
++            ), f'{dag.dag_id}.{field} does not match'
+ 
+         if dag.default_args:
+             for k, v in dag.default_args.items():
+@@ -1062,7 +1061,7 @@ def test_dag_on_failure_callback_roundtrip(self, passed_failure_callback, expect
+         [
+             (
+                 ['task_1', 'task_5', 'task_2', 'task_4'],
+-                ['task_1', 'task_2', 'task_4', 'task_5'],
++                ['task_1', 'task_5', 'task_2', 'task_4'],
+             ),
+             (
+                 {'task_1', 'task_5', 'task_2', 'task_4'},
+@@ -1070,16 +1069,39 @@ def test_dag_on_failure_callback_roundtrip(self, passed_failure_callback, expect
+             ),
+             (
+                 ('task_1', 'task_5', 'task_2', 'task_4'),
+-                ['task_1', 'task_2', 'task_4', 'task_5'],
++                ['task_1', 'task_5', 'task_2', 'task_4'],
++            ),
++            (
++                {
++                    "staging_schema": [
++                        {"key:": "foo", "value": "bar"},
++                        {"key:": "this", "value": "that"},
++                        "test_conf",
++                    ]
++                },
++                {
++                    "staging_schema": [
++                        {"__type": "dict", "__var": {"key:": "foo", "value": "bar"}},
++                        {
++                            "__type": "dict",
++                            "__var": {"key:": "this", "value": "that"},
++                        },
++                        "test_conf",
++                    ]
++                },
+             ),
+             (
+                 {"task3": "test3", "task2": "test2", "task1": "test1"},
+                 {"task1": "test1", "task2": "test2", "task3": "test3"},
+             ),
++            (
++                ('task_1', 'task_5', 'task_2', 3, ["x", "y"]),
++                ['task_1', 'task_5', 'task_2', 3, ["x", "y"]],
++            ),
+         ]
+     )
+     def test_serialized_objects_are_sorted(self, object_to_serialized, expected_output):
+-        """Test Serialized Lists, Sets and Tuples are sorted"""
++        """Test Serialized Sets are sorted while list and tuple preserve order"""
+         serialized_obj = SerializedDAG._serialize(object_to_serialized)
+         if isinstance(serialized_obj, dict) and "__type" in serialized_obj:
+             serialized_obj = serialized_obj["__var"]

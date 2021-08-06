@@ -1,0 +1,40 @@
+diff --git a/superset/utils/core.py b/superset/utils/core.py
+index 2c9cbacf0dda..4ba09fa3d833 100644
+--- a/superset/utils/core.py
++++ b/superset/utils/core.py
+@@ -40,7 +40,7 @@
+ 
+ import bleach
+ import markdown as md
+-import numpy
++import numpy as np
+ import pandas as pd
+ import parsedatetime
+ import sqlalchemy as sa
+@@ -343,10 +343,12 @@ def format_timedelta(td: timedelta) -> str:
+ def base_json_conv(obj):
+     if isinstance(obj, memoryview):
+         obj = obj.tobytes()
+-    if isinstance(obj, numpy.int64):
++    if isinstance(obj, np.int64):
+         return int(obj)
+-    elif isinstance(obj, numpy.bool_):
++    elif isinstance(obj, np.bool_):
+         return bool(obj)
++    elif isinstance(obj, np.ndarray):
++        return obj.tolist()
+     elif isinstance(obj, set):
+         return list(obj)
+     elif isinstance(obj, decimal.Decimal):
+diff --git a/tests/utils_tests.py b/tests/utils_tests.py
+index 8b0c45af55de..5bbfec1b328c 100644
+--- a/tests/utils_tests.py
++++ b/tests/utils_tests.py
+@@ -121,6 +121,7 @@ def test_json_iso_dttm_ser(self):
+     def test_base_json_conv(self):
+         assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
+         assert isinstance(base_json_conv(numpy.int64(1)), int) is True
++        assert isinstance(base_json_conv(numpy.array([1, 2, 3])), list) is True
+         assert isinstance(base_json_conv(set([1])), list) is True
+         assert isinstance(base_json_conv(Decimal("1.0")), float) is True
+         assert isinstance(base_json_conv(uuid.uuid4()), str) is True

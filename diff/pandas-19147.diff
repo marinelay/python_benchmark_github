@@ -1,0 +1,266 @@
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index e40318bd65db2..880f9b73d6bc8 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -309,6 +309,7 @@ Other API Changes
+ - ``IntervalDtype`` now returns ``True`` when compared against ``'interval'`` regardless of subtype, and ``IntervalDtype.name`` now returns ``'interval'`` regardless of subtype (:issue:`18980`)
+ - :func:`Series.to_csv` now accepts a ``compression`` argument that works in the same way as the ``compression`` argument in :func:`DataFrame.to_csv` (:issue:`18958`)
+ - Addition or subtraction of ``NaT`` from :class:`TimedeltaIndex` will return ``TimedeltaIndex`` instead of ``DatetimeIndex`` (:issue:`19124`)
++- :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
+ 
+ .. _whatsnew_0230.deprecations:
+ 
+diff --git a/pandas/core/indexes/datetimelike.py b/pandas/core/indexes/datetimelike.py
+index 0ee2f8ebce011..7bb6708e03421 100644
+--- a/pandas/core/indexes/datetimelike.py
++++ b/pandas/core/indexes/datetimelike.py
+@@ -32,6 +32,7 @@
+ from pandas.core import common as com, algorithms
+ from pandas.core.algorithms import checked_add_with_arr
+ from pandas.core.common import AbstractMethodError
++from pandas.errors import NullFrequencyError
+ 
+ import pandas.io.formats.printing as printing
+ from pandas._libs import lib, iNaT, NaT
+@@ -692,6 +693,9 @@ def __add__(self, other):
+                 return self._add_datelike(other)
+             elif isinstance(other, Index):
+                 return self._add_datelike(other)
++            elif is_integer_dtype(other) and self.freq is None:
++                # GH#19123
++                raise NullFrequencyError("Cannot shift with no freq")
+             else:  # pragma: no cover
+                 return NotImplemented
+ 
+@@ -731,7 +735,9 @@ def __sub__(self, other):
+                 raise TypeError("cannot subtract {typ1} and {typ2}"
+                                 .format(typ1=type(self).__name__,
+                                         typ2=type(other).__name__))
+-
++            elif is_integer_dtype(other) and self.freq is None:
++                # GH#19123
++                raise NullFrequencyError("Cannot shift with no freq")
+             else:  # pragma: no cover
+                 return NotImplemented
+ 
+@@ -831,7 +837,7 @@ def shift(self, n, freq=None):
+             return self
+ 
+         if self.freq is None:
+-            raise ValueError("Cannot shift with no freq")
++            raise NullFrequencyError("Cannot shift with no freq")
+ 
+         start = self[0] + n * self.freq
+         end = self[-1] + n * self.freq
+diff --git a/pandas/core/ops.py b/pandas/core/ops.py
+index 99f7e7309d463..fc3ea106252db 100644
+--- a/pandas/core/ops.py
++++ b/pandas/core/ops.py
+@@ -20,7 +20,7 @@
+ from pandas.compat import bind_method
+ import pandas.core.missing as missing
+ 
+-from pandas.errors import PerformanceWarning
++from pandas.errors import PerformanceWarning, NullFrequencyError
+ from pandas.core.common import _values_from_object, _maybe_match_name
+ from pandas.core.dtypes.missing import notna, isna
+ from pandas.core.dtypes.common import (
+@@ -672,9 +672,8 @@ def wrapper(left, right, name=name, na_op=na_op):
+ 
+         left, right = _align_method_SERIES(left, right)
+         if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+-            result = op(pd.DatetimeIndex(left), right)
++            result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
+             res_name = _get_series_op_result_name(left, right)
+-            result.name = res_name  # needs to be overriden if None
+             return construct_result(left, result,
+                                     index=left.index, name=res_name,
+                                     dtype=result.dtype)
+@@ -703,6 +702,40 @@ def wrapper(left, right, name=name, na_op=na_op):
+     return wrapper
+ 
+ 
++def dispatch_to_index_op(op, left, right, index_class):
++    """
++    Wrap Series left in the given index_class to delegate the operation op
++    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
++    type checking, timezone handling, overflow checks, etc.
++
++    Parameters
++    ----------
++    op : binary operator (operator.add, operator.sub, ...)
++    left : Series
++    right : object
++    index_class : DatetimeIndex or TimedeltaIndex
++
++    Returns
++    -------
++    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
++    """
++    left_idx = index_class(left)
++
++    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
++    # left_idx may inherit a freq from a cached DatetimeIndex.
++    # See discussion in GH#19147.
++    if left_idx.freq is not None:
++        left_idx = left_idx._shallow_copy(freq=None)
++    try:
++        result = op(left_idx, right)
++    except NullFrequencyError:
++        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
++        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
++        raise TypeError('incompatible type for a datetime/timedelta '
++                        'operation [{name}]'.format(name=op.__name__))
++    return result
++
++
+ def _get_series_op_result_name(left, right):
+     # `left` is always a pd.Series
+     if isinstance(right, (ABCSeries, pd.Index)):
+diff --git a/pandas/errors/__init__.py b/pandas/errors/__init__.py
+index d843126c60144..22b6d33be9d38 100644
+--- a/pandas/errors/__init__.py
++++ b/pandas/errors/__init__.py
+@@ -67,5 +67,13 @@ class MergeError(ValueError):
+     """
+ 
+ 
++class NullFrequencyError(ValueError):
++    """
++    Error raised when a null `freq` attribute is used in an operation
++    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
++    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
++    """
++
++
+ class AccessorRegistrationWarning(Warning):
+     """Warning for attribute conflicts in accessor registration."""
+diff --git a/pandas/tests/indexes/datetimes/test_ops.py b/pandas/tests/indexes/datetimes/test_ops.py
+index a7a6e3caab727..a2a84adbf46c1 100644
+--- a/pandas/tests/indexes/datetimes/test_ops.py
++++ b/pandas/tests/indexes/datetimes/test_ops.py
+@@ -7,6 +7,7 @@
+ 
+ from itertools import product
+ import pandas as pd
++from pandas.errors import NullFrequencyError
+ import pandas._libs.tslib as tslib
+ from pandas._libs.tslibs.offsets import shift_months
+ import pandas.util.testing as tm
+@@ -593,6 +594,12 @@ def test_nat_new(self):
+         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
+         tm.assert_numpy_array_equal(result, exp)
+ 
++    def test_shift_no_freq(self):
++        # GH#19147
++        dti = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01'], freq=None)
++        with pytest.raises(NullFrequencyError):
++            dti.shift(2)
++
+     def test_shift(self):
+         # GH 9903
+         for tz in self.tz:
+diff --git a/pandas/tests/indexes/timedeltas/test_timedelta.py b/pandas/tests/indexes/timedeltas/test_timedelta.py
+index e25384ebf7d62..5a4d6dabbde3e 100644
+--- a/pandas/tests/indexes/timedeltas/test_timedelta.py
++++ b/pandas/tests/indexes/timedeltas/test_timedelta.py
+@@ -4,6 +4,7 @@
+ from datetime import timedelta
+ 
+ import pandas as pd
++from pandas.errors import NullFrequencyError
+ import pandas.util.testing as tm
+ from pandas import (timedelta_range, date_range, Series, Timedelta,
+                     TimedeltaIndex, Index, DataFrame,
+@@ -50,6 +51,12 @@ def test_shift(self):
+                                    '10 days 01:00:03'], freq='D')
+         tm.assert_index_equal(result, expected)
+ 
++    def test_shift_no_freq(self):
++        # GH#19147
++        tdi = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00'], freq=None)
++        with pytest.raises(NullFrequencyError):
++            tdi.shift(2)
++
+     def test_pickle_compat_construction(self):
+         pass
+ 
+diff --git a/pandas/tests/series/test_operators.py b/pandas/tests/series/test_operators.py
+index 1797dbcc15872..c06435d4b8c42 100644
+--- a/pandas/tests/series/test_operators.py
++++ b/pandas/tests/series/test_operators.py
+@@ -693,6 +693,25 @@ def test_td64series_rsub_int_series_invalid(self, tdser):
+         with pytest.raises(TypeError):
+             Series([2, 3, 4]) - tdser
+ 
++    def test_td64_series_add_intlike(self):
++        # GH#19123
++        tdi = pd.TimedeltaIndex(['59 days', '59 days', 'NaT'])
++        ser = Series(tdi)
++
++        other = Series([20, 30, 40], dtype='uint8')
++
++        pytest.raises(TypeError, ser.__add__, 1)
++        pytest.raises(TypeError, ser.__sub__, 1)
++
++        pytest.raises(TypeError, ser.__add__, other)
++        pytest.raises(TypeError, ser.__sub__, other)
++
++        pytest.raises(TypeError, ser.__add__, other.values)
++        pytest.raises(TypeError, ser.__sub__, other.values)
++
++        pytest.raises(TypeError, ser.__add__, pd.Index(other))
++        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
++
+     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
+     def test_td64series_add_sub_numeric_scalar_invalid(self, scalar, tdser):
+         with pytest.raises(TypeError):
+@@ -1533,6 +1552,26 @@ def test_dt64_series_arith_overflow(self):
+         res = dt - ser
+         tm.assert_series_equal(res, -expected)
+ 
++    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
++    def test_dt64_series_add_intlike(self, tz):
++        # GH#19123
++        dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'], tz=tz)
++        ser = Series(dti)
++
++        other = Series([20, 30, 40], dtype='uint8')
++
++        pytest.raises(TypeError, ser.__add__, 1)
++        pytest.raises(TypeError, ser.__sub__, 1)
++
++        pytest.raises(TypeError, ser.__add__, other)
++        pytest.raises(TypeError, ser.__sub__, other)
++
++        pytest.raises(TypeError, ser.__add__, other.values)
++        pytest.raises(TypeError, ser.__sub__, other.values)
++
++        pytest.raises(TypeError, ser.__add__, pd.Index(other))
++        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
++
+ 
+ class TestSeriesOperators(TestData):
+     def test_op_method(self):
+diff --git a/pandas/tests/series/test_timeseries.py b/pandas/tests/series/test_timeseries.py
+index 6e711abf4491b..b9c95c372ab9e 100644
+--- a/pandas/tests/series/test_timeseries.py
++++ b/pandas/tests/series/test_timeseries.py
+@@ -11,6 +11,8 @@
+ import pandas.util._test_decorators as td
+ from pandas._libs.tslib import iNaT
+ from pandas.compat import lrange, StringIO, product
++from pandas.errors import NullFrequencyError
++
+ from pandas.core.indexes.timedeltas import TimedeltaIndex
+ from pandas.core.indexes.datetimes import DatetimeIndex
+ from pandas.tseries.offsets import BDay, BMonthEnd
+@@ -123,7 +125,7 @@ def test_shift2(self):
+         tm.assert_index_equal(result.index, exp_index)
+ 
+         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
+-        pytest.raises(ValueError, idx.shift, 1)
++        pytest.raises(NullFrequencyError, idx.shift, 1)
+ 
+     def test_shift_dst(self):
+         # GH 13926

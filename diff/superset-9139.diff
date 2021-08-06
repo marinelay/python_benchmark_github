@@ -1,0 +1,33 @@
+diff --git a/superset/result_set.py b/superset/result_set.py
+index 29294d7d45e5..8c4c56755fa7 100644
+--- a/superset/result_set.py
++++ b/superset/result_set.py
+@@ -106,6 +106,7 @@ def __init__(
+                     pa.lib.ArrowInvalid,
+                     pa.lib.ArrowTypeError,
+                     pa.lib.ArrowNotImplementedError,
++                    TypeError,  # this is super hackey, https://issues.apache.org/jira/browse/ARROW-7855
+                 ):
+                     # attempt serialization of values as strings
+                     stringified_arr = stringify_values(array[column])
+diff --git a/tests/result_set_tests.py b/tests/result_set_tests.py
+index 9df461f06c2a..f1d78a4185c1 100644
+--- a/tests/result_set_tests.py
++++ b/tests/result_set_tests.py
+@@ -200,6 +200,16 @@ def test_single_column_multidim_nested_types(self):
+             ],
+         )
+ 
++    def test_nested_list_types(self):
++        data = [([{"TestKey": [123456, "foo"]}],)]
++        cursor_descr = [("metadata",)]
++        results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
++        self.assertEqual(results.columns[0]["type"], "STRING")
++        df = results.to_pandas_df()
++        self.assertEqual(
++            df_to_records(df), [{"metadata": '[{"TestKey": [123456, "foo"]}]'}]
++        )
++
+     def test_empty_datetime(self):
+         data = [(None,)]
+         cursor_descr = [("ds", "timestamp", None, None, None, None, True)]

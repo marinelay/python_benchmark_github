@@ -1,0 +1,96 @@
+diff --git a/doc/source/whatsnew/v0.21.0.txt b/doc/source/whatsnew/v0.21.0.txt
+index a5ee0e0ce2653..0fbf865b24d50 100644
+--- a/doc/source/whatsnew/v0.21.0.txt
++++ b/doc/source/whatsnew/v0.21.0.txt
+@@ -155,7 +155,7 @@ Indexing
+ 
+ - When called with a null slice (e.g. ``df.iloc[:]``), the ``.iloc`` and ``.loc`` indexers return a shallow copy of the original object. Previously they returned the original object. (:issue:`13873`).
+ - When called on an unsorted ``MultiIndex``, the ``loc`` indexer now will raise ``UnsortedIndexError`` only if proper slicing is used on non-sorted levels (:issue:`16734`).
+-
++- Fixes regression in 0.20.3 when indexing with a string on a ``TimedeltaIndex`` (:issue:`16896`).
+ 
+ I/O
+ ^^^
+diff --git a/pandas/core/dtypes/common.py b/pandas/core/dtypes/common.py
+index 2eebf3704253e..ac7189d108b0a 100644
+--- a/pandas/core/dtypes/common.py
++++ b/pandas/core/dtypes/common.py
+@@ -392,13 +392,15 @@ def is_timedelta64_dtype(arr_or_dtype):
+     False
+     >>> is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
+     True
++    >>> is_timedelta64_dtype('0 days')
++    False
+     """
+ 
+     if arr_or_dtype is None:
+         return False
+     try:
+         tipo = _get_dtype_type(arr_or_dtype)
+-    except ValueError:
++    except:
+         return False
+     return issubclass(tipo, np.timedelta64)
+ 
+diff --git a/pandas/tests/dtypes/test_common.py b/pandas/tests/dtypes/test_common.py
+index c32e8590c5675..19a2deecee1f4 100644
+--- a/pandas/tests/dtypes/test_common.py
++++ b/pandas/tests/dtypes/test_common.py
+@@ -199,12 +199,17 @@ def test_is_datetime64tz_dtype():
+ 
+ def test_is_timedelta64_dtype():
+     assert not com.is_timedelta64_dtype(object)
++    assert not com.is_timedelta64_dtype(None)
+     assert not com.is_timedelta64_dtype([1, 2, 3])
+     assert not com.is_timedelta64_dtype(np.array([], dtype=np.datetime64))
++    assert not com.is_timedelta64_dtype('0 days')
++    assert not com.is_timedelta64_dtype("0 days 00:00:00")
++    assert not com.is_timedelta64_dtype(["0 days 00:00:00"])
++    assert not com.is_timedelta64_dtype("NO DATE")
++
+     assert com.is_timedelta64_dtype(np.timedelta64)
+     assert com.is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
+-
+-    assert not com.is_timedelta64_dtype("0 days 00:00:00")
++    assert com.is_timedelta64_dtype(pd.to_timedelta(['0 days', '1 days']))
+ 
+ 
+ def test_is_period_dtype():
+diff --git a/pandas/tests/indexes/timedeltas/test_timedelta.py b/pandas/tests/indexes/timedeltas/test_timedelta.py
+index 08cf5108ffdb1..a4fc26382fb9b 100644
+--- a/pandas/tests/indexes/timedeltas/test_timedelta.py
++++ b/pandas/tests/indexes/timedeltas/test_timedelta.py
+@@ -66,6 +66,9 @@ def test_get_loc(self):
+         for method, loc in [('pad', 1), ('backfill', 2), ('nearest', 1)]:
+             assert idx.get_loc('1 day 1 hour', method) == loc
+ 
++        # GH 16896
++        assert idx.get_loc('0 days') == 0
++
+     def test_get_loc_nat(self):
+         tidx = TimedeltaIndex(['1 days 01:00:00', 'NaT', '2 days 01:00:00'])
+ 
+diff --git a/pandas/tests/indexing/test_timedelta.py b/pandas/tests/indexing/test_timedelta.py
+index be3ea8f0c371d..32609362e49af 100644
+--- a/pandas/tests/indexing/test_timedelta.py
++++ b/pandas/tests/indexing/test_timedelta.py
+@@ -5,7 +5,6 @@
+ 
+ 
+ class TestTimedeltaIndexing(object):
+-
+     def test_boolean_indexing(self):
+         # GH 14946
+         df = pd.DataFrame({'x': range(10)})
+@@ -40,3 +39,11 @@ def test_list_like_indexing(self, indexer, expected):
+                                 dtype="int64")
+ 
+         tm.assert_frame_equal(expected, df)
++
++    def test_string_indexing(self):
++        # GH 16896
++        df = pd.DataFrame({'x': range(3)},
++                          index=pd.to_timedelta(range(3), unit='days'))
++        expected = df.iloc[0]
++        sliced = df.loc['0 days']
++        tm.assert_series_equal(sliced, expected)

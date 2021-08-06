@@ -1,0 +1,159 @@
+diff --git a/pandas/core/arrays/integer.py b/pandas/core/arrays/integer.py
+index 42aa6a055acca..29337b7f76131 100644
+--- a/pandas/core/arrays/integer.py
++++ b/pandas/core/arrays/integer.py
+@@ -78,17 +78,6 @@ def construct_array_type(cls):
+         """
+         return IntegerArray
+ 
+-    @classmethod
+-    def construct_from_string(cls, string):
+-        """
+-        Construction from a string, raise a TypeError if not
+-        possible
+-        """
+-        if string == cls.name:
+-            return cls()
+-        raise TypeError("Cannot construct a '{}' from "
+-                        "'{}'".format(cls, string))
+-
+ 
+ def integer_array(values, dtype=None, copy=False):
+     """
+diff --git a/pandas/core/dtypes/base.py b/pandas/core/dtypes/base.py
+index da8908ec39095..0a0ba69659570 100644
+--- a/pandas/core/dtypes/base.py
++++ b/pandas/core/dtypes/base.py
+@@ -172,17 +172,27 @@ def construct_array_type(cls):
+         raise NotImplementedError
+ 
+     @classmethod
+-    def construct_from_string(cls, string):
+-        """
+-        Attempt to construct this type from a string.
++    def construct_from_string(cls, string: str):
++        r"""
++        Construct this type from a string.
++
++        This is useful mainly for data types that accept parameters.
++        For example, a period dtype accepts a frequency parameter that
++        can be set as ``period[H]`` (where H means hourly frequency).
++
++        By default, in the abstract class, just the name of the type is
++        expected. But subclasses can overwrite this method to accept
++        parameters.
+ 
+         Parameters
+         ----------
+         string : str
++            The name of the type, for example ``category``.
+ 
+         Returns
+         -------
+-        self : instance of 'cls'
++        ExtensionDtype
++            Instance of the dtype.
+ 
+         Raises
+         ------
+@@ -191,21 +201,26 @@ def construct_from_string(cls, string):
+ 
+         Examples
+         --------
+-        If the extension dtype can be constructed without any arguments,
+-        the following may be an adequate implementation.
++        For extension dtypes with arguments the following may be an
++        adequate implementation.
+ 
+         >>> @classmethod
+-        ... def construct_from_string(cls, string)
+-        ...     if string == cls.name:
+-        ...         return cls()
++        ... def construct_from_string(cls, string):
++        ...     pattern = re.compile(r"^my_type\[(?P<arg_name>.+)\]$")
++        ...     match = pattern.match(string)
++        ...     if match:
++        ...         return cls(**match.groupdict())
+         ...     else:
+         ...         raise TypeError("Cannot construct a '{}' from "
+-        ...                         "'{}'".format(cls, string))
++        ...                         "'{}'".format(cls.__name__, string))
+         """
+-        raise AbstractMethodError(cls)
++        if string != cls.name:
++            raise TypeError("Cannot construct a '{}' from '{}'".format(
++                cls.__name__, string))
++        return cls()
+ 
+     @classmethod
+-    def is_dtype(cls, dtype):
++    def is_dtype(cls, dtype) -> bool:
+         """Check if we match 'dtype'.
+ 
+         Parameters
+diff --git a/pandas/core/dtypes/dtypes.py b/pandas/core/dtypes/dtypes.py
+index 32047c3fbb5e1..a56ee72cf1910 100644
+--- a/pandas/core/dtypes/dtypes.py
++++ b/pandas/core/dtypes/dtypes.py
+@@ -440,19 +440,6 @@ def construct_array_type(cls):
+         from pandas import Categorical
+         return Categorical
+ 
+-    @classmethod
+-    def construct_from_string(cls, string):
+-        """
+-        attempt to construct this type from a string, raise a TypeError if
+-        it's not possible """
+-        try:
+-            if string == 'category':
+-                return cls()
+-            else:
+-                raise TypeError("cannot construct a CategoricalDtype")
+-        except AttributeError:
+-            pass
+-
+     @staticmethod
+     def validate_ordered(ordered):
+         """
+diff --git a/pandas/tests/dtypes/test_dtypes.py b/pandas/tests/dtypes/test_dtypes.py
+index 79ebfcc30a7e4..cf368f9980d72 100644
+--- a/pandas/tests/dtypes/test_dtypes.py
++++ b/pandas/tests/dtypes/test_dtypes.py
+@@ -82,7 +82,7 @@ def test_equality(self):
+     def test_construction_from_string(self):
+         result = CategoricalDtype.construct_from_string('category')
+         assert is_dtype_equal(self.dtype, result)
+-        msg = "cannot construct a CategoricalDtype"
++        msg = "Cannot construct a 'CategoricalDtype' from 'foo'"
+         with pytest.raises(TypeError, match=msg):
+             CategoricalDtype.construct_from_string('foo')
+ 
+diff --git a/pandas/tests/extension/base/dtype.py b/pandas/tests/extension/base/dtype.py
+index e9d1f183812cc..7b9dedceb00d4 100644
+--- a/pandas/tests/extension/base/dtype.py
++++ b/pandas/tests/extension/base/dtype.py
+@@ -1,6 +1,7 @@
+ import warnings
+ 
+ import numpy as np
++import pytest
+ 
+ import pandas as pd
+ 
+@@ -89,3 +90,16 @@ def test_check_dtype(self, data):
+ 
+     def test_hashable(self, dtype):
+         hash(dtype)  # no error
++
++    def test_str(self, dtype):
++        assert str(dtype) == dtype.name
++
++    def test_eq(self, dtype):
++        assert dtype == dtype.name
++        assert dtype != 'anonther_type'
++
++    def test_construct_from_string(self, dtype):
++        dtype_instance = dtype.__class__.construct_from_string(dtype.name)
++        assert isinstance(dtype_instance, dtype.__class__)
++        with pytest.raises(TypeError):
++            dtype.__class__.construct_from_string('another_type')

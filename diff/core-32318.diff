@@ -1,0 +1,80 @@
+diff --git a/homeassistant/components/alexa/capabilities.py b/homeassistant/components/alexa/capabilities.py
+index 8b38fe4d298f0..a0c5291342a4e 100644
+--- a/homeassistant/components/alexa/capabilities.py
++++ b/homeassistant/components/alexa/capabilities.py
+@@ -1,6 +1,5 @@
+ """Alexa capabilities."""
+ import logging
+-import math
+ 
+ from homeassistant.components import (
+     cover,
+@@ -669,11 +668,8 @@ def get_property(self, name):
+             current_level = self.entity.attributes.get(
+                 media_player.ATTR_MEDIA_VOLUME_LEVEL
+             )
+-            try:
+-                current = math.floor(int(current_level * 100))
+-            except ZeroDivisionError:
+-                current = 0
+-            return current
++            if current_level is not None:
++                return round(float(current_level) * 100)
+
+# None check는 쉬움 ok => TypeError 관련
+# return 고치는게 까다롭네 => Assertion 관련
+ 
+         if name == "muted":
+             return bool(
+diff --git a/tests/components/alexa/test_capabilities.py b/tests/components/alexa/test_capabilities.py
+old mode 100644
+new mode 100755
+index f8f4f5f4697e3..678a8e7402767
+--- a/tests/components/alexa/test_capabilities.py
++++ b/tests/components/alexa/test_capabilities.py
+@@ -8,6 +8,8 @@
+     SUPPORT_PAUSE,
+     SUPPORT_PLAY,
+     SUPPORT_STOP,
++    SUPPORT_VOLUME_MUTE,
++    SUPPORT_VOLUME_SET,
+ )
+ from homeassistant.const import (
+     ATTR_UNIT_OF_MEASUREMENT,
+@@ -684,6 +686,36 @@ async def test_report_playback_state(hass):
+     )
+ 
+ 
++async def test_report_speaker_volume(hass):
++    """Test Speaker reports volume correctly."""
++    hass.states.async_set(
++        "media_player.test_speaker",
++        "on",
++        {
++            "friendly_name": "Test media player speaker",
++            "supported_features": SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_SET,
++            "volume_level": None,
++            "device_class": "speaker",
++        },
++    )
++    properties = await reported_properties(hass, "media_player.test_speaker")
++    properties.assert_not_has_property("Alexa.Speaker", "volume")
++
++    for good_value in range(101):
++        hass.states.async_set(
++            "media_player.test_speaker",
++            "on",
++            {
++                "friendly_name": "Test media player speaker",
++                "supported_features": SUPPORT_VOLUME_MUTE | SUPPORT_VOLUME_SET,
++                "volume_level": good_value / 100,
++                "device_class": "speaker",
++            },
++        )
++        properties = await reported_properties(hass, "media_player.test_speaker")
++        properties.assert_equal("Alexa.Speaker", "volume", good_value)
++
++
+ async def test_report_image_processing(hass):
+     """Test EventDetectionSensor implements humanPresenceDetectionState property."""
+     hass.states.async_set(

@@ -1,0 +1,60 @@
+diff --git a/python/paddle/fluid/layers/nn.py b/python/paddle/fluid/layers/nn.py
+index eeba89956479..68de71d38084 100755
+--- a/python/paddle/fluid/layers/nn.py
++++ b/python/paddle/fluid/layers/nn.py
+@@ -34,6 +34,7 @@
+ from functools import reduce
+ from .. import core
+ from ..dygraph import layers
++from ..data_feeder import convert_dtype
+ 
+ __all__ = [
+     'fc',
+@@ -2249,6 +2250,15 @@ def softmax(input, use_cudnn=False, name=None, axis=-1):
+ 
+     """
+     helper = LayerHelper('softmax', **locals())
++    if not isinstance(input, Variable):
++        raise TypeError(
++            "The type of 'input' in softmax must be Variable, but received %s" %
++            (type(input)))
++    if convert_dtype(input.dtype) not in ['float32', 'float64']:
++        raise TypeError(
++            "The data type of 'input' in softmax must be float32 or float64, but received %s."
++            % (convert_dtype(input.dtype)))
++
+     dtype = helper.input_dtype()
+     softmax_out = helper.create_variable_for_type_inference(dtype)
+     helper.append_op(
+diff --git a/python/paddle/fluid/tests/unittests/test_softmax_op.py b/python/paddle/fluid/tests/unittests/test_softmax_op.py
+index ea14648e2015..f6770bdd1d43 100644
+--- a/python/paddle/fluid/tests/unittests/test_softmax_op.py
++++ b/python/paddle/fluid/tests/unittests/test_softmax_op.py
+@@ -18,6 +18,8 @@
+ import numpy as np
+ from op_test import OpTest
+ import paddle.fluid.core as core
++import paddle.fluid as fluid
++from paddle.fluid import compiler, Program, program_guard
+ 
+ 
+ def stable_softmax(x):
+@@ -74,6 +76,18 @@ def test_check_grad(self):
+             self.check_grad(["X"], "Out", max_relative_error=0.01)
+ 
+ 
++class TestSoftmaxOpError(OpTest):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # The input type of softmax_op must be Variable.
++            x1 = fluid.create_lod_tensor(
++                np.array([[-1]]), [[1]], fluid.CPUPlace())
++            self.assertRaises(TypeError, fluid.layers.softmax, x1)
++            # The input dtype of softmax_op must be float32 or float64.
++            x2 = fluid.layers.data(name='x2', shape=[4], dtype="int32")
++            self.assertRaises(TypeError, fluid.layers.softmax, x2)
++
++
+ class TestSoftmaxOp2(TestSoftmaxOp):
+     def get_x_shape(self):
+         return [2, 3, 4, 5]

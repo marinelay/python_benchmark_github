@@ -1,0 +1,34 @@
+diff --git a/homeassistant/scripts/check_config.py b/homeassistant/scripts/check_config.py
+index b1ecaaa57bad2..154754c667a77 100644
+--- a/homeassistant/scripts/check_config.py
++++ b/homeassistant/scripts/check_config.py
+@@ -33,6 +33,7 @@
+ }
+ SILENCE = (
+     'homeassistant.bootstrap.clear_secret_cache',
++    'homeassistant.bootstrap.async_register_signal_handling',
+     'homeassistant.core._LOGGER.info',
+     'homeassistant.loader._LOGGER.info',
+     'homeassistant.bootstrap._LOGGER.info',
+diff --git a/tests/test_bootstrap.py b/tests/test_bootstrap.py
+index b2c644a68b921..10f23346ca37c 100644
+--- a/tests/test_bootstrap.py
++++ b/tests/test_bootstrap.py
+@@ -58,7 +58,7 @@ def teardown_method(self, method):
+         autospec=True)
+     @mock.patch('homeassistant.util.location.detect_location_info',
+                 autospec=True, return_value=None)
+-    @mock.patch('homeassistant.helpers.signal.async_register_signal_handling')
++    @mock.patch('homeassistant.bootstrap.async_register_signal_handling')
+     def test_from_config_file(self, mock_upgrade, mock_detect, mock_signal):
+         """Test with configuration file."""
+         components = set(['browser', 'conversation', 'script'])
+@@ -290,7 +290,7 @@ def exception_setup(hass, config):
+         assert 'comp' not in self.hass.config.components
+ 
+     @mock.patch('homeassistant.bootstrap.enable_logging')
+-    @mock.patch('homeassistant.helpers.signal.async_register_signal_handling')
++    @mock.patch('homeassistant.bootstrap.async_register_signal_handling')
+     def test_home_assistant_core_config_validation(self, log_mock, sig_mock):
+         """Test if we pass in wrong information for HA conf."""
+         # Extensive HA conf validation testing is done in test_config.py

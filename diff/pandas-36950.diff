@@ -1,0 +1,69 @@
+diff --git a/doc/source/whatsnew/v1.1.4.rst b/doc/source/whatsnew/v1.1.4.rst
+index f9127ee8d13e7..3ad8d981be2c9 100644
+--- a/doc/source/whatsnew/v1.1.4.rst
++++ b/doc/source/whatsnew/v1.1.4.rst
+@@ -15,6 +15,7 @@ including other versions of pandas.
+ Fixed regressions
+ ~~~~~~~~~~~~~~~~~
+ - Fixed regression where attempting to mutate a :class:`DateOffset` object would no longer raise an ``AttributeError`` (:issue:`36940`)
++- Fixed regression where :meth:`DataFrame.agg` would fail with :exc:`TypeError` when passed positional arguments to be passed on to the aggregation function (:issue:`36948`).
+ - Fixed regression in :class:`RollingGroupby` with ``sort=False`` not being respected (:issue:`36889`)
+ 
+ .. ---------------------------------------------------------------------------
+diff --git a/pandas/core/frame.py b/pandas/core/frame.py
+index 80e9ec5076610..607f927bbc332 100644
+--- a/pandas/core/frame.py
++++ b/pandas/core/frame.py
+@@ -7406,7 +7406,7 @@ def aggregate(self, func=None, axis=0, *args, **kwargs):
+ 
+         result = None
+         try:
+-            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
++            result, how = self._aggregate(func, axis, *args, **kwargs)
+         except TypeError as err:
+             exc = TypeError(
+                 "DataFrame constructor called with "
+
+# _aggregate() got multiple values for argument 'axis'
+# *args 앞에서는 저렇게 안되나봄...
+# 위 문장을 잘 해석하면 될듯?
+
+diff --git a/pandas/tests/frame/apply/test_frame_apply.py b/pandas/tests/frame/apply/test_frame_apply.py
+index 5c6a47c57970b..598da9c52731e 100644
+--- a/pandas/tests/frame/apply/test_frame_apply.py
++++ b/pandas/tests/frame/apply/test_frame_apply.py
+@@ -1463,6 +1463,34 @@ def test_agg_cython_table_raises(self, df, func, expected, axis):
+         with pytest.raises(expected, match=msg):
+             df.agg(func, axis=axis)
+ 
++    @pytest.mark.parametrize("axis", [0, 1])
++    @pytest.mark.parametrize(
++        "args, kwargs",
++        [
++            ((1, 2, 3), {}),
++            ((8, 7, 15), {}),
++            ((1, 2), {}),
++            ((1,), {"b": 2}),
++            ((), {"a": 1, "b": 2}),
++            ((), {"a": 2, "b": 1}),
++            ((), {"a": 1, "b": 2, "c": 3}),
++        ],
++    )
++    def test_agg_args_kwargs(self, axis, args, kwargs):
++        def f(x, a, b, c=3):
++            return x.sum() + (a + b) / c
++
++        df = pd.DataFrame([[1, 2], [3, 4]])
++
++        if axis == 0:
++            expected = pd.Series([5.0, 7.0])
++        else:
++            expected = pd.Series([4.0, 8.0])
++
++        result = df.agg(f, axis, *args, **kwargs)
++
++        tm.assert_series_equal(result, expected)
++
+     @pytest.mark.parametrize("num_cols", [2, 3, 5])
+     def test_frequency_is_original(self, num_cols):
+         # GH 22150

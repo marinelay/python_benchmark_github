@@ -1,0 +1,326 @@
+diff --git a/salt/modules/config.py b/salt/modules/config.py
+index 3b641f8e87358..e49aabab2814f 100644
+--- a/salt/modules/config.py
++++ b/salt/modules/config.py
+@@ -214,7 +214,8 @@ def merge(value,
+     return ret
+ 
+ 
+-def get(key, default='', delimiter=':', merge=None):
++def get(key, default='', delimiter=':', merge=None, omit_opts=False,
++        omit_pillar=False, omit_master=False, omit_grains=False):
+     '''
+     .. versionadded: 0.14.0
+ 
+@@ -354,37 +355,41 @@ def get(key, default='', delimiter=':', merge=None):
+         salt '*' config.get lxc.container_profile:centos merge=recurse
+     '''
+     if merge is None:
+-        ret = salt.utils.data.traverse_dict_and_list(
+-            __opts__,
+-            key,
+-            '_|-',
+-            delimiter=delimiter)
+-        if ret != '_|-':
+-            return sdb.sdb_get(ret, __opts__)
+-
+-        ret = salt.utils.data.traverse_dict_and_list(
+-            __grains__,
+-            key,
+-            '_|-',
+-            delimiter)
+-        if ret != '_|-':
+-            return sdb.sdb_get(ret, __opts__)
+-
+-        ret = salt.utils.data.traverse_dict_and_list(
+-            __pillar__,
+-            key,
+-            '_|-',
+-            delimiter=delimiter)
+-        if ret != '_|-':
+-            return sdb.sdb_get(ret, __opts__)
+-
+-        ret = salt.utils.data.traverse_dict_and_list(
+-            __pillar__.get('master', {}),
+-            key,
+-            '_|-',
+-            delimiter=delimiter)
+-        if ret != '_|-':
+-            return sdb.sdb_get(ret, __opts__)
++        if not omit_opts:
++            ret = salt.utils.data.traverse_dict_and_list(
++                __opts__,
++                key,
++                '_|-',
++                delimiter=delimiter)
++            if ret != '_|-':
++                return sdb.sdb_get(ret, __opts__)
++
++        if not omit_grains:
++            ret = salt.utils.data.traverse_dict_and_list(
++                __grains__,
++                key,
++                '_|-',
++                delimiter)
++            if ret != '_|-':
++                return sdb.sdb_get(ret, __opts__)
++
++        if not omit_pillar:
++            ret = salt.utils.data.traverse_dict_and_list(
++                __pillar__,
++                key,
++                '_|-',
++                delimiter=delimiter)
++            if ret != '_|-':
++                return sdb.sdb_get(ret, __opts__)
++
++        if not omit_master:
++            ret = salt.utils.data.traverse_dict_and_list(
++                __pillar__.get('master', {}),
++                key,
++                '_|-',
++                delimiter=delimiter)
++            if ret != '_|-':
++                return sdb.sdb_get(ret, __opts__)
+     else:
+         if merge not in ('recurse', 'overwrite'):
+             log.warning('Unsupported merge strategy \'{0}\'. Falling back '
+diff --git a/salt/modules/file.py b/salt/modules/file.py
+index 069f77b0a971f..062ee080282ef 100644
+--- a/salt/modules/file.py
++++ b/salt/modules/file.py
+@@ -4763,7 +4763,7 @@ def check_file_meta(
+         if mode is not None and mode != smode:
+             changes['mode'] = mode
+ 
+-        if lsattr_cmd:
++        if lsattr_cmd and attrs:
+             diff_attrs = _cmp_attrs(name, attrs)
+             if (
+                 attrs is not None and
+diff --git a/salt/modules/state.py b/salt/modules/state.py
+index 868b09ac7650f..cf0f81917785d 100644
+--- a/salt/modules/state.py
++++ b/salt/modules/state.py
+@@ -497,6 +497,8 @@ def _get_test_value(test=None, **kwargs):
+     if test is None:
+         if salt.utils.args.test_mode(test=test, **kwargs):
+             ret = True
++        elif __salt__['config.get']('test', omit_opts=True) is True:
++            ret = True
+         else:
+             ret = __opts__.get('test', None)
+     else:
+diff --git a/tests/integration/modules/test_state.py b/tests/integration/modules/test_state.py
+index 365b70f9d469b..4895f73b85d71 100644
+--- a/tests/integration/modules/test_state.py
++++ b/tests/integration/modules/test_state.py
+@@ -11,7 +11,7 @@
+ # Import Salt Testing libs
+ from tests.support.case import ModuleCase
+ from tests.support.unit import skipIf
+-from tests.support.paths import TMP
++from tests.support.paths import TMP, TMP_PILLAR_TREE
+ from tests.support.mixins import SaltReturnAssertsMixin
+ 
+ # Import Salt libs
+@@ -1634,7 +1634,104 @@ def test_state_nonbase_environment(self):
+         self.assertTrue(state_run['file_|-test_file_|-/tmp/nonbase_env_|-managed']['result'])
+         self.assertTrue(os.path.isfile('/tmp/nonbase_env'))
+ 
++    def _add_runtime_pillar(self, pillar):
++        '''
++        helper class to add pillar data at runtime
++        '''
++        import yaml
++        with salt.utils.files.fopen(os.path.join(TMP_PILLAR_TREE,
++                                                 'pillar.sls'), 'w') as fp:
++            fp.write(yaml.dump(pillar))
++
++        with salt.utils.files.fopen(os.path.join(TMP_PILLAR_TREE, 'top.sls'), 'w') as fp:
++            fp.write(textwrap.dedent('''\
++                     base:
++                       '*':
++                         - pillar
++                     '''))
++
++        self.run_function('saltutil.refresh_pillar')
++        self.run_function('test.sleep', [5])
++
++    def test_state_sls_id_test(self):
++        '''
++        test state.sls_id when test is set
++        to true in pillar data
++        '''
++        self._add_runtime_pillar(pillar={'test': True})
++        ret = self.run_function('state.sls', ['core'])
++
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'The file /tmp/salt-tests-tmpdir/testfile is set to be changed')
++            self.assertEqual(val['changes'], {})
++
++    def test_state_sls_id_test_state_test_post_run(self):
++        '''
++        test state.sls_id when test is set to
++        true post the state already being run previously
++        '''
++        ret = self.run_function('state.sls', ['core'])
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'File /tmp/salt-tests-tmpdir/testfile updated')
++            self.assertEqual(val['changes']['diff'], 'New file')
++
++        self._add_runtime_pillar(pillar={'test': True})
++        ret = self.run_function('state.sls', ['core'])
++
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'The file /tmp/salt-tests-tmpdir/testfile is in the correct state')
++            self.assertEqual(val['changes'], {})
++
++    def test_state_sls_id_test_true(self):
++        '''
++        test state.sls_id when test=True is passed as arg
++        '''
++        ret = self.run_function('state.sls', ['core'], test=True)
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'The file /tmp/salt-tests-tmpdir/testfile is set to be changed')
++            self.assertEqual(val['changes'], {})
++
++    def test_state_sls_id_test_true_post_run(self):
++        '''
++        test state.sls_id when test is set to true as an
++        arg post the state already being run previously
++        '''
++        ret = self.run_function('state.sls', ['core'])
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'File /tmp/salt-tests-tmpdir/testfile updated')
++            self.assertEqual(val['changes']['diff'], 'New file')
++
++        ret = self.run_function('state.sls', ['core'], test=True)
++
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'The file /tmp/salt-tests-tmpdir/testfile is in the correct state')
++            self.assertEqual(val['changes'], {})
++
++    def test_state_sls_id_test_false_pillar_true(self):
++        '''
++        test state.sls_id when test is set to false as an
++        arg and minion_state_test is set to True. Should
++        return test=False.
++        '''
++        self._add_runtime_pillar(pillar={'test': True})
++        ret = self.run_function('state.sls', ['core'], test=False)
++
++        for key, val in ret.items():
++            self.assertEqual(val['comment'], 'File /tmp/salt-tests-tmpdir/testfile updated')
++            self.assertEqual(val['changes']['diff'], 'New file')
++
+     def tearDown(self):
+         nonbase_file = '/tmp/nonbase_env'
+         if os.path.isfile(nonbase_file):
+             os.remove(nonbase_file)
++
++        # remove old pillar data
++        for filename in os.listdir(TMP_PILLAR_TREE):
++            os.remove(os.path.join(TMP_PILLAR_TREE, filename))
++        self.run_function('saltutil.refresh_pillar')
++        self.run_function('test.sleep', [5])
++
++        # remove testfile added in core.sls state file
++        state_file = os.path.join(TMP, 'testfile')
++        if os.path.isfile(state_file):
++            os.remove(state_file)
+diff --git a/tests/unit/modules/test_state.py b/tests/unit/modules/test_state.py
+index 6a70baac8328c..b357d92d3afdd 100644
+--- a/tests/unit/modules/test_state.py
++++ b/tests/unit/modules/test_state.py
+@@ -26,6 +26,7 @@
+ import salt.utils.platform
+ import salt.modules.state as state
+ from salt.exceptions import CommandExecutionError, SaltInvocationError
++import salt.modules.config as config
+ from salt.ext import six
+ 
+ 
+@@ -366,7 +367,15 @@ def setup_loader_modules(self):
+                     '__cli': 'salt',
+                 },
+                 '__utils__': utils,
++                '__salt__': {
++                    'config.get': config.get,
++                }
+             },
++            config: {
++                '__opts__': {},
++                '__pillar__': {},
++            },
++
+         }
+ 
+     def test_running(self):
+@@ -939,6 +948,66 @@ def test_sls(self):
+                                                           mock):
+                                             self.sub_test_sls()
+ 
++    def test_get_test_value(self):
++        '''
++        Test _get_test_value when opts contains different values
++        '''
++        test_arg = 'test'
++        with patch.dict(state.__opts__, {test_arg: True}):
++            self.assertTrue(state._get_test_value(test=None),
++                            msg='Failure when {0} is True in __opts__'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {test_arg: 'blah'}):
++            self.assertFalse(state._get_test_value(test=None),
++                            msg='Failure when {0} is blah in __opts__'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {test_arg: 'true'}):
++            self.assertFalse(state._get_test_value(test=None),
++                            msg='Failure when {0} is true in __opts__'.format(test_arg))
++
++        with patch.dict(config.__opts__, {test_arg: False}):
++            self.assertFalse(state._get_test_value(test=None),
++                            msg='Failure when {0} is False in __opts__'.format(test_arg))
++
++        with patch.dict(config.__opts__, {}):
++            self.assertFalse(state._get_test_value(test=None),
++                            msg='Failure when {0} does not exist in __opts__'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {test_arg: None}):
++            self.assertEqual(state._get_test_value(test=None), None,
++                            msg='Failure when {0} is None in __opts__'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {test_arg: True}):
++            self.assertTrue(state._get_test_value(test=None),
++                            msg='Failure when {0} is True in __pillar__'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {'master': {test_arg: True}}):
++            self.assertTrue(state._get_test_value(test=None),
++                            msg='Failure when {0} is True in master __pillar__'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {'master': {test_arg: False}}):
++            with patch.dict(config.__pillar__, {test_arg: True}):
++                self.assertTrue(state._get_test_value(test=None),
++                                msg='Failure when {0} is False in master __pillar__ and True in pillar'.format(test_arg))
++
++        with patch.dict(config.__pillar__, {'master': {test_arg: True}}):
++            with patch.dict(config.__pillar__, {test_arg: False}):
++                self.assertFalse(state._get_test_value(test=None),
++                                 msg='Failure when {0} is True in master __pillar__ and False in pillar'.format(test_arg))
++
++        with patch.dict(state.__opts__, {'test': False}):
++            self.assertFalse(state._get_test_value(test=None),
++                             msg='Failure when {0} is False in __opts__'.format(test_arg))
++
++        with patch.dict(state.__opts__, {'test': False}):
++            with patch.dict(config.__pillar__, {'master': {test_arg: True}}):
++                self.assertTrue(state._get_test_value(test=None),
++                                msg='Failure when {0} is False in __opts__'.format(test_arg))
++
++        with patch.dict(state.__opts__, {}):
++            self.assertTrue(state._get_test_value(test=True),
++                            msg='Failure when test is True as arg')
++
+     def sub_test_sls(self):
+         '''
+             Sub function of test_sls

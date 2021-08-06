@@ -1,0 +1,917 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index c9fb6a91396..b9f664595d8 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+ 
+ 
++## Unreleased (2.x branch)
++
++### Added
++
++- The `TrainerCallback` constructor accepts `serialization_dir` provided by `Trainer`. This can be useful for `Logger` callbacks those need to store files in the run directory.
++- The `TrainerCallback.on_start()` is fired at the start of the training.
++- The `TrainerCallback` event methods now accept `**kwargs`. This may be useful to maintain backwards-compability of callbacks easier in the future. E.g. we may decide to pass the exception/traceback object in case of failure to `on_end()` and this older callbacks may simply ignore the argument instead of raising a `TypeError`.
++
++### Changed
++
++- The `TrainerCallack.on_epoch()` does not fire with `epoch=-1` at the start of the training.
++  Instead, `TrainerCallback.on_start()` should be used for these cases.
++- `TensorBoardBatchMemoryUsage` is converted from `BatchCallback` into `TrainerCallback`.
++- `TrackEpochCallback` is converted from `EpochCallback` into `TrainerCallback`.
++- `Trainer` can accept callbacks simply with name `callbacks` instead of `trainer_callbacks`.
++
++### Removed
++
++- Removed `EpochCallback`, `BatchCallback` in favour of `TrainerCallback`.
++  The metaclass-wrapping implementation is removed as well.
++
++### Fixed
++
++- Now Trainer always fires `TrainerCallback.on_end()` so all the resources can be cleaned up properly.
++- Fixed the misspelling, changed `TensoboardBatchMemoryUsage` to `TensorBoardBatchMemoryUsage`.
++- We set a value to `epoch` so in case of firing `TrainerCallback.on_end()` the variable is bound.
++  This could have lead to an error in case of trying to recover a run after it was finished training.
++
++
+ ## [v2.0.0rc1](https://github.com/allenai/allennlp/releases/tag/v2.0.0rc1) - 2021-01-21
+ 
+ ### Added
+@@ -59,6 +88,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
+ 
+ - The `build-vocab` command no longer crashes when the resulting vocab file is
+   in the current working directory.
++- VQA models now use the `vqa_score` metric for early stopping. This results in
++  much better scores.
++
++
++## Unreleased (1.x branch)
++
++### Added
++
++- Added a `FileLock` class to `common.file_utils`. This is just like the `FileLock` from the `filelock` library, except that
++  it adds an optional flag `read_only_ok: bool`, which when set to `True` changes the behavior so that a warning will be emitted
++  instead of an exception when lacking write permissions on an existing file lock.
++  This makes it possible to use the `FileLock` class on a read-only file system.
++- Added a new learning rate scheduler: `CombinedLearningRateScheduler`. This can be used to combine different LR schedulers, using one after the other.
++- Moving `ModelCard` and `TaskCard` abstractions into the main repository.
++
++### Changed
++
++- 'master' branch renamed to 'main'
++- Torch version bumped to 1.7.1 in Docker images.
++
++### Fixed
++
+ - Fixed typo with `LabelField` string representation: removed trailing apostrophe.
+ - `Vocabulary.from_files` and `cached_path` will issue a warning, instead of failing, when a lock on an existing resource
+   can't be acquired because the file system is read-only.
+@@ -90,7 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
+   were not passed to the constructor if the value of the parameter was equal to the default value.
+   This caused bugs in some edge cases where a subclass that takes `**kwargs` needs to inspect
+   `kwargs` before passing them to its superclass.
+-- Improved the band-aid solution for segmentation faults and the "ImportError: dlopen: cannot load any more object with static TLS" 
++- Improved the band-aid solution for segmentation faults and the "ImportError: dlopen: cannot load any more object with static TLS"
+   by adding a `transformers` import.
+ - Added safety checks for extracting tar files
+ - Turned superfluous warning to info when extending the vocab in the embedding matrix, if no pretrained file was provided
+diff --git a/allennlp/training/__init__.py b/allennlp/training/__init__.py
+index 1a393b71d8c..d14a0845f2b 100644
+--- a/allennlp/training/__init__.py
++++ b/allennlp/training/__init__.py
+@@ -4,8 +4,7 @@
+ from allennlp.training.trainer import (
+     Trainer,
+     GradientDescentTrainer,
+-    BatchCallback,
+-    EpochCallback,
+     TrainerCallback,
+     TrackEpochCallback,
++    TensorBoardBatchMemoryUsage,
+ )
+diff --git a/allennlp/training/trainer.py b/allennlp/training/trainer.py
+index 63aefbaaf75..81d18aca898 100644
+--- a/allennlp/training/trainer.py
++++ b/allennlp/training/trainer.py
+@@ -6,7 +6,7 @@
+ import time
+ import traceback
+ from contextlib import contextmanager
+-from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Type, Union
++from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+ 
+ from allennlp.common.util import int_to_device
+ 
+@@ -101,37 +101,32 @@ def get_checkpoint_state(self) -> Iterator[Tuple[Dict[str, Any], Dict[str, Any]]
+         raise NotImplementedError
+ 
+ 
+-class BatchCallback(Registrable):
++class TrainerCallback(Registrable):
+     """
+-    An optional callback that you can pass to the `GradientDescentTrainer` that will be called at
+-    the end of every batch, during both training and validation.  The default implementation
+-    does nothing. You can implement your own callback and do whatever you want, such as saving
+-    predictions to disk or extra logging.
+-    """
+-
+-    def __call__(
+-        self,
+-        trainer: "GradientDescentTrainer",
+-        batch_inputs: List[List[TensorDict]],
+-        batch_outputs: List[Dict[str, Any]],
+-        batch_metrics: Dict[str, Any],
+-        epoch: int,
+-        batch_number: int,
+-        is_training: bool,
+-        is_primary: bool,
+-    ) -> None:
+-        pass
++    A general callback object that handles multiple events.
+ 
++    This class has `on_batch`, `on_epoch`, and `on_end` methods, corresponding to
++    each callback type. Each one receives the state of the wrapper object as `self`.
++    This enables easier state sharing between related callbacks.
+ 
+-@BatchCallback.register("tensorboard-memory-usage")
+-class TensoboardBatchMemoryUsage(BatchCallback):
++    Also, this callback type is instantiated with `serialization_dir` and `on_start` is called
++    with the trainer instance as an argument. This might be handy in case of callback logging
++    and saving its own files next to the config/checkpoints/logs/etc.
+     """
+-    Logs the CPU and GPU memory usage to tensorboard on every batch.
+ 
+-    This is mainly used for debugging as it can cause a significant slowdown in training.
+-    """
++    def __init__(self, serialization_dir: str) -> None:
++        self.serialization_dir = serialization_dir
++        self.trainer: Optional["GradientDescentTrainer"] = None
++
++    def on_start(
++        self, trainer: "GradientDescentTrainer", is_primary: bool = True, **kwargs
++    ) -> None:
++        """
++        This callback hook is called before the training is started.
++        """
++        self.trainer = trainer
+ 
+-    def __call__(
++    def on_batch(
+         self,
+         trainer: "GradientDescentTrainer",
+         batch_inputs: List[List[TensorDict]],
+@@ -140,104 +135,50 @@ def __call__(
+         epoch: int,
+         batch_number: int,
+         is_training: bool,
+-        is_primary: bool,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
+-        # In the distributed case we need to call this from every worker, since every
+-        # worker reports its own memory usage.
+-        cpu_memory_usage = common_util.peak_cpu_memory()
+-        gpu_memory_usage = common_util.peak_gpu_memory()
+-        # But we only want to log from the primary process.
+-        if is_primary:
+-            trainer._tensorboard.log_memory_usage(cpu_memory_usage, gpu_memory_usage)
+-
+-
+-BatchCallback.register("null")(BatchCallback)
+-
+-
+-class EpochCallback(Registrable):
+-    """
+-    An optional callback that you can pass to the `GradientDescentTrainer` that will be called at
+-    the end of every epoch (and before the start of training, with `epoch=-1`). The default
+-    implementation does nothing. You can implement your own callback and do whatever you want, such
+-    as additional modifications of the trainer's state in between epochs.
+-    """
++        """
++        This callback hook is called after the end of each batch.
++        """
++        pass
+ 
+-    def __call__(
++    def on_epoch(
+         self,
+         trainer: "GradientDescentTrainer",
+         metrics: Dict[str, Any],
+         epoch: int,
+-        is_primary: bool,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
++        """
++        This callback hook is called after the end of each epoch.
++        """
+         pass
+ 
+-
+-EpochCallback.register("null")(EpochCallback)
+-
+-
+-@EpochCallback.register("track_epoch_callback")
+-class TrackEpochCallback(EpochCallback):
+-    """
+-    A callback that you can pass to the `GradientDescentTrainer` to access the current epoch number
+-    in your model during training. This callback sets `model.epoch`, which can be read inside of
+-    `model.forward()`. Since the EpochCallback passes `epoch=-1`
+-    at the start of the training, we set `model.epoch = epoch + 1` which now denotes the number of
+-    completed epochs at a given training state.
+-    """
+-
+-    def __init__(self):
+-        super().__init__()
+-
+-    def __call__(
++    def on_end(
+         self,
+         trainer: "GradientDescentTrainer",
+-        metrics: Dict[str, Any],
+-        epoch: int,
+-        is_primary: bool,
++        metrics: Dict[str, Any] = None,
++        epoch: int = None,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
+-        trainer.model.epoch = epoch + 1
+-
+-
+-_BasicCallback = Union[BatchCallback, EpochCallback]
+-
+-
+-class _TrainerCallbackMeta(type):
+-    def __new__(cls, name, bases, dct):
+         """
+-        Add subclasses that wrap the `TrainerCallback` into other interfaces.
++        This callback hook is called after the final training epoch.
+         """
+-        subtype = super().__new__(cls, name, bases, dct)
+-        # These subtypes wrap the `TrainerCallback` into the `_BasicCallback` interfaces.
+-        subtype.Batch = cls._make_callback_type(BatchCallback, subtype.on_batch)
+-        subtype.Epoch = cls._make_callback_type(EpochCallback, subtype.on_epoch)
+-        subtype.End = cls._make_callback_type(EpochCallback, subtype.on_end)
+-        return subtype
+-
+-    @classmethod
+-    def _make_callback_type(
+-        cls,
+-        call_type: Type[_BasicCallback],
+-        call: Callable[[], None],
+-    ) -> Type[_BasicCallback]:  # type: ignore
+-        class _Wrapper(call_type):  # type: ignore
+-            def __init__(self, trainer_callback: "TrainerCallback"):
+-                self.trainer_callback = trainer_callback
++        pass
+ 
+-            def __call__(self, trainer: "GradientDescentTrainer", *args, **kwargs):
+-                call(self.trainer_callback, trainer, *args, **kwargs)  # type: ignore
+ 
+-        return _Wrapper
++TrainerCallback.register("null")(TrainerCallback)
+ 
+ 
+-class TrainerCallback(Registrable, metaclass=_TrainerCallbackMeta):
++@TrainerCallback.register("tensorboard-memory-usage")
++class TensorBoardBatchMemoryUsage(TrainerCallback):
+     """
+-    A general callback object that wraps all three types of callbacks into one.
+-
+-    Rather than a `__call__` method, this class has `on_batch`, `on_epoch`, and `on_end` methods, corresponding to
+-    each callback type. Each one receives the state of the wrapper object as `self`. This enables easier state
+-    sharing between related callbacks.
++    Logs the CPU and GPU memory usage to tensorboard on every batch.
+ 
+-    Under the hood, this is a metaclass that creates wrapping subclasses each time a subclass is created.
++    This is mainly used for debugging as it can cause a significant slowdown in training.
+     """
+ 
+     def on_batch(
+@@ -249,63 +190,42 @@ def on_batch(
+         epoch: int,
+         batch_number: int,
+         is_training: bool,
+-        is_primary: bool,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
+-        """
+-        This callback hook is called after the end of each batch. This is equivalent to `BatchCallback`.
+-        """
+-        pass
++        # In the distributed case we need to call this from every worker, since every
++        # worker reports its own memory usage.
++        cpu_memory_usage = common_util.peak_cpu_memory()
++        gpu_memory_usage = common_util.peak_gpu_memory()
++        # But we only want to log from the primary process.
++        if is_primary:
++            trainer._tensorboard.log_memory_usage(cpu_memory_usage, gpu_memory_usage)
+ 
+-    def on_epoch(
+-        self,
+-        trainer: "GradientDescentTrainer",
+-        metrics: Dict[str, Any],
+-        epoch: int,
+-        is_primary: bool,
++
++@TrainerCallback.register("track_epoch_callback")
++class TrackEpochCallback(TrainerCallback):
++    """
++    A callback that you can pass to the `GradientDescentTrainer` to access the current epoch number
++    in your model during training. This callback sets `model.epoch`, which can be read inside of
++    `model.forward()`. We set `model.epoch = epoch + 1` which now denotes the number of
++    completed epochs at a given training state.
++    """
++
++    def on_start(
++        self, trainer: "GradientDescentTrainer", is_primary: bool = True, **kwargs
+     ) -> None:
+-        """
+-        This callback hook is called after the end of each epoch. This is equivalent to `EpochCallback`.
+-        """
+-        pass
++        super().on_start(trainer, is_primary)
++        trainer.model.epoch = 0
+ 
+-    def on_end(
++    def on_epoch(
+         self,
+         trainer: "GradientDescentTrainer",
+         metrics: Dict[str, Any],
+         epoch: int,
+-        is_primary: bool,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
+-        """
+-        This callback hook is called after the final training epoch. The `epoch` is passed as an argument.
+-        """
+-        pass
+-
+-    def batch(self):
+-        """
+-        Construct a `BatchCallback` wrapper for this `TrainCallback`.
+-
+-        The `cls.Batch` type is created by the metaclass.
+-        """
+-        return self.Batch(self)
+-
+-    def epoch(self):
+-        """
+-        Construct an `EpochCallback` wrapper for this instance.
+-
+-        The `cls.Epoch` type is created by the metaclass.
+-        """
+-        return self.Epoch(self)
+-
+-    def end(self):
+-        """
+-        Construct an `EpochCallback` wrapping the `on_end` end-of-training hook.
+-
+-        The `cls.End` type is created by the metaclass.
+-        """
+-        return self.End(self)
+-
+-
+-TrainerCallback.register("null")(TrainerCallback)
++        trainer.model.epoch = epoch + 1
+ 
+ 
+ @Trainer.register("gradient_descent", constructor="from_partial_objects")
+@@ -418,20 +338,9 @@ class GradientDescentTrainer(Trainer):
+         parameters. This is necessary because we want the saved model to perform as well as the validated
+         model if we load it later. But this may cause problems if you restart the training from checkpoint.
+ 
+-    batch_callbacks : `List[BatchCallback]`, optional (default = `None`)
+-        A list of callbacks that will be called at the end of every batch, during both train and
+-        validation.
+-
+-    epoch_callbacks : `List[EpochCallback]`, optional (default = `None`)
+-        A list of callbacks that will be called at the end of every epoch, and at the start of
+-        training (with epoch = -1).
+-
+-    end_callbacks : `List[EpochCallback]`, optional (default = `None`)
+-        A list of callbacks that will be called after the final epoch at the end of training. The type of the
+-        callbacks is the same as `epoch_callbacks`.
+-
+     trainer_callbacks : `List[TrainerCallback]`, optional (default = `None`)
+-        A list of callbacks that will be called at each batch, epoch, and at the start and end of training.
++        A list of callbacks that can be called at certain events: e.g. each batch, epoch, and at the start
++        and end of training, etc.
+ 
+     distributed : `bool`, optional, (default = `False`)
+         If set, PyTorch's `DistributedDataParallel` is used to train the model in multiple GPUs. This also
+@@ -482,10 +391,7 @@ def __init__(
+         momentum_scheduler: Optional[MomentumScheduler] = None,
+         tensorboard_writer: TensorboardWriter = None,
+         moving_average: Optional[MovingAverage] = None,
+-        batch_callbacks: List[BatchCallback] = None,
+-        epoch_callbacks: List[EpochCallback] = None,
+-        end_callbacks: List[EpochCallback] = None,
+-        trainer_callbacks: List[TrainerCallback] = None,
++        callbacks: List[TrainerCallback] = None,
+         distributed: bool = False,
+         local_rank: int = 0,
+         world_size: int = 1,
+@@ -532,14 +438,8 @@ def __init__(
+         self._learning_rate_scheduler = learning_rate_scheduler
+         self._momentum_scheduler = momentum_scheduler
+         self._moving_average = moving_average
+-        self._batch_callbacks = batch_callbacks or []
+-        self._epoch_callbacks = epoch_callbacks or []
+-        self._end_callbacks = end_callbacks or []
+ 
+-        for callback in trainer_callbacks or []:
+-            self._batch_callbacks.append(callback.batch())
+-            self._epoch_callbacks.append(callback.epoch())
+-            self._end_callbacks.append(callback.end())
++        self._callbacks = callbacks or []
+ 
+         # We keep the total batch number as an instance variable because it
+         # is used inside a closure for the hook which logs activations in
+@@ -799,8 +699,9 @@ def _train_epoch(self, epoch: int) -> Dict[str, float]:
+ 
+                 if self._checkpointer is not None:
+                     self._checkpointer.maybe_save_checkpoint(self, epoch, batches_this_epoch)
+-            for callback in self._batch_callbacks:
+-                callback(
++
++            for callback in self._callbacks:
++                callback.on_batch(
+                     self,
+                     batch_group,
+                     batch_group_outputs,
+@@ -930,8 +831,8 @@ def _validation_loss(self, epoch: int) -> Tuple[float, Optional[float], int]:
+             if self._primary:
+                 val_generator_tqdm.set_description(description, refresh=False)
+ 
+-            for callback in self._batch_callbacks:
+-                callback(
++            for callback in self._callbacks:
++                callback.on_batch(
+                     self,
+                     [batch],
+                     [batch_outputs],
+@@ -961,13 +862,24 @@ def train(self) -> Dict[str, Any]:
+         """
+         Trains the supplied model with the supplied parameters.
+         """
++
++        for callback in self._callbacks:
++            callback.on_start(self, is_primary=self._primary)
++
++        # Set default values in case of failure
++        epoch = None
++        metrics = None
++
+         try:
+-            return self._try_train()
++            metrics, epoch = self._try_train()
++            return metrics
+         finally:
+             # make sure pending events are flushed to disk and files are closed properly
++            for callback in self._callbacks:
++                callback.on_end(self, metrics=metrics, epoch=epoch, is_primary=self._primary)
+             self._tensorboard.close()
+ 
+-    def _try_train(self) -> Dict[str, Any]:
++    def _try_train(self) -> Tuple[Dict[str, Any], int]:
+         try:
+             epoch_counter = self._restore_checkpoint()
+         except RuntimeError:
+@@ -992,9 +904,6 @@ def _try_train(self) -> Dict[str, Any]:
+         for key, value in self._metric_tracker.best_epoch_metrics.items():
+             metrics["best_validation_" + key] = value
+ 
+-        for callback in self._epoch_callbacks:
+-            callback(self, metrics={}, epoch=-1, is_primary=self._primary)
+-
+         for epoch in range(epoch_counter, self._num_epochs):
+             epoch_start_time = time.time()
+             train_metrics = self._train_epoch(epoch)
+@@ -1090,8 +999,8 @@ def _try_train(self) -> Dict[str, Any]:
+             if self._distributed:
+                 dist.barrier()
+ 
+-            for callback in self._epoch_callbacks:
+-                callback(self, metrics=metrics, epoch=epoch, is_primary=self._primary)
++            for callback in self._callbacks:
++                callback.on_epoch(self, metrics=metrics, epoch=epoch, is_primary=self._primary)
+ 
+             epoch_elapsed_time = time.time() - epoch_start_time
+             logger.info("Epoch duration: %s", datetime.timedelta(seconds=epoch_elapsed_time))
+@@ -1105,9 +1014,8 @@ def _try_train(self) -> Dict[str, Any]:
+                 logger.info("Estimated training time remaining: %s", formatted_time)
+ 
+             epochs_trained += 1
+-
+-        for callback in self._end_callbacks:
+-            callback(self, metrics=metrics, epoch=epoch, is_primary=self._primary)
++        else:
++            epoch = self._num_epochs - 1
+ 
+         # Load the best model state before returning
+         best_model_state = (
+@@ -1116,7 +1024,7 @@ def _try_train(self) -> Dict[str, Any]:
+         if best_model_state:
+             self.model.load_state_dict(best_model_state)
+ 
+-        return metrics
++        return metrics, epoch
+ 
+     @contextmanager
+     def get_checkpoint_state(self) -> Iterator[Tuple[Dict[str, Any], Dict[str, Any]]]:
+@@ -1228,10 +1136,8 @@ def from_partial_objects(
+         tensorboard_writer: Lazy[TensorboardWriter] = Lazy(TensorboardWriter),
+         moving_average: Lazy[MovingAverage] = None,
+         checkpointer: Lazy[Checkpointer] = Lazy(Checkpointer),
+-        batch_callbacks: List[BatchCallback] = None,
+-        epoch_callbacks: List[EpochCallback] = None,
+-        end_callbacks: List[EpochCallback] = None,
+-        trainer_callbacks: List[TrainerCallback] = None,
++        callbacks: List[Lazy[TrainerCallback]] = None,
++        trainer_callbacks: List[Lazy[TrainerCallback]] = None,
+     ) -> "Trainer":
+         """
+         This method exists so that we can have a documented method to construct this class using
+@@ -1297,6 +1203,14 @@ def from_partial_objects(
+         checkpointer_ = checkpointer.construct(serialization_dir=serialization_dir)
+         tensorboard_writer_ = tensorboard_writer.construct(serialization_dir=serialization_dir)
+ 
++        callbacks = callbacks or trainer_callbacks or []
++
++        callbacks_: List[TrainerCallback] = []
++
++        for callback in callbacks:
++            callback_ = callback.construct(serialization_dir=serialization_dir)
++            callbacks_.append(callback_)
++
+         return cls(
+             model,
+             optimizer_,
+@@ -1314,10 +1228,7 @@ def from_partial_objects(
+             tensorboard_writer=tensorboard_writer_,
+             checkpointer=checkpointer_,
+             moving_average=moving_average_,
+-            batch_callbacks=batch_callbacks,
+-            epoch_callbacks=epoch_callbacks,
+-            end_callbacks=end_callbacks,
+-            trainer_callbacks=trainer_callbacks,
++            callbacks=callbacks_,
+             distributed=distributed,
+             local_rank=local_rank,
+             world_size=world_size,
+diff --git a/tests/commands/train_test.py b/tests/commands/train_test.py
+index fa4da7e6509..3d2910740f5 100644
+--- a/tests/commands/train_test.py
++++ b/tests/commands/train_test.py
+@@ -21,7 +21,7 @@
+ from allennlp.data.data_loaders import TensorDict
+ from allennlp.models import load_archive, Model
+ from allennlp.models.archival import CONFIG_NAME
+-from allennlp.training import BatchCallback, GradientDescentTrainer
++from allennlp.training import TrainerCallback, GradientDescentTrainer
+ from allennlp.training.learning_rate_schedulers import (
+     ExponentialLearningRateScheduler,
+     LearningRateScheduler,
+@@ -31,9 +31,9 @@
+ SEQUENCE_TAGGING_SHARDS_PATH = str(AllenNlpTestCase.FIXTURES_ROOT / "data" / "shards" / "*")
+ 
+ 
+-@BatchCallback.register("training_data_logger")
+-class TrainingDataLoggerBatchCallback(BatchCallback):
+-    def __call__(  # type: ignore
++@TrainerCallback.register("training_data_logger")
++class TrainingDataLoggerOnBatchCallback(TrainerCallback):
++    def on_batch(  # type: ignore
+         self,
+         trainer: "GradientDescentTrainer",
+         batch_inputs: List[TensorDict],
+@@ -42,7 +42,8 @@ def __call__(  # type: ignore
+         epoch: int,
+         batch_number: int,
+         is_training: bool,
+-        is_primary: bool,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
+         if is_training:
+             logger = logging.getLogger(__name__)
+@@ -54,9 +55,9 @@ def __call__(  # type: ignore
+ _seen_training_devices = set()
+ 
+ 
+-@BatchCallback.register("training_device_logger")
+-class TrainingDeviceLoggerBatchCallback(BatchCallback):
+-    def __call__(  # type: ignore
++@TrainerCallback.register("training_device_logger")
++class TrainingDeviceLoggerOnBatchCallback(TrainerCallback):
++    def on_batch(  # type: ignore
+         self,
+         trainer: "GradientDescentTrainer",
+         batch_inputs: List[TensorDict],
+@@ -65,7 +66,8 @@ def __call__(  # type: ignore
+         epoch: int,
+         batch_number: int,
+         is_training: bool,
+-        is_primary: bool,
++        is_primary: bool = True,
++        **kwargs,
+     ) -> None:
+         global _seen_training_devices
+         for tensor in trainer.model.parameters():
+@@ -141,7 +143,7 @@ def test_detect_gpu(self):
+         import copy
+ 
+         params = copy.deepcopy(self.DEFAULT_PARAMS)
+-        params["trainer"]["batch_callbacks"] = ["training_device_logger"]
++        params["trainer"]["callbacks"] = ["training_device_logger"]
+ 
+         global _seen_training_devices
+         _seen_training_devices.clear()
+@@ -158,7 +160,7 @@ def test_force_gpu(self):
+         import copy
+ 
+         params = copy.deepcopy(self.DEFAULT_PARAMS)
+-        params["trainer"]["batch_callbacks"] = ["training_device_logger"]
++        params["trainer"]["callbacks"] = ["training_device_logger"]
+         params["trainer"]["cuda_device"] = 0
+ 
+         global _seen_training_devices
+@@ -177,7 +179,7 @@ def test_force_cpu(self):
+         import copy
+ 
+         params = copy.deepcopy(self.DEFAULT_PARAMS)
+-        params["trainer"]["batch_callbacks"] = ["training_device_logger"]
++        params["trainer"]["callbacks"] = ["training_device_logger"]
+         params["trainer"]["cuda_device"] = -1
+ 
+         global _seen_training_devices
+@@ -351,9 +353,7 @@ def test_train_model_distributed_without_sharded_reader(self, max_instances_in_m
+                 "trainer": {
+                     "num_epochs": num_epochs,
+                     "optimizer": "adam",
+-                    "batch_callbacks": [
+-                        "tests.commands.train_test.TrainingDataLoggerBatchCallback"
+-                    ],
++                    "callbacks": ["tests.commands.train_test.TrainingDataLoggerOnBatchCallback"],
+                 },
+                 "distributed": {"cuda_devices": devices},
+             }
+@@ -529,9 +529,9 @@ def __init__(self, optimizer: torch.optim.Optimizer, num_steps_per_epoch: int):
+ 
+         batch_callback_counter = 0
+ 
+-        @BatchCallback.register("counter")
+-        class CounterBatchCallback(BatchCallback):
+-            def __call__(
++        @TrainerCallback.register("counter")
++        class CounterOnBatchCallback(TrainerCallback):
++            def on_batch(
+                 self,
+                 trainer: GradientDescentTrainer,
+                 batch_inputs: List[List[TensorDict]],
+@@ -540,7 +540,8 @@ def __call__(
+                 epoch: int,
+                 batch_number: int,
+                 is_training: bool,
+-                is_primary: bool,
++                is_primary: bool = True,
++                **kwargs,
+             ) -> None:
+                 nonlocal batch_callback_counter
+                 if is_training:
+@@ -565,7 +566,7 @@ def __call__(
+                     "num_epochs": number_of_epochs,
+                     "optimizer": "adam",
+                     "learning_rate_scheduler": {"type": "mock"},
+-                    "batch_callbacks": ["counter"],
++                    "callbacks": ["counter"],
+                 },
+             }
+         )
+diff --git a/tests/training/trainer_test.py b/tests/training/trainer_test.py
+index c1555e0e930..fbf93461652 100644
+--- a/tests/training/trainer_test.py
++++ b/tests/training/trainer_test.py
+@@ -24,8 +24,6 @@
+     GradientDescentTrainer,
+     Checkpointer,
+     TensorboardWriter,
+-    BatchCallback,
+-    EpochCallback,
+     TrainerCallback,
+     TrackEpochCallback,
+ )
+@@ -908,65 +906,6 @@ def test_trainer_can_run_gradient_accumulation(self):
+ 
+         assert num_batches_trained_per_epoch == num_batches_expected
+ 
+-    def test_batch_callback_is_called_at_every_batch(self):
+-        class FakeBatchCallback(BatchCallback):
+-            def __call__(
+-                self,
+-                trainer: "GradientDescentTrainer",
+-                batch_inputs: List[List[TensorDict]],
+-                batch_outputs: List[Dict[str, Any]],
+-                batch_metrics: Dict[str, Any],
+-                epoch: int,
+-                batch_number: int,
+-                is_training: bool,
+-                is_primary: bool,
+-            ) -> None:
+-                if not hasattr(trainer, "batch_callback_calls"):
+-                    trainer.batch_callback_calls = []  # type: ignore
+-                trainer.batch_callback_calls.append((epoch, batch_number, is_training))  # type: ignore
+-
+-        trainer = GradientDescentTrainer(
+-            self.model,
+-            self.optimizer,
+-            self.data_loader,
+-            num_epochs=2,
+-            validation_data_loader=self.validation_data_loader,
+-            batch_callbacks=[FakeBatchCallback()],
+-        )
+-        trainer.train()
+-        expected_calls = [
+-            (epoch, batch_number + 1, is_train)
+-            for epoch in range(2)
+-            for is_train in (True, False)
+-            for batch_number in range(len(self.instances) // 2)
+-        ]
+-        assert trainer.batch_callback_calls == expected_calls
+-
+-    def test_epoch_callback_is_called_at_every_epoch(self):
+-        class FakeEpochCallback(EpochCallback):
+-            def __call__(
+-                self,
+-                trainer: "GradientDescentTrainer",
+-                metrics: Dict[str, Any],
+-                epoch: int,
+-                is_primary: bool,
+-            ) -> None:
+-                if not hasattr(trainer, "epoch_callback_calls"):
+-                    trainer.epoch_callback_calls = []  # type: ignore
+-                trainer.epoch_callback_calls.append(epoch)  # type: ignore
+-
+-        trainer = GradientDescentTrainer(
+-            self.model,
+-            self.optimizer,
+-            self.data_loader,
+-            num_epochs=4,
+-            validation_data_loader=self.validation_data_loader,
+-            epoch_callbacks=[FakeEpochCallback()],
+-        )
+-        trainer.train()
+-        expected_calls = [epoch for epoch in range(-1, 4)]
+-        assert trainer.epoch_callback_calls == expected_calls
+-
+     def test_track_epoch_callback(self):
+         num_epochs = 4
+         trainer = GradientDescentTrainer(
+@@ -975,38 +914,19 @@ def test_track_epoch_callback(self):
+             self.data_loader,
+             num_epochs=num_epochs,
+             validation_data_loader=self.validation_data_loader,
+-            epoch_callbacks=[TrackEpochCallback()],
++            callbacks=[TrackEpochCallback(serialization_dir=self.TEST_DIR)],
+         )
+         trainer.train()
+         assert trainer.model.epoch == num_epochs
+ 
+-    def test_end_callback_is_called_at_end(self):
+-        class FakeEndCallback(EpochCallback):
+-            def __call__(
+-                self,
+-                trainer: "GradientDescentTrainer",
+-                metrics: Dict[str, Any],
+-                epoch: int,
+-                is_primary: bool,
+-            ) -> None:
+-                if not hasattr(trainer, "end_callback_calls"):
+-                    trainer.end_callback_calls = []  # type: ignore
+-                trainer.end_callback_calls.append(epoch)  # type: ignore
+-
+-        trainer = GradientDescentTrainer(
+-            self.model,
+-            self.optimizer,
+-            self.data_loader,
+-            num_epochs=4,
+-            validation_data_loader=self.validation_data_loader,
+-            end_callbacks=[FakeEndCallback()],
+-        )
+-        trainer.train()
+-        expected_calls = [3]
+-        assert trainer.end_callback_calls == expected_calls
+-
+     def test_trainer_callback_is_called_everywhere(self):
+         class FakeTrainerCallback(TrainerCallback):
++            def on_start(
++                self, trainer: "GradientDescentTrainer", is_primary: bool = True, **kwargs
++            ) -> None:
++                if not hasattr(trainer, "start_callback_is_fired_first"):
++                    trainer.start_callback_is_fired_first = True  # type: ignore
++
+             def on_batch(
+                 self,
+                 trainer: "GradientDescentTrainer",
+@@ -1016,8 +936,12 @@ def on_batch(
+                 epoch: int,
+                 batch_number: int,
+                 is_training: bool,
+-                is_primary: bool,
++                is_primary: bool = True,
++                **kwargs,
+             ) -> None:
++                if not hasattr(trainer, "start_callback_is_fired_first"):
++                    trainer.start_callback_is_fired_first = False  # type: ignore
++
+                 if not hasattr(trainer, "batch_callback_calls"):
+                     trainer.batch_callback_calls = []  # type: ignore
+                 trainer.batch_callback_calls.append((epoch, batch_number, is_training))  # type: ignore
+@@ -1027,8 +951,12 @@ def on_epoch(
+                 trainer: "GradientDescentTrainer",
+                 metrics: Dict[str, Any],
+                 epoch: int,
+-                is_primary: bool,
++                is_primary: bool = True,
++                **kwargs,
+             ) -> None:
++                if not hasattr(trainer, "start_callback_is_fired_first"):
++                    trainer.start_callback_is_fired_first = False  # type: ignore
++
+                 if not hasattr(trainer, "epoch_callback_calls"):
+                     trainer.epoch_callback_calls = []  # type: ignore
+                 trainer.epoch_callback_calls.append(epoch)  # type: ignore
+@@ -1036,10 +964,14 @@ def on_epoch(
+             def on_end(
+                 self,
+                 trainer: "GradientDescentTrainer",
+-                metrics: Dict[str, Any],
+-                epoch: int,
+-                is_primary: bool,
++                metrics: Dict[str, Any] = None,
++                epoch: int = None,
++                is_primary: bool = True,
++                **kwargs,
+             ) -> None:
++                if not hasattr(trainer, "start_callback_is_fired_first"):
++                    trainer.start_callback_is_fired_first = False  # type: ignore
++
+                 if not hasattr(trainer, "end_callback_calls"):
+                     trainer.end_callback_calls = []  # type: ignore
+                 trainer.end_callback_calls.append(epoch)  # type: ignore
+@@ -1050,7 +982,7 @@ def on_end(
+             self.data_loader,
+             num_epochs=2,
+             validation_data_loader=self.validation_data_loader,
+-            trainer_callbacks=[FakeTrainerCallback()],
++            callbacks=[FakeTrainerCallback(serialization_dir=self.TEST_DIR)],
+         )
+         trainer.train()
+         expected_batch_calls = [
+@@ -1059,9 +991,10 @@ def on_end(
+             for is_train in (True, False)
+             for batch_number in range(len(self.instances) // 2)
+         ]
+-        expected_epoch_calls = [epoch for epoch in range(-1, 2)]
++        expected_epoch_calls = [epoch for epoch in range(0, 2)]
+         expected_end_calls = [1]
+ 
++        assert trainer.start_callback_is_fired_first
+         assert trainer.batch_callback_calls == expected_batch_calls
+         assert trainer.epoch_callback_calls == expected_epoch_calls
+         assert trainer.end_callback_calls == expected_end_calls
+@@ -1071,8 +1004,8 @@ def test_total_loss_is_average_of_batch_loss(self):
+ 
+         self.data_loader_lazy.batches_per_epoch = 3
+ 
+-        class FakeBatchCallback(BatchCallback):
+-            def __call__(
++        class FakeOnBatchCallback(TrainerCallback):
++            def on_batch(
+                 self,
+                 trainer: "GradientDescentTrainer",
+                 batch_inputs: List[List[TensorDict]],
+@@ -1081,7 +1014,8 @@ def __call__(
+                 epoch: int,
+                 batch_number: int,
+                 is_training: bool,
+-                is_primary: bool,
++                is_primary: bool = True,
++                **kwargs,
+             ) -> None:
+                 if not hasattr(trainer, "batch_losses"):
+                     trainer.batch_losses = []  # type: ignore
+@@ -1092,7 +1026,7 @@ def __call__(
+             self.optimizer,
+             self.data_loader_lazy,
+             num_epochs=1,
+-            batch_callbacks=[FakeBatchCallback()],
++            callbacks=[FakeOnBatchCallback(serialization_dir=self.TEST_DIR)],
+         )
+         metrics = trainer.train()
+ 

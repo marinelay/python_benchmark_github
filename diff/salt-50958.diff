@@ -1,0 +1,30 @@
+diff --git a/salt/modules/twilio_notify.py b/salt/modules/twilio_notify.py
+index 106d04a45e76a..dfdb512580a34 100644
+--- a/salt/modules/twilio_notify.py
++++ b/salt/modules/twilio_notify.py
+@@ -25,7 +25,9 @@
+ HAS_LIBS = False
+ try:
+     import twilio
+-    if twilio.__version__ > 5:
++    # Grab version, ensure elements are ints
++    twilio_version = tuple([int(x) for x in twilio.__version_info__])
++    if twilio_version > (5, ):
+         TWILIO_5 = False
+         from twilio.rest import Client as TwilioRestClient
+         from twilio.rest import TwilioException as TwilioRestException
+diff --git a/tests/unit/modules/test_twilio_notify.py b/tests/unit/modules/test_twilio_notify.py
+index c8c2f9fafc4a9..d1cbfceca1f90 100644
+--- a/tests/unit/modules/test_twilio_notify.py
++++ b/tests/unit/modules/test_twilio_notify.py
+@@ -22,7 +22,9 @@
+ HAS_LIBS = False
+ try:
+     import twilio
+-    if twilio.__version__ > 5:
++    # Grab version, ensure elements are ints
++    twilio_version = tuple([int(x) for x in twilio.__version_info__])
++    if twilio_version > (5, ):
+         TWILIO_5 = False
+     else:
+         TWILIO_5 = True

@@ -1,0 +1,105 @@
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index ea0677a0edf28..7c46a1c7b7f27 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -667,6 +667,7 @@ Reshaping
+ - Bug in :meth:`DataFrame.replace` raises RecursionError when converting OutOfBounds ``datetime64[ns, tz]`` (:issue:`20380`)
+ - :func:`pandas.core.groupby.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
+ - Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
++- Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
+ -
+ 
+ Build Changes
+diff --git a/pandas/core/internals/blocks.py b/pandas/core/internals/blocks.py
+index 8ee91ded4ab7a..be80a605f08fd 100644
+--- a/pandas/core/internals/blocks.py
++++ b/pandas/core/internals/blocks.py
+@@ -777,10 +777,9 @@ def copy(self, deep=True, mgr=None):
+ 
+     def replace(self, to_replace, value, inplace=False, filter=None,
+                 regex=False, convert=True, mgr=None):
+-        """ replace the to_replace value with value, possible to create new
++        """replace the to_replace value with value, possible to create new
+         blocks here this is just a call to putmask. regex is not used here.
+-        It is used in ObjectBlocks.  It is here for API
+-        compatibility.
++        It is used in ObjectBlocks.  It is here for API compatibility.
+         """
+ 
+         inplace = validate_bool_kwarg(inplace, 'inplace')
+@@ -802,6 +801,11 @@ def replace(self, to_replace, value, inplace=False, filter=None,
+                                     copy=not inplace) for b in blocks]
+             return blocks
+         except (TypeError, ValueError):
++            # GH 22083, TypeError or ValueError occurred within error handling
++            # causes infinite loop. Cast and retry only if not objectblock.
++            if is_object_dtype(self):
++                raise
++
+             # try again with a compatible block
+             block = self.astype(object)
+             return block.replace(to_replace=original_to_replace,
+diff --git a/pandas/core/missing.py b/pandas/core/missing.py
+index a46c19e2d399c..b2daec327d618 100644
+--- a/pandas/core/missing.py
++++ b/pandas/core/missing.py
+@@ -68,6 +68,10 @@ def mask_missing(arr, values_to_mask):
+         else:
+             mask |= isna(arr)
+ 
++    # GH 21977
++    if mask is None:
++        mask = np.zeros(arr.shape, dtype=bool)
++
+     return mask
+ 
+ 
+diff --git a/pandas/tests/frame/test_replace.py b/pandas/tests/frame/test_replace.py
+index 227484abb82c1..49dba1c769572 100644
+--- a/pandas/tests/frame/test_replace.py
++++ b/pandas/tests/frame/test_replace.py
+@@ -603,6 +603,20 @@ def test_replace_list(self):
+ 
+         assert_frame_equal(res, expec)
+ 
++    def test_replace_with_empty_list(self):
++        # GH 21977
++        s = pd.Series([['a', 'b'], [], np.nan, [1]])
++        df = pd.DataFrame({'col': s})
++        expected = df
++        result = df.replace([], np.nan)
++        assert_frame_equal(result, expected)
++
++        # GH 19266
++        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
++            df.replace({np.nan: []})
++        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
++            df.replace({np.nan: ['dummy', 'alt']})
++
+     def test_replace_series_dict(self):
+         # from GH 3064
+         df = DataFrame({'zero': {'a': 0.0, 'b': 1}, 'one': {'a': 2.0, 'b': 0}})
+diff --git a/pandas/tests/series/test_replace.py b/pandas/tests/series/test_replace.py
+index a3b92798879f5..d495fd9c83c24 100644
+--- a/pandas/tests/series/test_replace.py
++++ b/pandas/tests/series/test_replace.py
+@@ -130,6 +130,19 @@ def test_replace_with_single_list(self):
+             s.replace([1, 2, 3], inplace=True, method='crash_cymbal')
+         tm.assert_series_equal(s, ser)
+ 
++    def test_replace_with_empty_list(self):
++        # GH 21977
++        s = pd.Series([[1], [2, 3], [], np.nan, [4]])
++        expected = s
++        result = s.replace([], np.nan)
++        tm.assert_series_equal(result, expected)
++
++        # GH 19266
++        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
++            s.replace({np.nan: []})
++        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
++            s.replace({np.nan: ['dummy', 'alt']})
++
+     def test_replace_mixed_types(self):
+         s = pd.Series(np.arange(5), dtype='int64')
+ 

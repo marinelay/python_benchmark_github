@@ -1,0 +1,72 @@
+diff --git a/salt/client/mixins.py b/salt/client/mixins.py
+index 29b607766145d..6561e6dfba4e9 100644
+--- a/salt/client/mixins.py
++++ b/salt/client/mixins.py
+@@ -384,7 +384,11 @@ def _low(self, fun, low, print_event=True, full_return=False):
+ 
+             # Initialize a context for executing the method.
+             with tornado.stack_context.StackContext(self.functions.context_dict.clone):
+-                data['return'] = self.functions[fun](*args, **kwargs)
++                func = self.functions[fun]
++                try:
++                    data['return'] = func(*args, **kwargs)
++                except TypeError as exc:
++                    data['return'] = '\nPassed invalid arguments: {0}\n\nUsage:\n{1}'.format(exc, func.__doc__)
+                 try:
+                     data['success'] = self.context.get('retcode', 0) == 0
+                 except AttributeError:
+diff --git a/tests/integration/runners/test_cache.py b/tests/integration/runners/test_cache.py
+index 064e887b0521e..7c6d73761f8d4 100644
+--- a/tests/integration/runners/test_cache.py
++++ b/tests/integration/runners/test_cache.py
+@@ -34,3 +34,15 @@ def test_cache(self):
+         ret = self.run_run_plus('cache.flush', bank='cachetest/runner', key='test_cache')
+         ret = self.run_run_plus('cache.list', bank='cachetest/runner')
+         self.assertNotIn('test_cache', ret['return'])
++
++    def test_cache_invalid(self):
++        '''
++        Store, list, fetch, then flush data
++        '''
++        # Store the data
++        ret = self.run_run_plus(
++            'cache.store',
++        )
++        # Make sure we can see the new key
++        expected = 'Passed invalid arguments:'
++        self.assertIn(expected, ret['return'])
+diff --git a/tests/integration/runners/test_jobs.py b/tests/integration/runners/test_jobs.py
+index e9d6b19cf1df6..d63d0955f8eb9 100644
+--- a/tests/integration/runners/test_jobs.py
++++ b/tests/integration/runners/test_jobs.py
+@@ -30,6 +30,14 @@ def test_lookup_jid(self):
+         self.assertEqual(ret['return'], {})
+         self.assertEqual(ret['out'], [])
+ 
++    def test_lookup_jid_invalid(self):
++        '''
++        jobs.lookup_jid
++        '''
++        ret = self.run_run_plus('jobs.lookup_jid')
++        expected = 'Passed invalid arguments:'
++        self.assertIn(expected, ret['return'])
++
+     @skipIf(True, 'to be re-enabled when #23623 is merged')
+     def test_list_jobs(self):
+         '''
+diff --git a/tests/integration/runners/test_salt.py b/tests/integration/runners/test_salt.py
+index 37488f9a48152..71683a8e2501d 100644
+--- a/tests/integration/runners/test_salt.py
++++ b/tests/integration/runners/test_salt.py
+@@ -25,3 +25,11 @@ def test_salt_cmd(self):
+ 
+         self.assertEqual(out_ret, 'True')
+         self.assertTrue(return_ret)
++
++    def test_salt_cmd_invalid(self):
++        '''
++        test return values of salt.cmd invalid parameters
++        '''
++        ret = self.run_run_plus('salt.cmd')
++        expected = 'Passed invalid arguments:'
++        self.assertIn(expected, ret['return'])

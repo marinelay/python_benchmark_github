@@ -1,0 +1,62 @@
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index fd34424dedc52..aadb380a816f4 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -183,7 +183,7 @@ Offsets
+ Numeric
+ ^^^^^^^
+ 
+--
++- Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
+ -
+ -
+ 
+diff --git a/pandas/core/series.py b/pandas/core/series.py
+index 2f762dff4aeab..a608db806d20b 100644
+--- a/pandas/core/series.py
++++ b/pandas/core/series.py
+@@ -2066,7 +2066,7 @@ def __matmul__(self, other):
+ 
+     def __rmatmul__(self, other):
+         """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+-        return self.dot(other)
++        return self.dot(np.transpose(other))
+ 
+     @Substitution(klass='Series')
+     @Appender(base._shared_docs['searchsorted'])
+diff --git a/pandas/tests/series/test_analytics.py b/pandas/tests/series/test_analytics.py
+index b9c7b837b8b81..36342b5ba4ee1 100644
+--- a/pandas/tests/series/test_analytics.py
++++ b/pandas/tests/series/test_analytics.py
+@@ -849,11 +849,30 @@ def test_matmul(self):
+         expected = np.dot(a.values, a.values)
+         assert_almost_equal(result, expected)
+ 
+-        # np.array @ Series (__rmatmul__)
++        # GH 21530
++        # vector (1D np.array) @ Series (__rmatmul__)
+         result = operator.matmul(a.values, a)
+         expected = np.dot(a.values, a.values)
+         assert_almost_equal(result, expected)
+ 
++        # GH 21530
++        # vector (1D list) @ Series (__rmatmul__)
++        result = operator.matmul(a.values.tolist(), a)
++        expected = np.dot(a.values, a.values)
++        assert_almost_equal(result, expected)
++
++        # GH 21530
++        # matrix (2D np.array) @ Series (__rmatmul__)
++        result = operator.matmul(b.T.values, a)
++        expected = np.dot(b.T.values, a.values)
++        assert_almost_equal(result, expected)
++
++        # GH 21530
++        # matrix (2D nested lists) @ Series (__rmatmul__)
++        result = operator.matmul(b.T.values.tolist(), a)
++        expected = np.dot(b.T.values, a.values)
++        assert_almost_equal(result, expected)
++
+         # mixed dtype DataFrame @ Series
+         a['p'] = int(a.p)
+         result = operator.matmul(b.T, a)

@@ -1,0 +1,96 @@
+diff --git a/salt/netapi/rest_cherrypy/app.py b/salt/netapi/rest_cherrypy/app.py
+index 5aeeb06d189d1..3f0dc4d564413 100644
+--- a/salt/netapi/rest_cherrypy/app.py
++++ b/salt/netapi/rest_cherrypy/app.py
+@@ -618,6 +618,7 @@
+ import salt.utils.stringutils
+ import salt.utils.versions
+ from salt.ext import six
++from salt.ext.six import BytesIO
+ 
+ # Import salt-api libs
+ import salt.netapi
+@@ -950,18 +951,6 @@ def urlencoded_processor(entity):
+ 
+     :param entity: raw POST data
+     '''
+-    if six.PY3:
+-        # https://github.com/cherrypy/cherrypy/pull/1572
+-        contents = six.StringIO()
+-        entity.fp.read(fp_out=contents)
+-        contents.seek(0)
+-        body_str = contents.read()
+-        body_bytes = salt.utils.stringutils.to_bytes(body_str)
+-        body_bytes = six.BytesIO(body_bytes)
+-        body_bytes.seek(0)
+-        # Patch fp
+-        entity.fp = body_bytes
+-        del contents
+     # First call out to CherryPy's default processor
+     cherrypy._cpreqbody.process_urlencoded(entity)
+     cherrypy._cpreqbody.process_urlencoded(entity)
+@@ -980,10 +969,10 @@ def json_processor(entity):
+         body = entity.fp.read()
+     else:
+         # https://github.com/cherrypy/cherrypy/pull/1572
+-        contents = six.StringIO()
++        contents = BytesIO()
+         body = entity.fp.read(fp_out=contents)
+         contents.seek(0)
+-        body = contents.read()
++        body = salt.utils.stringutils.to_unicode(contents.read())
+         del contents
+     try:
+         cherrypy.serving.request.unserialized_data = json.loads(body)
+@@ -1004,10 +993,10 @@ def yaml_processor(entity):
+         body = entity.fp.read()
+     else:
+         # https://github.com/cherrypy/cherrypy/pull/1572
+-        contents = six.StringIO()
++        contents = BytesIO()
+         body = entity.fp.read(fp_out=contents)
+         contents.seek(0)
+-        body = contents.read()
++        body = salt.utils.stringutils.to_unicode(contents.read())
+     try:
+         cherrypy.serving.request.unserialized_data = yaml.safe_load(body)
+     except ValueError:
+@@ -1030,10 +1019,10 @@ def text_processor(entity):
+         body = entity.fp.read()
+     else:
+         # https://github.com/cherrypy/cherrypy/pull/1572
+-        contents = six.StringIO()
++        contents = BytesIO()
+         body = entity.fp.read(fp_out=contents)
+         contents.seek(0)
+-        body = contents.read()
++        body = salt.utils.stringutils.to_unicode(contents.read())
+     try:
+         cherrypy.serving.request.unserialized_data = json.loads(body)
+     except ValueError:
+diff --git a/tests/support/cptestcase.py b/tests/support/cptestcase.py
+index cb61020840e22..d8bfe16199395 100644
+--- a/tests/support/cptestcase.py
++++ b/tests/support/cptestcase.py
+@@ -38,9 +38,11 @@
+ # pylint: disable=import-error
+ import cherrypy  # pylint: disable=3rd-party-module-not-gated
+ from salt.ext import six
+-from salt.ext.six.moves import StringIO
++from salt.ext.six import BytesIO
+ # pylint: enable=import-error
+ 
++import salt.utils.stringutils
++
+ # Not strictly speaking mandatory but just makes sense
+ cherrypy.config.update({'environment': "test_suite"})
+ 
+@@ -92,7 +94,7 @@ def request(self, path='/', method='GET', app_path='', scheme='http',
+         fd = None
+         if body is not None:
+             h['content-length'] = '{0}'.format(len(body))
+-            fd = StringIO(body)
++            fd = BytesIO(salt.utils.stringutils.to_bytes(body))
+ 
+         if headers is not None:
+             h.update(headers)

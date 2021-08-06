@@ -1,0 +1,411 @@
+diff --git a/doc/release/upcoming_changes/19135.change.rst b/doc/release/upcoming_changes/19135.change.rst
+new file mode 100644
+index 00000000000..0b900a16acc
+--- /dev/null
++++ b/doc/release/upcoming_changes/19135.change.rst
+@@ -0,0 +1,10 @@
++Removed floor division support for complex types
++------------------------------------------------
++
++Floor division of complex types will now result in a `TypeError`
++
++.. code-block:: python
++
++    >>> a = np.arange(10) + 1j* np.arange(10)
++    >>> a // 1
++    TypeError: ufunc 'floor_divide' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''
+diff --git a/numpy/__init__.pyi b/numpy/__init__.pyi
+index ac37eb8ad40..0245ffd9a1c 100644
+--- a/numpy/__init__.pyi
++++ b/numpy/__init__.pyi
+@@ -2308,8 +2308,6 @@ class ndarray(_ArrayOrScalarCommon, Generic[_ShapeType, _DType_co]):
+     @overload
+     def __floordiv__(self: _ArrayFloat_co, other: _ArrayLikeFloat_co) -> NDArray[floating[Any]]: ...  # type: ignore[misc]
+     @overload
+-    def __floordiv__(self: _ArrayComplex_co, other: _ArrayLikeComplex_co) -> NDArray[complexfloating[Any, Any]]: ...  # type: ignore[misc]
+-    @overload
+     def __floordiv__(self: NDArray[timedelta64], other: _NestedSequence[_SupportsArray[dtype[timedelta64]]]) -> NDArray[int64]: ...
+     @overload
+     def __floordiv__(self: NDArray[timedelta64], other: _ArrayLikeBool_co) -> NoReturn: ...
+@@ -2336,8 +2334,6 @@ class ndarray(_ArrayOrScalarCommon, Generic[_ShapeType, _DType_co]):
+     @overload
+     def __rfloordiv__(self: _ArrayFloat_co, other: _ArrayLikeFloat_co) -> NDArray[floating[Any]]: ...  # type: ignore[misc]
+     @overload
+-    def __rfloordiv__(self: _ArrayComplex_co, other: _ArrayLikeComplex_co) -> NDArray[complexfloating[Any, Any]]: ...  # type: ignore[misc]
+-    @overload
+     def __rfloordiv__(self: NDArray[timedelta64], other: _NestedSequence[_SupportsArray[dtype[timedelta64]]]) -> NDArray[int64]: ...
+     @overload
+     def __rfloordiv__(self: NDArray[bool_], other: _ArrayLikeTD64_co) -> NoReturn: ...
+@@ -3255,8 +3251,6 @@ class complexfloating(inexact[_NBit1], Generic[_NBit1, _NBit2]):
+     __rmul__: _ComplexOp[_NBit1]
+     __truediv__: _ComplexOp[_NBit1]
+     __rtruediv__: _ComplexOp[_NBit1]
+-    __floordiv__: _ComplexOp[_NBit1]
+-    __rfloordiv__: _ComplexOp[_NBit1]
+     __pow__: _ComplexOp[_NBit1]
+     __rpow__: _ComplexOp[_NBit1]
+ 
+diff --git a/numpy/core/code_generators/generate_umath.py b/numpy/core/code_generators/generate_umath.py
+index 9e94f9cccc4..1b6917ebc96 100644
+--- a/numpy/core/code_generators/generate_umath.py
++++ b/numpy/core/code_generators/generate_umath.py
+@@ -329,7 +329,7 @@ def english_upper(s):
+           'PyUFunc_DivisionTypeResolver',
+           TD(ints, cfunc_alias='divide',
+               dispatch=[('loops_arithmetic', 'bBhHiIlLqQ')]),
+-          TD(flts + cmplx),
++          TD(flts),
+           [TypeDescription('m', FullTypeDescr, 'mq', 'm'),
+            TypeDescription('m', FullTypeDescr, 'md', 'm'),
+            TypeDescription('m', FullTypeDescr, 'mm', 'q'),
+diff --git a/numpy/core/src/umath/loops.c.src b/numpy/core/src/umath/loops.c.src
+index 683bd0178bf..b1afa69a7b8 100644
+--- a/numpy/core/src/umath/loops.c.src
++++ b/numpy/core/src/umath/loops.c.src
+@@ -2416,42 +2416,6 @@ NPY_NO_EXPORT void
+ }
+ 
+ 
+-NPY_NO_EXPORT void
+-@TYPE@_floor_divide(char **args, npy_intp const *dimensions, npy_intp const *steps, void *NPY_UNUSED(func))
+-{
+-    BINARY_LOOP {
+-        const @ftype@ in1r = ((@ftype@ *)ip1)[0];
+-        const @ftype@ in1i = ((@ftype@ *)ip1)[1];
+-        const @ftype@ in2r = ((@ftype@ *)ip2)[0];
+-        const @ftype@ in2i = ((@ftype@ *)ip2)[1];
+-#if defined(__APPLE__) && defined(__aarch64__)
+-        // On macos-arm64 without this block of code,
+-        // when branch prediction goes wrong, the floating point exception
+-        // register does not get cleared and an exception for the
+-        // wrong branch is thrown.
+-        if (in2i == 0) {
+-            ((@ftype@ *)op1)[0] = npy_floor@c@(in1r/in2r);
+-            ((@ftype@ *)op1)[1] = 0;
+-        }
+-        else if (in2r == 0) {
+-            ((@ftype@ *)op1)[0] = npy_floor@c@(in1i/in2i);
+-            ((@ftype@ *)op1)[1] = 0;
+-        }
+-        else
+-#endif
+-        if (npy_fabs@c@(in2r) >= npy_fabs@c@(in2i)) {
+-            const @ftype@ rat = in2i/in2r;
+-            ((@ftype@ *)op1)[0] = npy_floor@c@((in1r + in1i*rat)/(in2r + in2i*rat));
+-            ((@ftype@ *)op1)[1] = 0;
+-        }
+-        else {
+-            const @ftype@ rat = in2r/in2i;
+-            ((@ftype@ *)op1)[0] = npy_floor@c@((in1r*rat + in1i)/(in2i + in2r*rat));
+-            ((@ftype@ *)op1)[1] = 0;
+-        }
+-    }
+-}
+-
+ /**begin repeat1
+  * #kind= greater, greater_equal, less, less_equal, equal, not_equal#
+  * #OP = CGT, CGE, CLT, CLE, CEQ, CNE#
+diff --git a/numpy/core/src/umath/loops.h.src b/numpy/core/src/umath/loops.h.src
+index bb07e047c37..02d749a5eb5 100644
+--- a/numpy/core/src/umath/loops.h.src
++++ b/numpy/core/src/umath/loops.h.src
+@@ -420,9 +420,6 @@ C@TYPE@_@kind@(char **args, npy_intp const *dimensions, npy_intp const *steps, v
+ NPY_NO_EXPORT void
+ C@TYPE@_divide(char **args, npy_intp const *dimensions, npy_intp const *steps, void *NPY_UNUSED(func));
+ 
+-NPY_NO_EXPORT void
+-C@TYPE@_floor_divide(char **args, npy_intp const *dimensions, npy_intp const *steps, void *NPY_UNUSED(func));
+-
+ /**begin repeat1
+  * #kind= greater, greater_equal, less, less_equal, equal, not_equal#
+  * #OP = CGT, CGE, CLT, CLE, CEQ, CNE#
+diff --git a/numpy/core/tests/test_umath.py b/numpy/core/tests/test_umath.py
+index 9d1b13b53a8..f438b622aff 100644
+--- a/numpy/core/tests/test_umath.py
++++ b/numpy/core/tests/test_umath.py
+@@ -418,16 +418,14 @@ def test_zero_division_complex(self):
+             assert_(np.isnan(y)[0])
+ 
+     def test_floor_division_complex(self):
+-        # check that implementation is correct
+-        msg = "Complex floor division implementation check"
++        # check that floor division, divmod and remainder raises type errors
+         x = np.array([.9 + 1j, -.1 + 1j, .9 + .5*1j, .9 + 2.*1j], dtype=np.complex128)
+-        y = np.array([0., -1., 0., 0.], dtype=np.complex128)
+-        assert_equal(np.floor_divide(x**2, x), y, err_msg=msg)
+-        # check overflow, underflow
+-        msg = "Complex floor division overflow/underflow check"
+-        x = np.array([1.e+110, 1.e-110], dtype=np.complex128)
+-        y = np.floor_divide(x**2, x)
+-        assert_equal(y, [1.e+110, 0], err_msg=msg)
++        with pytest.raises(TypeError):
++            x // 7
++        with pytest.raises(TypeError):
++            np.divmod(x, 7)
++        with pytest.raises(TypeError):
++            np.remainder(x, 7)
+ 
+     def test_floor_division_signed_zero(self):
+         # Check that the sign bit is correctly set when dividing positive and
+diff --git a/numpy/ma/tests/test_core.py b/numpy/ma/tests/test_core.py
+index b71fa9069f6..15ed26470de 100644
+--- a/numpy/ma/tests/test_core.py
++++ b/numpy/ma/tests/test_core.py
+@@ -1317,7 +1317,7 @@ def test_minmax_dtypes(self):
+                               dtype=float_dtype)
+             assert_equal(zm.min(), float_dtype(-np.inf-1j))
+             assert_equal(zm.max(), float_dtype(np.inf+2j))
+-            
++
+             cmax = np.inf - 1j * np.finfo(np.float64).max
+             assert masked_array([-cmax, 0], mask=[0, 1]).max() == -cmax
+             assert masked_array([cmax, 0], mask=[0, 1]).min() == cmax
+@@ -2853,6 +2853,8 @@ def test_inplace_multiplication_array_type(self):
+ 
+     def test_inplace_floor_division_scalar_type(self):
+         # Test of inplace division
++        # Check for TypeError in case of unsupported types
++        unsupported = {np.dtype(t).type for t in np.typecodes["Complex"]}
+         for t in self.othertypes:
+             with warnings.catch_warnings(record=True) as w:
+                 warnings.filterwarnings("always")
+@@ -2860,15 +2862,21 @@ def test_inplace_floor_division_scalar_type(self):
+                 x = arange(10, dtype=t) * t(2)
+                 xm = arange(10, dtype=t) * t(2)
+                 xm[2] = masked
+-                x //= t(2)
+-                xm //= t(2)
+-                assert_equal(x, y)
+-                assert_equal(xm, y)
++                try:
++                    x //= t(2)
++                    xm //= t(2)
++                    assert_equal(x, y)
++                    assert_equal(xm, y)
+ 
+-                assert_equal(len(w), 0, "Failed on type=%s." % t)
++                    assert_equal(len(w), 0, "Failed on type=%s." % t)
++                except TypeError:
++                    msg = f"Supported type {t} throwing TypeError"
++                    assert t in unsupported, msg
+ 
+     def test_inplace_floor_division_array_type(self):
+         # Test of inplace division
++        # Check for TypeError in case of unsupported types
++        unsupported = {np.dtype(t).type for t in np.typecodes["Complex"]}
+         for t in self.othertypes:
+             with warnings.catch_warnings(record=True) as w:
+                 warnings.filterwarnings("always")
+@@ -2876,16 +2884,20 @@ def test_inplace_floor_division_array_type(self):
+                 m = xm.mask
+                 a = arange(10, dtype=t)
+                 a[-1] = masked
+-                x //= a
+-                xm //= a
+-                assert_equal(x, y // a)
+-                assert_equal(xm, y // a)
+-                assert_equal(
+-                    xm.mask,
+-                    mask_or(mask_or(m, a.mask), (a == t(0)))
+-                )
++                try:
++                    x //= a
++                    xm //= a
++                    assert_equal(x, y // a)
++                    assert_equal(xm, y // a)
++                    assert_equal(
++                        xm.mask,
++                        mask_or(mask_or(m, a.mask), (a == t(0)))
++                    )
+ 
+-                assert_equal(len(w), 0, f'Failed on type={t}.')
++                    assert_equal(len(w), 0, f'Failed on type={t}.')
++                except TypeError:
++                    msg = f"Supported type {t} throwing TypeError"
++                    assert t in unsupported, msg
+ 
+     def test_inplace_division_scalar_type(self):
+         # Test of inplace division
+diff --git a/numpy/typing/tests/data/pass/arithmetic.py b/numpy/typing/tests/data/pass/arithmetic.py
+index 62bd79004a1..fe1612906e0 100644
+--- a/numpy/typing/tests/data/pass/arithmetic.py
++++ b/numpy/typing/tests/data/pass/arithmetic.py
+@@ -191,28 +191,24 @@ def __rpow__(self, value: Any) -> Object:
+ AR_b // AR_LIKE_u
+ AR_b // AR_LIKE_i
+ AR_b // AR_LIKE_f
+-AR_b // AR_LIKE_c
+ AR_b // AR_LIKE_O
+ 
+ AR_LIKE_b // AR_b
+ AR_LIKE_u // AR_b
+ AR_LIKE_i // AR_b
+ AR_LIKE_f // AR_b
+-AR_LIKE_c // AR_b
+ AR_LIKE_O // AR_b
+ 
+ AR_u // AR_LIKE_b
+ AR_u // AR_LIKE_u
+ AR_u // AR_LIKE_i
+ AR_u // AR_LIKE_f
+-AR_u // AR_LIKE_c
+ AR_u // AR_LIKE_O
+ 
+ AR_LIKE_b // AR_u
+ AR_LIKE_u // AR_u
+ AR_LIKE_i // AR_u
+ AR_LIKE_f // AR_u
+-AR_LIKE_c // AR_u
+ AR_LIKE_m // AR_u
+ AR_LIKE_O // AR_u
+ 
+@@ -220,14 +216,12 @@ def __rpow__(self, value: Any) -> Object:
+ AR_i // AR_LIKE_u
+ AR_i // AR_LIKE_i
+ AR_i // AR_LIKE_f
+-AR_i // AR_LIKE_c
+ AR_i // AR_LIKE_O
+ 
+ AR_LIKE_b // AR_i
+ AR_LIKE_u // AR_i
+ AR_LIKE_i // AR_i
+ AR_LIKE_f // AR_i
+-AR_LIKE_c // AR_i
+ AR_LIKE_m // AR_i
+ AR_LIKE_O // AR_i
+ 
+@@ -235,30 +229,15 @@ def __rpow__(self, value: Any) -> Object:
+ AR_f // AR_LIKE_u
+ AR_f // AR_LIKE_i
+ AR_f // AR_LIKE_f
+-AR_f // AR_LIKE_c
+ AR_f // AR_LIKE_O
+ 
+ AR_LIKE_b // AR_f
+ AR_LIKE_u // AR_f
+ AR_LIKE_i // AR_f
+ AR_LIKE_f // AR_f
+-AR_LIKE_c // AR_f
+ AR_LIKE_m // AR_f
+ AR_LIKE_O // AR_f
+ 
+-AR_c // AR_LIKE_b
+-AR_c // AR_LIKE_u
+-AR_c // AR_LIKE_i
+-AR_c // AR_LIKE_f
+-AR_c // AR_LIKE_c
+-
+-AR_LIKE_b // AR_c
+-AR_LIKE_u // AR_c
+-AR_LIKE_i // AR_c
+-AR_LIKE_f // AR_c
+-AR_LIKE_c // AR_c
+-AR_LIKE_O // AR_c
+-
+ AR_m // AR_LIKE_u
+ AR_m // AR_LIKE_i
+ AR_m // AR_LIKE_f
+@@ -270,7 +249,6 @@ def __rpow__(self, value: Any) -> Object:
+ AR_O // AR_LIKE_u
+ AR_O // AR_LIKE_i
+ AR_O // AR_LIKE_f
+-AR_O // AR_LIKE_c
+ AR_O // AR_LIKE_O
+ 
+ AR_LIKE_b // AR_O
+diff --git a/numpy/typing/tests/data/reveal/arithmetic.py b/numpy/typing/tests/data/reveal/arithmetic.py
+index f5d185206c0..0d9132e5bec 100644
+--- a/numpy/typing/tests/data/reveal/arithmetic.py
++++ b/numpy/typing/tests/data/reveal/arithmetic.py
+@@ -169,28 +169,24 @@
+ reveal_type(AR_b // AR_LIKE_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.unsignedinteger[Any]]]
+ reveal_type(AR_b // AR_LIKE_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_b // AR_LIKE_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_b // AR_LIKE_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_b // AR_LIKE_O)  # E: Any
+ 
+ reveal_type(AR_LIKE_b // AR_b)  # E: numpy.ndarray[Any, numpy.dtype[{int8}]]
+ reveal_type(AR_LIKE_u // AR_b)  # E: numpy.ndarray[Any, numpy.dtype[numpy.unsignedinteger[Any]]]
+ reveal_type(AR_LIKE_i // AR_b)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_LIKE_f // AR_b)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_LIKE_c // AR_b)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_LIKE_O // AR_b)  # E: Any
+ 
+ reveal_type(AR_u // AR_LIKE_b)  # E: numpy.ndarray[Any, numpy.dtype[numpy.unsignedinteger[Any]]]
+ reveal_type(AR_u // AR_LIKE_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.unsignedinteger[Any]]]
+ reveal_type(AR_u // AR_LIKE_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_u // AR_LIKE_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_u // AR_LIKE_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_u // AR_LIKE_O)  # E: Any
+ 
+ reveal_type(AR_LIKE_b // AR_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.unsignedinteger[Any]]]
+ reveal_type(AR_LIKE_u // AR_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.unsignedinteger[Any]]]
+ reveal_type(AR_LIKE_i // AR_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_LIKE_f // AR_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_LIKE_c // AR_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_LIKE_m // AR_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.timedelta64]]
+ reveal_type(AR_LIKE_O // AR_u)  # E: Any
+ 
+@@ -198,14 +194,12 @@
+ reveal_type(AR_i // AR_LIKE_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_i // AR_LIKE_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_i // AR_LIKE_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_i // AR_LIKE_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_i // AR_LIKE_O)  # E: Any
+ 
+ reveal_type(AR_LIKE_b // AR_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_LIKE_u // AR_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_LIKE_i // AR_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.signedinteger[Any]]]
+ reveal_type(AR_LIKE_f // AR_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_LIKE_c // AR_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_LIKE_m // AR_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.timedelta64]]
+ reveal_type(AR_LIKE_O // AR_i)  # E: Any
+ 
+@@ -213,31 +207,15 @@
+ reveal_type(AR_f // AR_LIKE_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+ reveal_type(AR_f // AR_LIKE_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+ reveal_type(AR_f // AR_LIKE_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_f // AR_LIKE_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_f // AR_LIKE_O)  # E: Any
+ 
+ reveal_type(AR_LIKE_b // AR_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+ reveal_type(AR_LIKE_u // AR_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+ reveal_type(AR_LIKE_i // AR_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+ reveal_type(AR_LIKE_f // AR_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.floating[Any]]]
+-reveal_type(AR_LIKE_c // AR_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+ reveal_type(AR_LIKE_m // AR_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.timedelta64]]
+ reveal_type(AR_LIKE_O // AR_f)  # E: Any
+ 
+-reveal_type(AR_c // AR_LIKE_b)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_c // AR_LIKE_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_c // AR_LIKE_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_c // AR_LIKE_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_c // AR_LIKE_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_c // AR_LIKE_O)  # E: Any
+-
+-reveal_type(AR_LIKE_b // AR_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_LIKE_u // AR_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_LIKE_i // AR_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_LIKE_f // AR_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_LIKE_c // AR_c)  # E: numpy.ndarray[Any, numpy.dtype[numpy.complexfloating[Any, Any]]]
+-reveal_type(AR_LIKE_O // AR_c)  # E: Any
+-
+ reveal_type(AR_m // AR_LIKE_u)  # E: numpy.ndarray[Any, numpy.dtype[numpy.timedelta64]]
+ reveal_type(AR_m // AR_LIKE_i)  # E: numpy.ndarray[Any, numpy.dtype[numpy.timedelta64]]
+ reveal_type(AR_m // AR_LIKE_f)  # E: numpy.ndarray[Any, numpy.dtype[numpy.timedelta64]]
+@@ -251,7 +229,6 @@
+ reveal_type(AR_O // AR_LIKE_u)  # E: Any
+ reveal_type(AR_O // AR_LIKE_i)  # E: Any
+ reveal_type(AR_O // AR_LIKE_f)  # E: Any
+-reveal_type(AR_O // AR_LIKE_c)  # E: Any
+ reveal_type(AR_O // AR_LIKE_m)  # E: Any
+ reveal_type(AR_O // AR_LIKE_M)  # E: Any
+ reveal_type(AR_O // AR_LIKE_O)  # E: Any
+@@ -260,7 +237,6 @@
+ reveal_type(AR_LIKE_u // AR_O)  # E: Any
+ reveal_type(AR_LIKE_i // AR_O)  # E: Any
+ reveal_type(AR_LIKE_f // AR_O)  # E: Any
+-reveal_type(AR_LIKE_c // AR_O)  # E: Any
+ reveal_type(AR_LIKE_m // AR_O)  # E: Any
+ reveal_type(AR_LIKE_M // AR_O)  # E: Any
+ reveal_type(AR_LIKE_O // AR_O)  # E: Any

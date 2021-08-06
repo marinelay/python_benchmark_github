@@ -1,0 +1,54 @@
+diff --git a/python/paddle/fluid/dygraph/nn.py b/python/paddle/fluid/dygraph/nn.py
+index 8b9fea3fc934..b8817ab67d2e 100644
+--- a/python/paddle/fluid/dygraph/nn.py
++++ b/python/paddle/fluid/dygraph/nn.py
+@@ -20,6 +20,7 @@
+ from ..layers import nn
+ from .. import dygraph_utils
+ from . import layers
++from ..data_feeder import convert_dtype, check_variable_and_dtype, check_type, check_dtype
+ from ..framework import Variable, in_dygraph_mode, OpProtoHolder, Parameter, _dygraph_tracer, _varbase_creator
+ from ..param_attr import ParamAttr
+ from ..initializer import Normal, Constant, NumpyArrayInitializer
+@@ -1475,6 +1476,9 @@ def forward(self, input):
+             return dygraph_utils._append_activation_in_dygraph(
+                 pre_act, act=self._act)
+ 
++        check_variable_and_dtype(input, 'input', ['float32', 'float64'],
++                                 'LayerNorm')
++
+         inputs = dict()
+         inputs['X'] = [input]
+         if self._scale:
+diff --git a/python/paddle/fluid/tests/unittests/test_layer_norm_op.py b/python/paddle/fluid/tests/unittests/test_layer_norm_op.py
+index 18e83f9a5696..bc475e19f4c6 100644
+--- a/python/paddle/fluid/tests/unittests/test_layer_norm_op.py
++++ b/python/paddle/fluid/tests/unittests/test_layer_norm_op.py
+@@ -21,6 +21,7 @@
+ import paddle.fluid as fluid
+ from functools import reduce
+ from op_test import _set_use_system_allocator
++from paddle.fluid import Program, program_guard
+ 
+ np.random.random(123)
+ 
+@@ -213,5 +214,19 @@ def test_case(self):
+             bias_attr="shift")
+ 
+ 
++class TestDygraphLayerNormAPIError(unittest.TestCase):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            layer_norm = fluid.LayerNorm([32, 32])
++            # the input of LayerNorm must be Variable.
++            x1 = np.random.random((3, 32, 32)).astype('float32')
++            self.assertRaises(TypeError, layer_norm, x1)
++
++            # the input dtype of LayerNorm must be float32 or float64
++            # float16 only can be set on GPU place
++            x2 = fluid.layers.data(name='x2', shape=[3, 32, 32], dtype="int32")
++            self.assertRaises(TypeError, layer_norm, x2)
++
++
+ if __name__ == '__main__':
+     unittest.main()

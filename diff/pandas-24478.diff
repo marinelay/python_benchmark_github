@@ -1,0 +1,225 @@
+diff --git a/pandas/core/arrays/datetimes.py b/pandas/core/arrays/datetimes.py
+index 6c73f0ec16c15..77d6808b8f630 100644
+--- a/pandas/core/arrays/datetimes.py
++++ b/pandas/core/arrays/datetimes.py
+@@ -1570,6 +1570,8 @@ def sequence_to_dt64ns(data, dtype=None, copy=False,
+ 
+     inferred_freq = None
+ 
++    dtype = _validate_dt64_dtype(dtype)
++
+     if not hasattr(data, "dtype"):
+         # e.g. list, tuple
+         if np.ndim(data) == 0:
+@@ -1754,7 +1756,7 @@ def maybe_convert_dtype(data, copy):
+         data = data.view(_NS_DTYPE)
+ 
+     elif is_period_dtype(data):
+-        # Note: without explicitly raising here, PeriondIndex
++        # Note: without explicitly raising here, PeriodIndex
+         #  test_setops.test_join_does_not_recur fails
+         raise TypeError("Passing PeriodDtype data is invalid.  "
+                         "Use `data.to_timestamp()` instead")
+@@ -1807,6 +1809,38 @@ def maybe_infer_tz(tz, inferred_tz):
+     return tz
+ 
+ 
++def _validate_dt64_dtype(dtype):
++    """
++    Check that a dtype, if passed, represents either a numpy datetime64[ns]
++    dtype or a pandas DatetimeTZDtype.
++
++    Parameters
++    ----------
++    dtype : object
++
++    Returns
++    -------
++    dtype : None, numpy.dtype, or DatetimeTZDtype
++
++    Raises
++    ------
++    ValueError : invalid dtype
++
++    Notes
++    -----
++    Unlike validate_tz_from_dtype, this does _not_ allow non-existent
++    tz errors to go through
++    """
++    if dtype is not None:
++        dtype = pandas_dtype(dtype)
++        if ((isinstance(dtype, np.dtype) and dtype != _NS_DTYPE)
++                or not isinstance(dtype, (np.dtype, DatetimeTZDtype))):
++            raise ValueError("Unexpected value for 'dtype': '{dtype}'. "
++                             "Must be 'datetime64[ns]' or DatetimeTZDtype'."
++                             .format(dtype=dtype))
++    return dtype
++
++
+ def validate_tz_from_dtype(dtype, tz):
+     """
+     If the given dtype is a DatetimeTZDtype, extract the implied
+diff --git a/pandas/core/reshape/tile.py b/pandas/core/reshape/tile.py
+index f8e917a1a8688..21a93f7deec8b 100644
+--- a/pandas/core/reshape/tile.py
++++ b/pandas/core/reshape/tile.py
+@@ -390,10 +390,10 @@ def _coerce_to_type(x):
+         dtype = x.dtype
+     elif is_datetime64_dtype(x):
+         x = to_datetime(x)
+-        dtype = np.datetime64
++        dtype = np.dtype('datetime64[ns]')
+     elif is_timedelta64_dtype(x):
+         x = to_timedelta(x)
+-        dtype = np.timedelta64
++        dtype = np.dtype('timedelta64[ns]')
+ 
+     if dtype is not None:
+         # GH 19768: force NaT to NaN during integer conversion
+diff --git a/pandas/tests/arrays/test_datetimelike.py b/pandas/tests/arrays/test_datetimelike.py
+index 6bf48aad96f07..c04c494a391ed 100644
+--- a/pandas/tests/arrays/test_datetimelike.py
++++ b/pandas/tests/arrays/test_datetimelike.py
+@@ -64,7 +64,7 @@ class SharedTests(object):
+     def test_compare_len1_raises(self):
+         # make sure we raise when comparing with different lengths, specific
+         #  to the case where one has length-1, which numpy would broadcast
+-        data = np.arange(10, dtype='i8')
++        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+ 
+         idx = self.index_cls._simple_new(data, freq='D')
+         arr = self.array_cls(idx)
+@@ -77,7 +77,7 @@ def test_compare_len1_raises(self):
+             idx <= idx[[0]]
+ 
+     def test_take(self):
+-        data = np.arange(100, dtype='i8')
++        data = np.arange(100, dtype='i8') * 24 * 3600 * 10**9
+         np.random.shuffle(data)
+ 
+         idx = self.index_cls._simple_new(data, freq='D')
+@@ -96,7 +96,7 @@ def test_take(self):
+         tm.assert_index_equal(self.index_cls(result), expected)
+ 
+     def test_take_fill(self):
+-        data = np.arange(10, dtype='i8')
++        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+ 
+         idx = self.index_cls._simple_new(data, freq='D')
+         arr = self.array_cls(idx)
+@@ -121,7 +121,7 @@ def test_take_fill(self):
+                      fill_value=pd.Timestamp.now().time)
+ 
+     def test_concat_same_type(self):
+-        data = np.arange(10, dtype='i8')
++        data = np.arange(10, dtype='i8') * 24 * 3600 * 10**9
+ 
+         idx = self.index_cls._simple_new(data, freq='D').insert(0, pd.NaT)
+         arr = self.array_cls(idx)
+diff --git a/pandas/tests/arrays/test_datetimes.py b/pandas/tests/arrays/test_datetimes.py
+index 80c87665236d3..035c1a939a8af 100644
+--- a/pandas/tests/arrays/test_datetimes.py
++++ b/pandas/tests/arrays/test_datetimes.py
+@@ -11,9 +11,31 @@
+ 
+ import pandas as pd
+ from pandas.core.arrays import DatetimeArrayMixin as DatetimeArray
++from pandas.core.arrays.datetimes import sequence_to_dt64ns
+ import pandas.util.testing as tm
+ 
+ 
++class TestDatetimeArrayConstructor(object):
++    def test_mismatched_timezone_raises(self):
++        arr = DatetimeArray(np.array(['2000-01-01T06:00:00'], dtype='M8[ns]'),
++                            dtype=DatetimeTZDtype(tz='US/Central'))
++        dtype = DatetimeTZDtype(tz='US/Eastern')
++        with pytest.raises(TypeError, match='data is already tz-aware'):
++            DatetimeArray(arr, dtype=dtype)
++
++    def test_incorrect_dtype_raises(self):
++        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
++            DatetimeArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
++
++    def test_copy(self):
++        data = np.array([1, 2, 3], dtype='M8[ns]')
++        arr = DatetimeArray(data, copy=False)
++        assert arr._data is data
++
++        arr = DatetimeArray(data, copy=True)
++        assert arr._data is not data
++
++
+ class TestDatetimeArrayComparisons(object):
+     # TODO: merge this into tests/arithmetic/test_datetime64 once it is
+     #  sufficiently robust
+@@ -90,3 +112,17 @@ def test_setitem_clears_freq(self):
+                                         tz='US/Central'))
+         a[0] = pd.Timestamp("2000", tz="US/Central")
+         assert a.freq is None
++
++
++class TestSequenceToDT64NS(object):
++
++    def test_tz_dtype_mismatch_raises(self):
++        arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
++        with pytest.raises(TypeError, match='data is already tz-aware'):
++            sequence_to_dt64ns(arr, dtype=DatetimeTZDtype(tz="UTC"))
++
++    def test_tz_dtype_matches(self):
++        arr = DatetimeArray._from_sequence(['2000'], tz='US/Central')
++        result, _, _ = sequence_to_dt64ns(
++            arr, dtype=DatetimeTZDtype(tz="US/Central"))
++        tm.assert_numpy_array_equal(arr._data, result)
+diff --git a/pandas/tests/arrays/test_timedeltas.py b/pandas/tests/arrays/test_timedeltas.py
+index 3264550404642..541af3985f5ee 100644
+--- a/pandas/tests/arrays/test_timedeltas.py
++++ b/pandas/tests/arrays/test_timedeltas.py
+@@ -9,6 +9,22 @@
+ 
+ 
+ class TestTimedeltaArrayConstructor(object):
++    def test_other_type_raises(self):
++        with pytest.raises(TypeError,
++                           match="dtype bool cannot be converted"):
++            TimedeltaArray(np.array([1, 2, 3], dtype='bool'))
++
++    def test_incorrect_dtype_raises(self):
++        # TODO: why TypeError for 'category' but ValueError for i8?
++        with pytest.raises(TypeError,
++                           match='data type "category" not understood'):
++            TimedeltaArray(np.array([1, 2, 3], dtype='i8'), dtype='category')
++
++        with pytest.raises(ValueError,
++                           match=r"Only timedelta64\[ns\] dtype is valid"):
++            TimedeltaArray(np.array([1, 2, 3], dtype='i8'),
++                           dtype=np.dtype(int))
++
+     def test_copy(self):
+         data = np.array([1, 2, 3], dtype='m8[ns]')
+         arr = TimedeltaArray(data, copy=False)
+diff --git a/pandas/tests/dtypes/test_common.py b/pandas/tests/dtypes/test_common.py
+index e176d273b916c..2d6d3101f7371 100644
+--- a/pandas/tests/dtypes/test_common.py
++++ b/pandas/tests/dtypes/test_common.py
+@@ -340,8 +340,8 @@ def test_is_datetime64_any_dtype():
+     assert com.is_datetime64_any_dtype(np.datetime64)
+     assert com.is_datetime64_any_dtype(np.array([], dtype=np.datetime64))
+     assert com.is_datetime64_any_dtype(DatetimeTZDtype("ns", "US/Eastern"))
+-    assert com.is_datetime64_any_dtype(pd.DatetimeIndex([1, 2, 3],
+-                                                        dtype=np.datetime64))
++    assert com.is_datetime64_any_dtype(
++        pd.DatetimeIndex([1, 2, 3], dtype="datetime64[ns]"))
+ 
+ 
+ def test_is_datetime64_ns_dtype():
+@@ -356,8 +356,8 @@ def test_is_datetime64_ns_dtype():
+     assert not com.is_datetime64_ns_dtype(np.array([], dtype="datetime64[ps]"))
+ 
+     assert com.is_datetime64_ns_dtype(DatetimeTZDtype("ns", "US/Eastern"))
+-    assert com.is_datetime64_ns_dtype(pd.DatetimeIndex([1, 2, 3],
+-                                                       dtype=np.datetime64))
++    assert com.is_datetime64_ns_dtype(
++        pd.DatetimeIndex([1, 2, 3], dtype=np.dtype('datetime64[ns]')))
+ 
+ 
+ def test_is_timedelta64_ns_dtype():

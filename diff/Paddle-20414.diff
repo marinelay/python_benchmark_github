@@ -1,0 +1,84 @@
+diff --git a/paddle/fluid/operators/mul_op.cc b/paddle/fluid/operators/mul_op.cc
+index 80059ff14ca4..cfd55ef8bc83 100644
+--- a/paddle/fluid/operators/mul_op.cc
++++ b/paddle/fluid/operators/mul_op.cc
+@@ -32,10 +32,12 @@ class MulOp : public framework::OperatorWithKernel {
+   using framework::OperatorWithKernel::OperatorWithKernel;
+ 
+   void InferShape(framework::InferShapeContext* ctx) const override {
+-    PADDLE_ENFORCE(ctx->HasInput("X"), "Input(X) of MulOp should not be null.");
+-    PADDLE_ENFORCE(ctx->HasInput("Y"), "Input(Y) of MulOp should not be null.");
+-    PADDLE_ENFORCE(ctx->HasOutput("Out"),
+-                   "Output(Out) of MulOp should not be null.");
++    PADDLE_ENFORCE_EQ(ctx->HasInput("X"), true,
++                      "Input(X) of MulOp should not be null.");
++    PADDLE_ENFORCE_EQ(ctx->HasInput("Y"), true,
++                      "Input(Y) of MulOp should not be null.");
++    PADDLE_ENFORCE_EQ(ctx->HasOutput("Out"), true,
++                      "Output(Out) of MulOp should not be null.");
+ 
+     auto x_dims = ctx->GetInputDim("X");
+     auto y_dims = ctx->GetInputDim("Y");
+diff --git a/python/paddle/fluid/layers/nn.py b/python/paddle/fluid/layers/nn.py
+index c6f7db00c7b0..816972740d95 100755
+--- a/python/paddle/fluid/layers/nn.py
++++ b/python/paddle/fluid/layers/nn.py
+@@ -13543,6 +13543,23 @@ def mul(x, y, x_num_col_dims=1, y_num_col_dims=1, name=None):
+ 
+     helper = LayerHelper("mul", **locals())
+ 
++    if not isinstance(x, Variable):
++        raise TypeError(
++            "The type of 'x' in mul must be Variable, but received %s" %
++            (type(x)))
++    if not isinstance(y, Variable):
++        raise TypeError(
++            "The type of 'y' in mul must be Variable, but received %s" %
++            (type(y)))
++    if convert_dtype(x.dtype) not in ['float32', 'float64']:
++        raise TypeError(
++            "The data type of 'x' in mul must be float32 or float64, but received %s."
++            % (convert_dtype(x.dtype)))
++    if convert_dtype(y.dtype) not in ['float32', 'float64']:
++        raise TypeError(
++            "The data type of 'y' in softmax must be float32 or float64, but received %s."
++            % (convert_dtype(y.dtype)))
++
+     if name is None:
+         out = helper.create_variable_for_type_inference(dtype=x.dtype)
+     else:
+diff --git a/python/paddle/fluid/tests/unittests/test_mul_op.py b/python/paddle/fluid/tests/unittests/test_mul_op.py
+index d54326714acf..85947e5c3290 100644
+--- a/python/paddle/fluid/tests/unittests/test_mul_op.py
++++ b/python/paddle/fluid/tests/unittests/test_mul_op.py
+@@ -18,6 +18,8 @@
+ import numpy as np
+ import paddle.fluid.core as core
+ from op_test import OpTest
++import paddle.fluid as fluid
++from paddle.fluid import Program, program_guard
+ 
+ 
+ class TestMulOp(OpTest):
+@@ -49,6 +51,21 @@ def test_check_grad_ingore_y(self):
+             ['X'], 'Out', max_relative_error=0.5, no_grad_set=set('Y'))
+ 
+ 
++class TestMulOpError(OpTest):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # The input type of mul_op must be Variable.
++            x1 = fluid.create_lod_tensor(
++                np.array([[-1]]), [[1]], fluid.CPUPlace())
++            x2 = fluid.create_lod_tensor(
++                np.array([[-1]]), [[1]], fluid.CPUPlace())
++            self.assertRaises(TypeError, fluid.layers.mul, x1, x2)
++            # The input dtype of mul_op must be float32 or float64.
++            x3 = fluid.layers.data(name='x3', shape=[4], dtype="int32")
++            x4 = fluid.layers.data(name='x4', shape=[4], dtype="int32")
++            self.assertRaises(TypeError, fluid.layers.mul, x3, x4)
++
++
+ class TestMulOp2(OpTest):
+     def setUp(self):
+         self.op_type = "mul"

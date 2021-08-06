@@ -1,0 +1,33 @@
+diff --git a/pipenv/utils.py b/pipenv/utils.py
+index 8f43c78833..a418b22029 100644
+--- a/pipenv/utils.py
++++ b/pipenv/utils.py
+@@ -192,6 +192,7 @@ def parse_python_version(output):
+ 
+     Note: The micro part would be `'0'` if it's missing from the input string.
+     """
++    version_line = output.split('\n', 1)[0]
+     version_pattern = re.compile(r'''
+         ^                   # Beginning of line.
+         Python              # Literally "Python".
+@@ -207,7 +208,7 @@ def parse_python_version(output):
+         $                   # End of line.
+     ''', re.VERBOSE)
+ 
+-    match = version_pattern.match(output)
++    match = version_pattern.match(version_line)
+     if not match:
+         return None
+     return match.groupdict(default='0')
+diff --git a/tests/unit/test_utils.py b/tests/unit/test_utils.py
+index a4b240bcb8..b10e273f2f 100644
+--- a/tests/unit/test_utils.py
++++ b/tests/unit/test_utils.py
+@@ -214,6 +214,7 @@ def test_python_version_from_non_python(self):
+             ('Python 3.6.2', '3.6.2'),
+             ('Python 3.6.2 :: Continuum Analytics, Inc.', '3.6.2'),
+             ('Python 3.6.20 :: Continuum Analytics, Inc.', '3.6.20'),
++            ('Python 3.5.3 (3f6eaa010fce78cc7973bdc1dfdb95970f08fed2, Jan 13 2018, 18:14:01)\n[PyPy 5.10.1 with GCC 4.2.1 Compatible Apple LLVM 9.0.0 (clang-900.0.39.2)]', '3.5.3')
+         ],
+     )
+     @patch('delegator.run')

@@ -1,0 +1,35 @@
+diff --git a/wagtail/wagtailembeds/embeds.py b/wagtail/wagtailembeds/embeds.py
+index 40bf48ec9f2..b78027e67a3 100644
+--- a/wagtail/wagtailembeds/embeds.py
++++ b/wagtail/wagtailembeds/embeds.py
+@@ -114,7 +114,7 @@ def oembed(url, max_width=None):
+         r = urllib_request.urlopen(request)
+     except URLError:
+         raise EmbedNotFoundException
+-    oembed = json.loads(r.read())
++    oembed = json.loads(r.read().decode('utf-8'))
+ 
+     # Convert photos into HTML
+     if oembed['type'] == 'photo':
+diff --git a/wagtail/wagtailembeds/tests.py b/wagtail/wagtailembeds/tests.py
+index 8fc135faa20..6b1e0a0ecec 100644
+--- a/wagtail/wagtailembeds/tests.py
++++ b/wagtail/wagtailembeds/tests.py
+@@ -214,7 +214,7 @@ class TestOembed(TestCase):
+     def setUp(self):
+         class DummyResponse(object):
+             def read(self):
+-                return "foo"
++                return b"foo"
+         self.dummy_response = DummyResponse()
+ 
+     def test_oembed_invalid_provider(self):
+@@ -269,7 +269,7 @@ class TestEmbedFilter(TestCase):
+     def setUp(self):
+         class DummyResponse(object):
+             def read(self):
+-                return "foo"
++                return b"foo"
+         self.dummy_response = DummyResponse()
+ 
+     @patch('six.moves.urllib.request.urlopen')

@@ -1,0 +1,115 @@
+diff --git a/zerver/lib/actions.py b/zerver/lib/actions.py
+index fda6f8cf313fc..8cf02334d8eae 100644
+--- a/zerver/lib/actions.py
++++ b/zerver/lib/actions.py
+@@ -2044,7 +2044,7 @@ def extract_stream_indicator(s: str) -> Union[str, int]:
+     # once we improve our documentation.
+     if isinstance(data, list):
+         if len(data) != 1:  # nocoverage
+-            raise ValueError("Expected exactly one stream")
++            raise JsonableError(_("Expected exactly one stream"))
+         data = data[0]
+ 
+     if isinstance(data, str):
+@@ -2055,7 +2055,7 @@ def extract_stream_indicator(s: str) -> Union[str, int]:
+         # We had a stream id.
+         return data
+ 
+-    raise ValueError("Invalid data type for stream")
++    raise JsonableError(_("Invalid data type for stream"))
+ 
+ def extract_private_recipients(s: str) -> Union[List[str], List[int]]:
+     # We try to accept multiple incoming formats for recipients.
+@@ -2070,7 +2070,7 @@ def extract_private_recipients(s: str) -> Union[List[str], List[int]]:
+         data = data.split(',')
+ 
+     if not isinstance(data, list):
+-        raise ValueError("Invalid data type for recipients")
++        raise JsonableError(_("Invalid data type for recipients"))
+ 
+     if not data:
+         # We don't complain about empty message recipients here
+@@ -2080,21 +2080,21 @@ def extract_private_recipients(s: str) -> Union[List[str], List[int]]:
+         return get_validated_emails(data)
+ 
+     if not isinstance(data[0], int):
+-        raise ValueError("Invalid data type for recipients")
++        raise JsonableError(_("Invalid data type for recipients"))
+ 
+     return get_validated_user_ids(data)
+ 
+ def get_validated_user_ids(user_ids: Iterable[int]) -> List[int]:
+     for user_id in user_ids:
+         if not isinstance(user_id, int):
+-            raise TypeError("Recipient lists may contain emails or user IDs, but not both.")
++            raise JsonableError(_("Recipient lists may contain emails or user IDs, but not both."))
+ 
+     return list(set(user_ids))
+ 
+ def get_validated_emails(emails: Iterable[str]) -> List[str]:
+     for email in emails:
+         if not isinstance(email, str):
+-            raise TypeError("Recipient lists may contain emails or user IDs, but not both.")
++            raise JsonableError(_("Recipient lists may contain emails or user IDs, but not both."))
+ 
+     return list(filter(bool, {email.strip() for email in emails}))
+ 
+diff --git a/zerver/tests/test_messages.py b/zerver/tests/test_messages.py
+index bccccbd64cec9..529545832dcda 100644
+--- a/zerver/tests/test_messages.py
++++ b/zerver/tests/test_messages.py
+@@ -669,13 +669,13 @@ def test_extract_stream_indicator(self) -> None:
+             123,
+         )
+ 
+-        with self.assertRaisesRegex(ValueError, 'Invalid data type for stream'):
++        with self.assertRaisesRegex(JsonableError, 'Invalid data type for stream'):
+             extract_stream_indicator('{}')
+ 
+-        with self.assertRaisesRegex(ValueError, 'Invalid data type for stream'):
++        with self.assertRaisesRegex(JsonableError, 'Invalid data type for stream'):
+             extract_stream_indicator('[{}]')
+ 
+-        with self.assertRaisesRegex(ValueError, 'Expected exactly one stream'):
++        with self.assertRaisesRegex(JsonableError, 'Expected exactly one stream'):
+             extract_stream_indicator('[1,2,"general"]')
+ 
+     def test_extract_private_recipients_emails(self) -> None:
+@@ -707,11 +707,11 @@ def test_extract_private_recipients_emails(self) -> None:
+ 
+         # Invalid data
+         s = ujson.dumps(dict(color='red'))
+-        with self.assertRaisesRegex(ValueError, 'Invalid data type for recipients'):
++        with self.assertRaisesRegex(JsonableError, 'Invalid data type for recipients'):
+             extract_private_recipients(s)
+ 
+         s = ujson.dumps([{}])
+-        with self.assertRaisesRegex(ValueError, 'Invalid data type for recipients'):
++        with self.assertRaisesRegex(JsonableError, 'Invalid data type for recipients'):
+             extract_private_recipients(s)
+ 
+         # Empty list
+@@ -719,7 +719,7 @@ def test_extract_private_recipients_emails(self) -> None:
+ 
+         # Heterogeneous lists are not supported
+         mixed = ujson.dumps(['eeshan@example.com', 3, 4])
+-        with self.assertRaisesRegex(TypeError, 'Recipient lists may contain emails or user IDs, but not both.'):
++        with self.assertRaisesRegex(JsonableError, 'Recipient lists may contain emails or user IDs, but not both.'):
+             extract_private_recipients(mixed)
+ 
+     def test_extract_recipient_ids(self) -> None:
+@@ -730,12 +730,12 @@ def test_extract_recipient_ids(self) -> None:
+ 
+         # Invalid data
+         ids = ujson.dumps(dict(recipient=12))
+-        with self.assertRaisesRegex(ValueError, 'Invalid data type for recipients'):
++        with self.assertRaisesRegex(JsonableError, 'Invalid data type for recipients'):
+             extract_private_recipients(ids)
+ 
+         # Heterogeneous lists are not supported
+         mixed = ujson.dumps([3, 4, 'eeshan@example.com'])
+-        with self.assertRaisesRegex(TypeError, 'Recipient lists may contain emails or user IDs, but not both.'):
++        with self.assertRaisesRegex(JsonableError, 'Recipient lists may contain emails or user IDs, but not both.'):
+             extract_private_recipients(mixed)
+ 
+ class PersonalMessagesTest(ZulipTestCase):

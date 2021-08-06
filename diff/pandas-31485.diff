@@ -1,0 +1,130 @@
+diff --git a/doc/source/whatsnew/v1.1.0.rst b/doc/source/whatsnew/v1.1.0.rst
+index cf2f507dc019c..aad11eeee38f2 100644
+--- a/doc/source/whatsnew/v1.1.0.rst
++++ b/doc/source/whatsnew/v1.1.0.rst
+@@ -60,6 +60,9 @@ Backwards incompatible API changes
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ - :meth:`DataFrame.swaplevels` now raises a  ``TypeError`` if the axis is not a :class:`MultiIndex`.
+   Previously a ``AttributeError`` was raised (:issue:`31126`)
++- :meth:`DataFrameGroupby.mean` and :meth:`SeriesGroupby.mean` (and similarly for :meth:`~DataFrameGroupby.median`, :meth:`~DataFrameGroupby.std`` and :meth:`~DataFrameGroupby.var``)
++  now raise a  ``TypeError`` if a not-accepted keyword argument is passed into it.
++  Previously a ``UnsupportedFunctionCall`` was raised (``AssertionError`` if ``min_count`` passed into :meth:`~DataFrameGroupby.median``) (:issue:`31485`)
+ 
+ 
+ .. ---------------------------------------------------------------------------
+diff --git a/pandas/core/groupby/groupby.py b/pandas/core/groupby/groupby.py
+index 54275dc52bb56..b52d1bb4db360 100644
+--- a/pandas/core/groupby/groupby.py
++++ b/pandas/core/groupby/groupby.py
+@@ -1180,10 +1180,16 @@ def count(self):
+ 
+     @Substitution(name="groupby")
+     @Substitution(see_also=_common_see_also)
+-    def mean(self, *args, **kwargs):
++    def mean(self, numeric_only: bool = True):
+         """
+         Compute mean of groups, excluding missing values.
+ 
++        Parameters
++        ----------
++        numeric_only : bool, default True
++            Include only float, int, boolean columns. If None, will attempt to use
++            everything, then use only numeric data.
++
+         Returns
+         -------
+         pandas.Series or pandas.DataFrame
+@@ -1222,19 +1228,26 @@ def mean(self, *args, **kwargs):
+         2    4.0
+         Name: B, dtype: float64
+         """
+-        nv.validate_groupby_func("mean", args, kwargs, ["numeric_only"])
+         return self._cython_agg_general(
+-            "mean", alt=lambda x, axis: Series(x).mean(**kwargs), **kwargs
++            "mean",
++            alt=lambda x, axis: Series(x).mean(numeric_only=numeric_only),
++            numeric_only=numeric_only,
+         )
+ 
+     @Substitution(name="groupby")
+     @Appender(_common_see_also)
+-    def median(self, **kwargs):
++    def median(self, numeric_only=True):
+         """
+         Compute median of groups, excluding missing values.
+ 
+         For multiple groupings, the result index will be a MultiIndex
+ 
++        Parameters
++        ----------
++        numeric_only : bool, default True
++            Include only float, int, boolean columns. If None, will attempt to use
++            everything, then use only numeric data.
++
+         Returns
+         -------
+         Series or DataFrame
+@@ -1242,13 +1255,13 @@ def median(self, **kwargs):
+         """
+         return self._cython_agg_general(
+             "median",
+-            alt=lambda x, axis: Series(x).median(axis=axis, **kwargs),
+-            **kwargs,
++            alt=lambda x, axis: Series(x).median(axis=axis, numeric_only=numeric_only),
++            numeric_only=numeric_only,
+         )
+ 
+     @Substitution(name="groupby")
+     @Appender(_common_see_also)
+-    def std(self, ddof: int = 1, *args, **kwargs):
++    def std(self, ddof: int = 1):
+         """
+         Compute standard deviation of groups, excluding missing values.
+ 
+@@ -1266,12 +1279,11 @@ def std(self, ddof: int = 1, *args, **kwargs):
+         """
+ 
+         # TODO: implement at Cython level?
+-        nv.validate_groupby_func("std", args, kwargs)
+-        return np.sqrt(self.var(ddof=ddof, **kwargs))
++        return np.sqrt(self.var(ddof=ddof))
+ 
+     @Substitution(name="groupby")
+     @Appender(_common_see_also)
+-    def var(self, ddof: int = 1, *args, **kwargs):
++    def var(self, ddof: int = 1):
+         """
+         Compute variance of groups, excluding missing values.
+ 
+@@ -1287,15 +1299,14 @@ def var(self, ddof: int = 1, *args, **kwargs):
+         Series or DataFrame
+             Variance of values within each group.
+         """
+-        nv.validate_groupby_func("var", args, kwargs)
+         if ddof == 1:
+             return self._cython_agg_general(
+-                "var", alt=lambda x, axis: Series(x).var(ddof=ddof, **kwargs), **kwargs
++                "var", alt=lambda x, axis: Series(x).var(ddof=ddof)
+             )
+         else:
+-            f = lambda x: x.var(ddof=ddof, **kwargs)
++            func = lambda x: x.var(ddof=ddof)
+             with _group_selection_context(self):
+-                return self._python_agg_general(f)
++                return self._python_agg_general(func)
+ 
+     @Substitution(name="groupby")
+     @Appender(_common_see_also)
+diff --git a/pandas/tests/groupby/test_function.py b/pandas/tests/groupby/test_function.py
+index 97cf1af1d2e9e..73e36cb5e6c84 100644
+--- a/pandas/tests/groupby/test_function.py
++++ b/pandas/tests/groupby/test_function.py
+@@ -671,7 +671,7 @@ def test_nsmallest():
+     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
+ 
+ 
+-@pytest.mark.parametrize("func", ["mean", "var", "std", "cumprod", "cumsum"])
++@pytest.mark.parametrize("func", ["cumprod", "cumsum"])
+ def test_numpy_compat(func):
+     # see gh-12811
+     df = pd.DataFrame({"A": [1, 2, 1], "B": [1, 2, 3]})

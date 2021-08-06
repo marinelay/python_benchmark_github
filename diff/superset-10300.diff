@@ -1,0 +1,177 @@
+diff --git a/superset-frontend/src/chart/Chart.jsx b/superset-frontend/src/chart/Chart.jsx
+index 8a728b018920..956230446ee6 100644
+--- a/superset-frontend/src/chart/Chart.jsx
++++ b/superset-frontend/src/chart/Chart.jsx
+@@ -143,7 +143,7 @@ class Chart extends React.PureComponent {
+     return (
+       <ErrorMessageWithStackTrace
+         error={queryResponse?.errors?.[0]}
+-        message={chartAlert}
++        message={chartAlert || queryResponse?.message}
+         link={queryResponse ? queryResponse.link : null}
+         stackTrace={chartStackTrace}
+       />
+diff --git a/superset/charts/api.py b/superset/charts/api.py
+index c7b0d31a177c..af359a4dc43a 100644
+--- a/superset/charts/api.py
++++ b/superset/charts/api.py
+@@ -422,7 +422,7 @@ def bulk_delete(
+     @protect()
+     @safe
+     @statsd_metrics
+-    def data(self) -> Response:
++    def data(self) -> Response:  # pylint: disable=too-many-return-statements
+         """
+         Takes a query context constructed in the client and returns payload
+         data response for the given query.
+@@ -465,13 +465,16 @@ def data(self) -> Response:
+             return self.response_400(message="Request is incorrect")
+         except ValidationError as error:
+             return self.response_400(
+-                _("Request is incorrect: %(error)s", error=error.messages)
++                message=_("Request is incorrect: %(error)s", error=error.messages)
+             )
+         try:
+             query_context.raise_for_access()
+         except SupersetSecurityException:
+             return self.response_401()
+         payload = query_context.get_payload()
++        for query in payload:
++            if query["error"]:
++                return self.response_400(message=f"Error: {query['error']}")
+         result_format = query_context.result_format
+         if result_format == ChartDataResultFormat.CSV:
+             # return the first result
+@@ -491,7 +494,7 @@ def data(self) -> Response:
+             resp.headers["Content-Type"] = "application/json; charset=utf-8"
+             return resp
+ 
+-        raise self.response_400(message=f"Unsupported result_format: {result_format}")
++        return self.response_400(message=f"Unsupported result_format: {result_format}")
+ 
+     @expose("/<pk>/cache_screenshot/", methods=["GET"])
+     @protect()
+diff --git a/superset/common/query_context.py b/superset/common/query_context.py
+index bf0a3e28cccd..e602fbfac8f4 100644
+--- a/superset/common/query_context.py
++++ b/superset/common/query_context.py
+@@ -111,8 +111,7 @@ def get_query_result(self, query_object: QueryObject) -> Dict[str, Any]:
+                 self.df_metrics_to_num(df, query_object)
+ 
+             df.replace([np.inf, -np.inf], np.nan)
+-
+-        df = query_object.exec_post_processing(df)
++            df = query_object.exec_post_processing(df)
+ 
+         return {
+             "query": result.query,
+@@ -160,10 +159,7 @@ def get_single_payload(self, query_obj: QueryObject) -> Dict[str, Any]:
+         df = payload["df"]
+         status = payload["status"]
+         if status != utils.QueryStatus.FAILED:
+-            if df.empty:
+-                payload["error"] = "No data"
+-            else:
+-                payload["data"] = self.get_data(df)
++            payload["data"] = self.get_data(df)
+         del payload["df"]
+         if self.result_type == utils.ChartDataResultType.RESULTS:
+             return {"data": payload["data"]}
+diff --git a/superset/connectors/sqla/models.py b/superset/connectors/sqla/models.py
+index cc2a7b203582..c73152a28d20 100644
+--- a/superset/connectors/sqla/models.py
++++ b/superset/connectors/sqla/models.py
+@@ -1133,6 +1133,7 @@ def query(self, query_obj: QueryObjectDict) -> QueryResult:
+         sql = query_str_ext.sql
+         status = utils.QueryStatus.SUCCESS
+         errors = None
++        error_message = None
+ 
+         def mutator(df: pd.DataFrame) -> None:
+             """
+@@ -1163,6 +1164,7 @@ def mutator(df: pd.DataFrame) -> None:
+             )
+             db_engine_spec = self.database.db_engine_spec
+             errors = db_engine_spec.extract_errors(ex)
++            error_message = utils.error_msg_from_exception(ex)
+ 
+         return QueryResult(
+             status=status,
+@@ -1170,6 +1172,7 @@ def mutator(df: pd.DataFrame) -> None:
+             duration=datetime.now() - qry_start_dttm,
+             query=sql,
+             errors=errors,
++            error_message=error_message,
+         )
+ 
+     def get_sqla_table_object(self) -> Table:
+diff --git a/tests/charts/api_tests.py b/tests/charts/api_tests.py
+index 78461cf78a93..03a98640c331 100644
+--- a/tests/charts/api_tests.py
++++ b/tests/charts/api_tests.py
+@@ -708,6 +708,28 @@ def test_chart_data_default_sample_limit(self):
+         result = response_payload["result"][0]
+         self.assertEqual(result["rowcount"], 5)
+ 
++    def test_chart_data_incorrect_result_type(self):
++        """
++        Chart data API: Test chart data with unsupported result type
++        """
++        self.login(username="admin")
++        table = self.get_table_by_name("birth_names")
++        request_payload = get_query_context(table.name, table.id, table.type)
++        request_payload["result_type"] = "qwerty"
++        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
++        self.assertEqual(rv.status_code, 400)
++
++    def test_chart_data_incorrect_result_format(self):
++        """
++        Chart data API: Test chart data with unsupported result format
++        """
++        self.login(username="admin")
++        table = self.get_table_by_name("birth_names")
++        request_payload = get_query_context(table.name, table.id, table.type)
++        request_payload["result_format"] = "qwerty"
++        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
++        self.assertEqual(rv.status_code, 400)
++
+     def test_chart_data_mixed_case_filter_op(self):
+         """
+         Chart data API: Ensure mixed case filter operator generates valid result
+@@ -722,6 +744,36 @@ def test_chart_data_mixed_case_filter_op(self):
+         result = response_payload["result"][0]
+         self.assertEqual(result["rowcount"], 10)
+ 
++    def test_chart_data_no_data(self):
++        """
++        Chart data API: Test chart data with empty result
++        """
++        self.login(username="admin")
++        table = self.get_table_by_name("birth_names")
++        request_payload = get_query_context(table.name, table.id, table.type)
++        request_payload["queries"][0]["filters"] = [
++            {"col": "gender", "op": "==", "val": "foo"}
++        ]
++        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
++        self.assertEqual(rv.status_code, 200)
++        response_payload = json.loads(rv.data.decode("utf-8"))
++        result = response_payload["result"][0]
++        self.assertEqual(result["rowcount"], 0)
++        self.assertEqual(result["data"], [])
++
++    def test_chart_data_incorrect_request(self):
++        """
++        Chart data API: Test chart data with invalid SQL
++        """
++        self.login(username="admin")
++        table = self.get_table_by_name("birth_names")
++        request_payload = get_query_context(table.name, table.id, table.type)
++        request_payload["queries"][0]["filters"] = []
++        # erroneus WHERE-clause
++        request_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
++        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
++        self.assertEqual(rv.status_code, 400)
++
+     def test_chart_data_with_invalid_datasource(self):
+         """Chart data API: Test chart data query with invalid schema
+         """

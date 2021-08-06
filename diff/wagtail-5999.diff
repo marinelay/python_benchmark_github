@@ -1,0 +1,76 @@
+diff --git a/docs/reference/pages/model_reference.rst b/docs/reference/pages/model_reference.rst
+index c26dd4dc3d8..d2f337bf4bf 100644
+--- a/docs/reference/pages/model_reference.rst
++++ b/docs/reference/pages/model_reference.rst
+@@ -153,6 +153,10 @@ In addition to the model fields provided, ``Page`` has many properties and metho
+ 
+     .. automethod:: serve
+ 
++    .. autoattribute:: context_object_name
++
++        Custom name for page instance in page's ``Context``.
++
+     .. automethod:: get_context
+ 
+     .. automethod:: get_template
+diff --git a/docs/topics/writing_templates.rst b/docs/topics/writing_templates.rst
+index f2ef2b79a80..dad3d793243 100644
+--- a/docs/topics/writing_templates.rst
++++ b/docs/topics/writing_templates.rst
+@@ -38,6 +38,8 @@ Page content
+ 
+ The data/content entered into each page is accessed/output through Django's ``{{ double-brace }}`` notation. Each field from the model must be accessed by prefixing ``page.``. e.g the page title ``{{ page.title }}`` or another field ``{{ page.author }}``.
+ 
++A custom variable name can be :attr:`configured on the page model <wagtail.core.models.Page.context_object_name>`. If a custom name is defined, ``page`` is still available for use in shared templates.
++
+ Additionally ``request.`` is available and contains Django's request object.
+ 
+ Static assets
+diff --git a/wagtail/core/models.py b/wagtail/core/models.py
+index 1fda3bdfb4c..6c3e3ba24ba 100644
+--- a/wagtail/core/models.py
++++ b/wagtail/core/models.py
+@@ -750,13 +750,20 @@ def unpublish(self, set_expired=False, commit=True):
+ 
+             self.revisions.update(approved_go_live_at=None)
+ 
++    context_object_name = None
++
+     def get_context(self, request, *args, **kwargs):
+-        return {
++        context = {
+             PAGE_TEMPLATE_VAR: self,
+             'self': self,
+             'request': request,
+         }
+ 
++        if self.context_object_name:
++            context[self.context_object_name] = self
++
++        return context
++
+     def get_template(self, request, *args, **kwargs):
+         if request.is_ajax():
+             return self.ajax_template or self.template
+diff --git a/wagtail/core/tests/test_page_model.py b/wagtail/core/tests/test_page_model.py
+index e510d74d709..80e836a7aaf 100644
+--- a/wagtail/core/tests/test_page_model.py
++++ b/wagtail/core/tests/test_page_model.py
+@@ -500,6 +500,17 @@ def test_serve_with_multiple_sites(self):
+         response = c.get('/christmas/', HTTP_HOST='localhost')
+         self.assertEqual(response.status_code, 404)
+ 
++    def test_serve_with_custom_context_name(self):
++        EventPage.context_object_name = 'event_page'
++        christmas_page = EventPage.objects.get(url_path='/home/events/christmas/')
++
++        response = self.client.get('/events/christmas/')
++
++        # Context should contain context_object_name key along with standard page keys
++        self.assertEqual(response.context['event_page'], christmas_page)
++        self.assertEqual(response.context['page'], christmas_page)
++        self.assertEqual(response.context['self'], christmas_page)
++
+     def test_serve_with_custom_context(self):
+         response = self.client.get('/events/')
+         self.assertEqual(response.status_code, 200)

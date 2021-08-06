@@ -1,0 +1,168 @@
+diff --git a/pandas/_libs/reduction.pyx b/pandas/_libs/reduction.pyx
+index 361c21c18c4da..a7d6d19bbc80d 100644
+--- a/pandas/_libs/reduction.pyx
++++ b/pandas/_libs/reduction.pyx
+@@ -15,7 +15,7 @@ from numpy cimport (ndarray,
+ cnp.import_array()
+ 
+ cimport pandas._libs.util as util
+-from pandas._libs.lib import maybe_convert_objects, values_from_object
++from pandas._libs.lib import maybe_convert_objects
+ 
+ 
+ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
+@@ -23,7 +23,7 @@ cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
+     if (util.is_array(obj) or
+             (isinstance(obj, list) and len(obj) == cnt) or
+             getattr(obj, 'shape', None) == (cnt,)):
+-        raise ValueError('function does not reduce')
++        raise ValueError('Function does not reduce')
+ 
+     return np.empty(size, dtype='O')
+ 
+@@ -103,7 +103,7 @@ cdef class Reducer:
+             ndarray arr, result, chunk
+             Py_ssize_t i, incr
+             flatiter it
+-            bint has_labels
++            bint has_labels, has_ndarray_labels
+             object res, name, labels, index
+             object cached_typ=None
+ 
+@@ -113,14 +113,18 @@ cdef class Reducer:
+         chunk.data = arr.data
+         labels = self.labels
+         has_labels = labels is not None
++        has_ndarray_labels = util.is_array(labels)
+         has_index = self.index is not None
+         incr = self.increment
+ 
+         try:
+             for i in range(self.nresults):
+ 
+-                if has_labels:
++                if has_ndarray_labels:
+                     name = util.get_value_at(labels, i)
++                elif has_labels:
++                    # labels is an ExtensionArray
++                    name = labels[i]
+                 else:
+                     name = None
+ 
+@@ -362,7 +366,8 @@ cdef class SeriesGrouper:
+ 
+     def get_result(self):
+         cdef:
+-            ndarray arr, result
++            # Define result to avoid UnboundLocalError
++            ndarray arr, result = None
+             ndarray[int64_t] labels, counts
+             Py_ssize_t i, n, group_size, lab
+             object res
+@@ -428,6 +433,9 @@ cdef class SeriesGrouper:
+             islider.reset()
+             vslider.reset()
+ 
++        if result is None:
++            raise ValueError("No result.")
++
+         if result.dtype == np.object_:
+             result = maybe_convert_objects(result)
+ 
+@@ -639,11 +647,11 @@ def compute_reduction(arr, f, axis=0, dummy=None, labels=None):
+     """
+ 
+     if labels is not None:
+-        if labels._has_complex_internals:
+-            raise Exception('Cannot use shortcut')
++        # Caller is responsible for ensuring we don't have MultiIndex
++        assert not labels._has_complex_internals
+ 
+-        # pass as an ndarray
+-        labels = values_from_object(labels)
++        # pass as an ndarray/ExtensionArray
++        labels = labels._values
+ 
+     reducer = Reducer(arr, f, axis=axis, dummy=dummy, labels=labels)
+     return reducer.get_result()
+diff --git a/pandas/core/apply.py b/pandas/core/apply.py
+index 61d093d19e4be..1be881e683be5 100644
+--- a/pandas/core/apply.py
++++ b/pandas/core/apply.py
+@@ -223,10 +223,12 @@ def apply_empty_result(self):
+ 
+     def apply_raw(self):
+         """ apply to the values as a numpy array """
+-
+         try:
+             result = libreduction.compute_reduction(self.values, self.f, axis=self.axis)
+-        except Exception:
++        except ValueError as err:
++            if "Function does not reduce" not in str(err):
++                # catch only ValueError raised intentionally in libreduction
++                raise
+             result = np.apply_along_axis(self.f, self.axis, self.values)
+ 
+         # TODO: mixed type case
+@@ -273,24 +275,38 @@ def apply_standard(self):
+         if (
+             self.result_type in ["reduce", None]
+             and not self.dtypes.apply(is_extension_type).any()
++            # Disallow complex_internals since libreduction shortcut
++            #  cannot handle MultiIndex
++            and not self.agg_axis._has_complex_internals
+         ):
+ 
+-            # Create a dummy Series from an empty array
+-            from pandas import Series
+-
+             values = self.values
+             index = self.obj._get_axis(self.axis)
+             labels = self.agg_axis
+             empty_arr = np.empty(len(index), dtype=values.dtype)
+-            dummy = Series(empty_arr, index=index, dtype=values.dtype)
++
++            # Preserve subclass for e.g. test_subclassed_apply
++            dummy = self.obj._constructor_sliced(
++                empty_arr, index=index, dtype=values.dtype
++            )
+ 
+             try:
+                 result = libreduction.compute_reduction(
+                     values, self.f, axis=self.axis, dummy=dummy, labels=labels
+                 )
+-                return self.obj._constructor_sliced(result, index=labels)
+-            except Exception:
++            except ValueError as err:
++                if "Function does not reduce" not in str(err):
++                    # catch only ValueError raised intentionally in libreduction
++                    raise
++            except TypeError:
++                # e.g. test_apply_ignore_failures we just ignore
++                if not self.ignore_failures:
++                    raise
++            except ZeroDivisionError:
++                # reached via numexpr; fall back to python implementation
+                 pass
++            else:
++                return self.obj._constructor_sliced(result, index=labels)
+ 
+         # compute the result using the series generator
+         self.apply_series_generator()
+diff --git a/pandas/tests/groupby/test_groupby.py b/pandas/tests/groupby/test_groupby.py
+index bec5cbc5fecb8..6212a37472000 100644
+--- a/pandas/tests/groupby/test_groupby.py
++++ b/pandas/tests/groupby/test_groupby.py
+@@ -775,11 +775,7 @@ def test_omit_nuisance(df):
+ 
+     # won't work with axis = 1
+     grouped = df.groupby({"A": 0, "C": 0, "D": 1, "E": 1}, axis=1)
+-    msg = (
+-        r'\("unsupported operand type\(s\) for \+: '
+-        "'Timestamp' and 'float'\""
+-        r", 'occurred at index 0'\)"
+-    )
++    msg = r'\("unsupported operand type\(s\) for \+: ' "'Timestamp' and 'float'\", 0"
+     with pytest.raises(TypeError, match=msg):
+         grouped.agg(lambda x: x.sum(0, numeric_only=False))
+ 

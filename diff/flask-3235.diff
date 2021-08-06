@@ -1,0 +1,83 @@
+diff --git a/CHANGES.rst b/CHANGES.rst
+index f7508afd3a..f70461bac4 100644
+--- a/CHANGES.rst
++++ b/CHANGES.rst
+@@ -64,6 +64,8 @@ Unreleased
+ -   When using the test client as a context manager (``with client:``),
+     all preserved request contexts are popped when the block exits,
+     ensuring nested contexts are cleaned up correctly. :pr:`3157`
++-   Show a better error message when the view return type is not
++    supported. :issue:`3214`
+ 
+ .. _#2935: https://github.com/pallets/flask/issues/2935
+ .. _#2957: https://github.com/pallets/flask/issues/2957
+diff --git a/flask/app.py b/flask/app.py
+index 76e45a302a..654ee963cc 100644
+--- a/flask/app.py
++++ b/flask/app.py
+@@ -27,6 +27,7 @@
+     default_exceptions,
+ )
+ from werkzeug.routing import BuildError, Map, RequestRedirect, RoutingException, Rule
++from werkzeug.wrappers import BaseResponse
+ 
+ from . import cli, json
+ from ._compat import integer_types, reraise, string_types, text_type
+@@ -2063,7 +2064,7 @@ def make_response(self, rv):
+                 status = headers = None
+             elif isinstance(rv, dict):
+                 rv = jsonify(rv)
+-            else:
++            elif isinstance(rv, BaseResponse) or callable(rv):
+                 # evaluate a WSGI callable, or coerce a different response
+                 # class to the correct type
+                 try:
+@@ -2071,11 +2072,18 @@ def make_response(self, rv):
+                 except TypeError as e:
+                     new_error = TypeError(
+                         "{e}\nThe view function did not return a valid"
+-                        " response. The return type must be a string, tuple,"
++                        " response. The return type must be a string, dict, tuple,"
+                         " Response instance, or WSGI callable, but it was a"
+                         " {rv.__class__.__name__}.".format(e=e, rv=rv)
+                     )
+                     reraise(TypeError, new_error, sys.exc_info()[2])
++            else:
++                raise TypeError(
++                    "The view function did not return a valid"
++                    " response. The return type must be a string, dict, tuple,"
++                    " Response instance, or WSGI callable, but it was a"
++                    " {rv.__class__.__name__}.".format(rv=rv)
++                )
+ 
+         # prefer the status if it was provided
+         if status is not None:
+diff --git a/tests/test_basic.py b/tests/test_basic.py
+index 32803b8c76..3351380bf9 100644
+--- a/tests/test_basic.py
++++ b/tests/test_basic.py
+@@ -1218,17 +1218,21 @@ def from_bad_wsgi():
+ 
+     with pytest.raises(TypeError) as e:
+         c.get("/none")
+-        assert "returned None" in str(e)
++
++    assert "returned None" in str(e)
+ 
+     with pytest.raises(TypeError) as e:
+         c.get("/small_tuple")
+-        assert "tuple must have the form" in str(e)
++
++    assert "tuple must have the form" in str(e)
+ 
+     pytest.raises(TypeError, c.get, "/large_tuple")
+ 
+     with pytest.raises(TypeError) as e:
+         c.get("/bad_type")
+-        assert "it was a bool" in str(e)
++
++    assert "object is not callable" not in str(e)
++    assert "it was a bool" in str(e)
+ 
+     pytest.raises(TypeError, c.get, "/bad_wsgi")
+ 

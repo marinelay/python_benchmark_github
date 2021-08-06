@@ -1,0 +1,71 @@
+diff --git a/doc/source/whatsnew/v1.1.0.rst b/doc/source/whatsnew/v1.1.0.rst
+index 82c43811c0444..5762c60a0d10a 100644
+--- a/doc/source/whatsnew/v1.1.0.rst
++++ b/doc/source/whatsnew/v1.1.0.rst
+@@ -529,6 +529,7 @@ I/O
+ - Bug in :meth:`DataFrame.to_sql` where an ``AttributeError`` was raised when saving an out of bounds date (:issue:`26761`)
+ - Bug in :meth:`read_excel` did not correctly handle multiple embedded spaces in OpenDocument text cells. (:issue:`32207`)
+ - Bug in :meth:`read_json` was raising ``TypeError`` when reading a list of booleans into a Series. (:issue:`31464`)
++- Bug in :func:`pandas.io.json.json_normalize` where location specified by `record_path` doesn't point to an array. (:issue:`26284`)
+ 
+ Plotting
+ ^^^^^^^^
+diff --git a/pandas/io/json/_normalize.py b/pandas/io/json/_normalize.py
+index 69e9b111a6c20..e833fdc20d542 100644
+--- a/pandas/io/json/_normalize.py
++++ b/pandas/io/json/_normalize.py
+@@ -239,23 +239,23 @@ def _pull_field(
+             result = result[spec]
+         return result
+ 
+-    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> Iterable:
++    def _pull_records(js: Dict[str, Any], spec: Union[List, str]) -> List:
+         """
+         Interal function to pull field for records, and similar to
+-        _pull_field, but require to return Iterable. And will raise error
++        _pull_field, but require to return list. And will raise error
+         if has non iterable value.
+         """
+         result = _pull_field(js, spec)
+ 
+-        # GH 31507 GH 30145, if result is not Iterable, raise TypeError if not
++        # GH 31507 GH 30145, GH 26284 if result is not list, raise TypeError if not
+         # null, otherwise return an empty list
+-        if not isinstance(result, Iterable):
++        if not isinstance(result, list):
+             if pd.isnull(result):
+                 result = []
+             else:
+                 raise TypeError(
+-                    f"{js} has non iterable value {result} for path {spec}. "
+-                    "Must be iterable or null."
++                    f"{js} has non list value {result} for path {spec}. "
++                    "Must be list or null."
+                 )
+         return result
+ 
+diff --git a/pandas/tests/io/json/test_normalize.py b/pandas/tests/io/json/test_normalize.py
+index b7a9918ff46da..4a32f3809c82b 100644
+--- a/pandas/tests/io/json/test_normalize.py
++++ b/pandas/tests/io/json/test_normalize.py
+@@ -475,13 +475,15 @@ def test_nonetype_record_path(self, nulls_fixture):
+         expected = DataFrame({"i": 2}, index=[0])
+         tm.assert_equal(result, expected)
+ 
+-    def test_non_interable_record_path_errors(self):
+-        # see gh-30148
+-        test_input = {"state": "Texas", "info": 1}
++    @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])
++    def test_non_list_record_path_errors(self, value):
++        # see gh-30148, GH 26284
++        parsed_value = json.loads(value)
++        test_input = {"state": "Texas", "info": parsed_value}
+         test_path = "info"
+         msg = (
+-            f"{test_input} has non iterable value 1 for path {test_path}. "
+-            "Must be iterable or null."
++            f"{test_input} has non list value {parsed_value} for path {test_path}. "
++            "Must be list or null."
+         )
+         with pytest.raises(TypeError, match=msg):
+             json_normalize([test_input], record_path=[test_path])

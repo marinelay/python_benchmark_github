@@ -1,0 +1,54 @@
+diff --git a/pandas/indexes/base.py b/pandas/indexes/base.py
+index 4d2dcd259e623..54eaf86315a88 100644
+--- a/pandas/indexes/base.py
++++ b/pandas/indexes/base.py
+@@ -1464,13 +1464,13 @@ def append(self, other):
+         names = set([obj.name for obj in to_concat])
+         name = None if len(names) > 1 else self.name
+ 
+-        typs = _concat.get_dtype_kinds(to_concat)
+-
+-        if 'category' in typs:
+-            # if any of the to_concat is category
++        if self.is_categorical():
++            # if calling index is category, don't check dtype of others
+             from pandas.indexes.category import CategoricalIndex
+             return CategoricalIndex._append_same_dtype(self, to_concat, name)
+ 
++        typs = _concat.get_dtype_kinds(to_concat)
++
+         if len(typs) == 1:
+             return self._append_same_dtype(to_concat, name=name)
+         return _concat._concat_index_asobject(to_concat, name=name)
+diff --git a/pandas/tests/frame/test_repr_info.py b/pandas/tests/frame/test_repr_info.py
+index 5e5e9abda1200..12cd62f8b4cc0 100644
+--- a/pandas/tests/frame/test_repr_info.py
++++ b/pandas/tests/frame/test_repr_info.py
+@@ -405,3 +405,11 @@ def memory_usage(f):
+ 
+         # high upper bound
+         self.assertTrue(memory_usage(unstacked) - memory_usage(df) < 2000)
++
++    def test_info_categorical(self):
++        # GH14298
++        idx = pd.CategoricalIndex(['a', 'b'])
++        df = pd.DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
++
++        buf = StringIO()
++        df.info(buf=buf)
+diff --git a/pandas/tests/indexes/test_category.py b/pandas/tests/indexes/test_category.py
+index 9f8405bcc2e1e..c76f5ff22c534 100644
+--- a/pandas/tests/indexes/test_category.py
++++ b/pandas/tests/indexes/test_category.py
+@@ -278,6 +278,11 @@ def test_append(self):
+         # invalid objects
+         self.assertRaises(TypeError, lambda: ci.append(Index(['a', 'd'])))
+ 
++        # GH14298 - if base object is not categorical -> coerce to object
++        result = Index(['c', 'a']).append(ci)
++        expected = Index(list('caaabbca'))
++        tm.assert_index_equal(result, expected, exact=True)
++
+     def test_insert(self):
+ 
+         ci = self.create_index()

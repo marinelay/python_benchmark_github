@@ -1,0 +1,50 @@
+diff --git a/python/paddle/fluid/framework.py b/python/paddle/fluid/framework.py
+index 8d46fc9c1136..4191ea6ea0fb 100644
+--- a/python/paddle/fluid/framework.py
++++ b/python/paddle/fluid/framework.py
+@@ -1756,9 +1756,12 @@ def find_name(var_list, name):
+                             elif isinstance(arg, Variable):
+                                 in_arg_names.append(cpt.to_text(arg.name))
+                             else:
+-                                raise ValueError(
+-                                    "not suprt args type , should be[ string_type, binary_type, Varibale]"
+-                                )
++                                raise TypeError(
++                                    "The type of '%s' in operator %s should be "
++                                    "one of [basestring(), str, Varibale] in python2, "
++                                    "or one of [str, bytes, Variable] in python3."
++                                    "but received : " % (in_proto.name, type),
++                                    arg)
+                         self.desc.set_input(in_proto.name, in_arg_names)
+                     else:
+                         self.desc.set_input(in_proto.name, [])
+diff --git a/python/paddle/fluid/tests/unittests/test_compare_op.py b/python/paddle/fluid/tests/unittests/test_compare_op.py
+index 437ad35538a5..d990b093ccbd 100644
+--- a/python/paddle/fluid/tests/unittests/test_compare_op.py
++++ b/python/paddle/fluid/tests/unittests/test_compare_op.py
+@@ -17,6 +17,8 @@
+ import op_test
+ import unittest
+ import numpy
++import paddle.fluid as fluid
++from paddle.fluid import Program, program_guard
+ 
+ 
+ def create_test_class(op_type, typename, callback):
+@@ -45,5 +47,16 @@ def test_output(self):
+     create_test_class('equal', _type_name, lambda _a, _b: _a == _b)
+     create_test_class('not_equal', _type_name, lambda _a, _b: _a != _b)
+ 
++
++class TestCompareOpError(op_test.OpTest):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # The input x and y of compare_op must be Variable.
++            x = fluid.layers.data(name='x', shape=[1], dtype="float32")
++            y = fluid.create_lod_tensor(
++                numpy.array([[-1]]), [[1]], fluid.CPUPlace())
++            self.assertRaises(TypeError, fluid.layers.greater_equal, x, y)
++
++
+ if __name__ == '__main__':
+     unittest.main()

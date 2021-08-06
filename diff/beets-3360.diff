@@ -1,0 +1,51 @@
+diff --git a/beetsplug/thumbnails.py b/beetsplug/thumbnails.py
+index fe36fbd130..1b262eca54 100644
+--- a/beetsplug/thumbnails.py
++++ b/beetsplug/thumbnails.py
+@@ -224,7 +224,7 @@ class PathlibURI(URIGetter):
+     name = "Python Pathlib"
+ 
+     def uri(self, path):
+-        return PurePosixPath(path).as_uri()
++        return PurePosixPath(util.py3_path(path)).as_uri() 
+# util.py3_path가 뭐지?
+# py3_path(path) 로 정의 되어있음
+# util.py3_path는 path라는 변수를 많이 입력으로 받음
+# 위 두개의 정보를 적절히 조합하면???
+ 
+ 
+ def copy_c_string(c_string):
+diff --git a/docs/changelog.rst b/docs/changelog.rst
+index 167eba9531..0f41c38ec1 100644
+--- a/docs/changelog.rst
++++ b/docs/changelog.rst
+@@ -139,6 +139,9 @@ New features:
+ * :doc:`/plugins/lyrics`: Fix a bug in the heuristic for detecting valid
+   lyrics in the Google source of the lyrics plugin
+   :bug:`2969`
++* :doc:`/plugins/thumbnails`: Fix a bug where pathlib expected a string instead
++  of bytes for a path.
++  :bug:`3360`
+ 
+ Fixes:
+ 
+diff --git a/test/test_thumbnails.py b/test/test_thumbnails.py
+index dc03f06f7e..dbbc032f73 100644
+--- a/test/test_thumbnails.py
++++ b/test/test_thumbnails.py
+@@ -284,6 +284,15 @@ def test_uri(self):
+             u'file:///music/%EC%8B%B8%EC%9D%B4')
+ 
+ 
++class TestPathlibURI():
++    """Test PathlibURI class"""
++    def test_uri(self):
++        test_uri = PathlibURI()
++
++        # test it won't break if we pass it bytes for a path
++        test_uri.uri(b'/')
++
++
+ def suite():
+     return unittest.TestLoader().loadTestsFromName(__name__)
+ 

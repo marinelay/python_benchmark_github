@@ -1,0 +1,35 @@
+diff --git a/requests/models.py b/requests/models.py
+index fe4bec1bd3..0c10eef166 100644
+--- a/requests/models.py
++++ b/requests/models.py
+@@ -792,7 +792,7 @@ def json(self, **kwargs):
+         :param \*\*kwargs: Optional arguments that ``json.loads`` takes.
+         """
+ 
+-        if not self.encoding and len(self.content) > 3:
++        if not self.encoding and self.content and len(self.content) > 3:
+             # No encoding set. JSON RFC 4627 section 3 states we should expect
+             # UTF-8, -16 or -32. Detect which one to use; If the detection or
+             # decoding fails, fall back to `self.text` (using chardet to make
+diff --git a/tests/test_requests.py b/tests/test_requests.py
+index 0a87b52cda..d01749d295 100755
+--- a/tests/test_requests.py
++++ b/tests/test_requests.py
+@@ -1227,6 +1227,17 @@ def test_session_close_proxy_clear(self, mocker):
+         proxies['one'].clear.assert_called_once_with()
+         proxies['two'].clear.assert_called_once_with()
+ 
++    def test_response_json_when_content_is_None(self, httpbin):
++        r = requests.get(httpbin('/status/204'))
++        # Make sure r.content is None
++        r.status_code = 0
++        r._content = False
++        r._content_consumed = False
++
++        assert r.content is None
++        with pytest.raises(ValueError):
++            r.json()
++
+ 
+ class TestCaseInsensitiveDict:
+ 

@@ -1,0 +1,142 @@
+diff --git a/tornado/concurrent.py b/tornado/concurrent.py
+index 05205f7374..ec68dc4fe3 100644
+--- a/tornado/concurrent.py
++++ b/tornado/concurrent.py
+@@ -31,7 +31,7 @@
+ 
+ from tornado.log import app_log
+ from tornado.stack_context import ExceptionStackContext, wrap
+-from tornado.util import raise_exc_info, ArgReplacer
++from tornado.util import raise_exc_info, ArgReplacer, is_finalizing
+ 
+ try:
+     from concurrent import futures
+@@ -123,8 +123,8 @@ def clear(self):
+         self.exc_info = None
+         self.formatted_tb = None
+ 
+-    def __del__(self):
+-        if self.formatted_tb:
++    def __del__(self, is_finalizing=is_finalizing):
++        if not is_finalizing() and self.formatted_tb:
+             app_log.error('Future exception was never retrieved: %s',
+                           ''.join(self.formatted_tb).rstrip())
+ 
+@@ -329,8 +329,8 @@ def _set_done(self):
+     # cycle are never destroyed. It's no longer the case on Python 3.4 thanks to
+     # the PEP 442.
+     if _GC_CYCLE_FINALIZERS:
+-        def __del__(self):
+-            if not self._log_traceback:
++        def __del__(self, is_finalizing=is_finalizing):
++            if is_finalizing() or not self._log_traceback:
+                 # set_exception() was not called, or result() or exception()
+                 # has consumed the exception
+                 return
+diff --git a/tornado/test/concurrent_test.py b/tornado/test/concurrent_test.py
+index 8ce095ec1b..4e5118b173 100644
+--- a/tornado/test/concurrent_test.py
++++ b/tornado/test/concurrent_test.py
+@@ -15,6 +15,7 @@
+ # under the License.
+ from __future__ import absolute_import, division, print_function, with_statement
+ 
++import gc
+ import logging
+ import re
+ import socket
+@@ -25,9 +26,10 @@
+ from tornado.escape import utf8, to_unicode
+ from tornado import gen
+ from tornado.iostream import IOStream
++from tornado.log import app_log
+ from tornado import stack_context
+ from tornado.tcpserver import TCPServer
+-from tornado.testing import AsyncTestCase, LogTrapTestCase, bind_unused_port, gen_test
++from tornado.testing import AsyncTestCase, ExpectLog, LogTrapTestCase, bind_unused_port, gen_test
+ from tornado.test.util import unittest
+ 
+ 
+@@ -171,6 +173,24 @@ def f(callback):
+             tb = traceback.extract_tb(sys.exc_info()[2])
+             self.assertIn(self.expected_frame, tb)
+ 
++    @gen_test
++    def test_uncaught_exception_log(self):
++        @gen.coroutine
++        def f():
++            yield gen.moment
++            1/0
++
++        g = f()
++
++        with ExpectLog(app_log,
++                       "(?s)Future.* exception was never retrieved:"
++                       ".*ZeroDivisionError"):
++            yield gen.moment
++            yield gen.moment
++            del g
++            gc.collect()  # for PyPy
++
++
+ # The following series of classes demonstrate and test various styles
+ # of use, with and without generators and futures.
+ 
+diff --git a/tornado/test/util_test.py b/tornado/test/util_test.py
+index 48b16f89e6..cbb89322ed 100644
+--- a/tornado/test/util_test.py
++++ b/tornado/test/util_test.py
+@@ -6,7 +6,7 @@
+ 
+ import tornado.escape
+ from tornado.escape import utf8
+-from tornado.util import raise_exc_info, Configurable, exec_in, ArgReplacer, timedelta_to_seconds, import_object, re_unescape, PY3
++from tornado.util import raise_exc_info, Configurable, exec_in, ArgReplacer, timedelta_to_seconds, import_object, re_unescape, is_finalizing, PY3
+ from tornado.test.util import unittest
+ 
+ if PY3:
+@@ -220,3 +220,8 @@ def test_re_unescape_raises_error_on_invalid_input(self):
+             re_unescape('\\b')
+         with self.assertRaises(ValueError):
+             re_unescape('\\Z')
++
++
++class IsFinalizingTest(unittest.TestCase):
++    def test_basic(self):
++        self.assertFalse(is_finalizing())
+diff --git a/tornado/util.py b/tornado/util.py
+index 28e74e7dc0..d0f83d1ff9 100644
+--- a/tornado/util.py
++++ b/tornado/util.py
+@@ -13,6 +13,7 @@
+ from __future__ import absolute_import, division, print_function, with_statement
+ 
+ import array
++import atexit
+ import os
+ import re
+ import sys
+@@ -66,6 +67,23 @@ def cast(typ, x):
+         _BaseString = Union[bytes, unicode_type]
+ 
+ 
++try:
++    from sys import is_finalizing
++except ImportError:
++    # Emulate it
++    def _get_emulated_is_finalizing():
++        L = []
++        atexit.register(lambda: L.append(None))
++
++        def is_finalizing():
++            # Not referencing any globals here
++            return L != []
++
++        return is_finalizing
++
++    is_finalizing = _get_emulated_is_finalizing()
++
++
+ class ObjectDict(_ObjectDictBase):
+     """Makes a dictionary behave like an object, with attribute-style access.
+     """

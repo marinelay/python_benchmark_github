@@ -1,0 +1,149 @@
+diff --git a/beets/dbcore/query.py b/beets/dbcore/query.py
+index 8ce4dac41b..e532ed4195 100644
+--- a/beets/dbcore/query.py
++++ b/beets/dbcore/query.py
+@@ -47,7 +47,7 @@ def __init__(self, query, explanation):
+         super(InvalidQueryError, self).__init__(message)
+ 
+ 
+-class InvalidQueryArgumentTypeError(ParsingError):
++class InvalidQueryArgumentValueError(ParsingError):
+     """Represent a query argument that could not be converted as expected.
+ 
+     It exists to be caught in upper stack levels so a meaningful (i.e. with the
+@@ -57,7 +57,7 @@ def __init__(self, what, expected, detail=None):
+         message = u"'{0}' is not {1}".format(what, expected)
+         if detail:
+             message = u"{0}: {1}".format(message, detail)
+-        super(InvalidQueryArgumentTypeError, self).__init__(message)
++        super(InvalidQueryArgumentValueError, self).__init__(message)
+ 
+ 
+ class Query(object):
+@@ -211,9 +211,9 @@ def __init__(self, field, pattern, fast=True):
+             self.pattern = re.compile(self.pattern)
+         except re.error as exc:
+             # Invalid regular expression.
+-            raise InvalidQueryArgumentTypeError(pattern,
+-                                                u"a regular expression",
+-                                                format(exc))
++            raise InvalidQueryArgumentValueError(pattern,
++                                                 u"a regular expression",
++                                                 format(exc))
+ 
+     @staticmethod
+     def _normalize(s):
+@@ -285,7 +285,7 @@ def _convert(self, s):
+             try:
+                 return float(s)
+             except ValueError:
+-                raise InvalidQueryArgumentTypeError(s, u"an int or a float")
++                raise InvalidQueryArgumentValueError(s, u"an int or a float")
+ 
+     def __init__(self, field, pattern, fast=True):
+         super(NumericQuery, self).__init__(field, pattern, fast)
+@@ -548,7 +548,7 @@ def __init__(self, date, precision):
+     @classmethod
+     def parse(cls, string):
+         """Parse a date and return a `Period` object, or `None` if the
+-        string is empty, or raise an InvalidQueryArgumentTypeError if
++        string is empty, or raise an InvalidQueryArgumentValueError if
+         the string could not be parsed to a date.
+         """
+         if not string:
+@@ -562,8 +562,8 @@ def parse(cls, string):
+                 # Parsing failed.
+                 pass
+         if date is None:
+-            raise InvalidQueryArgumentTypeError(string,
+-                                                'a valid datetime string')
++            raise InvalidQueryArgumentValueError(string,
++                                                 'a valid datetime string')
+         precision = cls.precisions[ordinal]
+         return cls(date, precision)
+ 
+@@ -685,7 +685,7 @@ def _convert(self, s):
+             try:
+                 return float(s)
+             except ValueError:
+-                raise InvalidQueryArgumentTypeError(
++                raise InvalidQueryArgumentValueError(
+                     s,
+                     u"a M:SS string or a float")
+ 
+diff --git a/beets/library.py b/beets/library.py
+index b263ecd646..56fd8f65b7 100644
+--- a/beets/library.py
++++ b/beets/library.py
+@@ -1306,7 +1306,7 @@ def _fetch(self, model_cls, query, sort=None):
+                 query, parsed_sort = parse_query_string(query, model_cls)
+             elif isinstance(query, (list, tuple)):
+                 query, parsed_sort = parse_query_parts(query, model_cls)
+-        except dbcore.query.InvalidQueryArgumentTypeError as exc:
++        except dbcore.query.InvalidQueryArgumentValueError as exc:
+             raise dbcore.InvalidQueryError(query, exc)
+ 
+         # Any non-null sort specified by the parsed query overrides the
+diff --git a/test/test_datequery.py b/test/test_datequery.py
+index e81544aaad..8ca5680c68 100644
+--- a/test/test_datequery.py
++++ b/test/test_datequery.py
+@@ -22,7 +22,7 @@
+ import unittest
+ import time
+ from beets.dbcore.query import _parse_periods, DateInterval, DateQuery,\
+-    InvalidQueryArgumentTypeError
++    InvalidQueryArgumentValueError
+ 
+ 
+ def _date(string):
+@@ -118,11 +118,11 @@ def test_single_day_nonmatch_fast(self):
+ 
+ class DateQueryConstructTest(unittest.TestCase):
+     def test_long_numbers(self):
+-        with self.assertRaises(InvalidQueryArgumentTypeError):
++        with self.assertRaises(InvalidQueryArgumentValueError):
+             DateQuery('added', '1409830085..1412422089')
+ 
+     def test_too_many_components(self):
+-        with self.assertRaises(InvalidQueryArgumentTypeError):
++        with self.assertRaises(InvalidQueryArgumentValueError):
+             DateQuery('added', '12-34-56-78')
+ 
+     def test_invalid_date_query(self):
+@@ -137,7 +137,7 @@ def test_invalid_date_query(self):
+             '..2aa'
+         ]
+         for q in q_list:
+-            with self.assertRaises(InvalidQueryArgumentTypeError):
++            with self.assertRaises(InvalidQueryArgumentValueError):
+                 DateQuery('added', q)
+ 
+ 
+diff --git a/test/test_query.py b/test/test_query.py
+index 3538c15a88..61df3ca101 100644
+--- a/test/test_query.py
++++ b/test/test_query.py
+@@ -30,7 +30,7 @@
+ from beets import dbcore
+ from beets.dbcore import types
+ from beets.dbcore.query import (NoneQuery, ParsingError,
+-                                InvalidQueryArgumentTypeError)
++                                InvalidQueryArgumentValueError)
+ from beets.library import Library, Item
+ from beets import util
+ import platform
+@@ -301,11 +301,11 @@ def test_numeric_search_negative(self):
+         self.assertFalse(results)
+ 
+     def test_invalid_query(self):
+-        with self.assertRaises(InvalidQueryArgumentTypeError) as raised:
++        with self.assertRaises(InvalidQueryArgumentValueError) as raised:
+             dbcore.query.NumericQuery('year', u'199a')
+         self.assertIn(u'not an int', six.text_type(raised.exception))
+ 
+-        with self.assertRaises(InvalidQueryArgumentTypeError) as raised:
++        with self.assertRaises(InvalidQueryArgumentValueError) as raised:
+             dbcore.query.RegexpQuery('year', u'199(')
+         exception_text = six.text_type(raised.exception)
+         self.assertIn(u'not a regular expression', exception_text)

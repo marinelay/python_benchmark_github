@@ -1,0 +1,114 @@
+diff --git a/wagtail/core/telepath.py b/wagtail/core/telepath.py
+index 9c7bb071ae3..51c3d67f9a7 100644
+--- a/wagtail/core/telepath.py
++++ b/wagtail/core/telepath.py
+@@ -217,6 +217,7 @@ class ValueContext:
+     """
+     def __init__(self, parent_context):
+         self.parent_context = parent_context
++        self.raw_values = {}
+         self.packed_values = {}
+         self.next_id = 0
+ 
+@@ -231,11 +232,17 @@ def pack(self, val):
+             # not seen this value before, so pack it and store in packed_values
+             packed_val = self._pack_as_value(val)
+             self.packed_values[obj_id] = packed_val
++            # Also keep a reference to the original value to stop it from getting deallocated
++            # and the ID being recycled
++            self.raw_values[obj_id] = val
++
+             return packed_val
+ 
+-        # Assign existing_packed_val an ID so that we can create references to it
+-        existing_packed_val.id = self.next_id
+-        self.next_id += 1
++        if existing_packed_val.id is None:
++            # Assign existing_packed_val an ID so that we can create references to it
++            existing_packed_val.id = self.next_id
++            self.next_id += 1
++
+         return existing_packed_val
+ 
+     def _pack_as_value(self, obj):
+@@ -246,10 +253,8 @@ def _pack_as_value(self, obj):
+ 
+         # as fallback, try handling as an iterable
+         try:
+-            return ListNode([self.pack(item) for item in obj])
+-        except UnpackableTypeError:  # error while packing an item
+-            raise
++            items = iter(obj)
+         except TypeError:  # obj is not iterable
+-            pass
+-
+-        raise UnpackableTypeError("don't know how to pack object: %r" % obj)
++            raise UnpackableTypeError("don't know how to pack object: %r" % obj)
++        else:
++            return ListNode([self.pack(item) for item in items])
+diff --git a/wagtail/core/tests/test_telepath.py b/wagtail/core/tests/test_telepath.py
+index 0749a26ce02..8aa1771cd4b 100644
+--- a/wagtail/core/tests/test_telepath.py
++++ b/wagtail/core/tests/test_telepath.py
+@@ -1,3 +1,5 @@
++import itertools
++
+ from django.test import TestCase
+ 
+ from wagtail.core.telepath import Adapter, JSContext, register
+@@ -242,3 +244,55 @@ def test_avoid_primitive_value_references_for_short_strings(self):
+                 ]
+             },
+         ])
++
++
++class Ark:
++    def __init__(self, animals):
++        self.animals = animals
++
++    def animals_by_type(self):
++        return itertools.groupby(self.animals, lambda animal: animal['type'])
++
++
++class ArkAdapter(Adapter):
++    js_constructor = 'boats.Ark'
++
++    def js_args(self, obj):
++        return [obj.animals_by_type()]
++
++
++register(ArkAdapter(), Ark)
++
++
++class TestIDCollisions(TestCase):
++    def test_grouper_object_collisions(self):
++        """
++        Certain functions such as itertools.groupby will cause new objects (namely, tuples and
++        custom itertools._grouper iterables) to be created in the course of iterating over the
++        object tree. If we're not careful, these will be released and the memory reallocated to
++        new objects while we're still iterating, leading to ID collisions.
++        """
++        # create 100 Ark objects all with distinct animals (no object references are re-used)
++        arks = [
++            Ark([
++                {'type': 'lion', 'name': 'Simba %i' % i}, {'type': 'lion', 'name': 'Nala %i' % i},
++                {'type': 'dog', 'name': 'Lady %i' % i}, {'type': 'dog', 'name': 'Tramp %i' % i},
++            ])
++            for i in range(0, 100)
++        ]
++
++        ctx = JSContext()
++        result = ctx.pack(arks)
++
++        self.assertEqual(len(result), 100)
++        for i, ark in enumerate(result):
++            # each object should be represented in full, with no _id or _ref keys
++            self.assertEqual(ark, {
++                '_type': 'boats.Ark',
++                '_args': [
++                    [
++                        ['lion', [{'type': 'lion', 'name': 'Simba %i' % i}, {'type': 'lion', 'name': 'Nala %i' % i}]],
++                        ['dog', [{'type': 'dog', 'name': 'Lady %i' % i}, {'type': 'dog', 'name': 'Tramp %i' % i}]],
++                    ]
++                ]
++            })

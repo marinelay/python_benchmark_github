@@ -1,0 +1,147 @@
+diff --git a/salt/log/handlers/logstash_mod.py b/salt/log/handlers/logstash_mod.py
+index 81eb5daabe15a..5f003446a237b 100644
+--- a/salt/log/handlers/logstash_mod.py
++++ b/salt/log/handlers/logstash_mod.py
+@@ -167,6 +167,7 @@
+ from salt.log.mixins import NewStyleClassMixIn
+ import salt.utils.json
+ import salt.utils.network
++import salt.utils.stringutils
+ 
+ # Import Third party libs
+ from salt.ext import six
+@@ -378,7 +379,7 @@ class DatagramLogstashHandler(logging.handlers.DatagramHandler):
+     '''
+ 
+     def makePickle(self, record):
+-        return self.format(record)
++        return salt.utils.stringutils.to_bytes(self.format(record))
+ 
+ 
+ class ZMQLogstashHander(logging.Handler, NewStyleClassMixIn):
+@@ -416,7 +417,7 @@ def publisher(self):
+         return self._publisher
+ 
+     def emit(self, record):
+-        formatted_object = self.format(record)
++        formatted_object = salt.utils.stringutils.to_bytes(self.format(record))
+         self.publisher.send(formatted_object)
+ 
+     def close(self):
+diff --git a/tests/integration/logging/handlers/__init__.py b/tests/integration/logging/handlers/__init__.py
+new file mode 100644
+index 0000000000000..40a96afc6ff09
+--- /dev/null
++++ b/tests/integration/logging/handlers/__init__.py
+@@ -0,0 +1 @@
++# -*- coding: utf-8 -*-
+diff --git a/tests/integration/logging/handlers/test_logstash_mod.py b/tests/integration/logging/handlers/test_logstash_mod.py
+new file mode 100644
+index 0000000000000..d73b37ec59d79
+--- /dev/null
++++ b/tests/integration/logging/handlers/test_logstash_mod.py
+@@ -0,0 +1,92 @@
++# -*- coding: utf-8 -*-
++from __future__ import absolute_import
++
++import errno
++import logging
++import socket
++import time
++import zmq
++
++import salt.utils.stringutils
++from salt.log.handlers.logstash_mod import DatagramLogstashHandler, ZMQLogstashHander
++from tests.support.helpers import get_unused_localhost_port
++from tests.support.unit import TestCase
++
++log = logging.getLogger(__name__)
++
++
++# At the moment of writing this test the `functional` suite is not yet complete
++# TODO move to the `functional` suite since this test doesn't require running instance of Salt Master/Minion
++class DatagramLogstashHandlerTest(TestCase):
++    def setUp(self):
++        self.test_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
++        port = get_unused_localhost_port()
++        self.test_server.bind(("127.0.0.1", port))
++        self.test_server.settimeout(2)
++        self.logger = logging.getLogger("test_logstash_logger")
++        self.logger.setLevel(logging.DEBUG)
++        self.logger.addHandler(DatagramLogstashHandler("127.0.0.1", port))
++
++    def tearDown(self):
++        self.test_server.close()
++
++    def test_log_pickling(self):
++        # given
++        the_log = "test message"
++
++        # when
++        self.logger.info(the_log)
++
++        # then
++        try:
++            received_log, addr = self.test_server.recvfrom(12)
++            self.assertEqual(received_log, salt.utils.stringutils.to_bytes(the_log))
++        except socket.timeout:
++            self.fail("Log message was not received.\n"
++                      "Check either pickling failed (and message was not send) or some other error occurred")
++
++
++# At the moment of writing this test the `functional` suite is not yet complete
++# TODO move to the `functional` suite since this test doesn't require running instance of Salt Master/Minion
++class ZMQLogstashHanderTest(TestCase):
++    def setUp(self):
++        self.context = zmq.Context()
++        port = get_unused_localhost_port()
++
++        self.zmq_server = self.context.socket(zmq.SUB)
++        self.zmq_server.setsockopt(zmq.SUBSCRIBE, b"")
++        self.zmq_server.bind("tcp://127.0.0.1:{}".format(port))
++
++        self.logger = logging.getLogger("test_logstash_logger")
++        self.logger.setLevel(logging.DEBUG)
++        self.logger.addHandler(ZMQLogstashHander("tcp://127.0.0.1:{}".format(port)))
++
++    def tearDown(self):
++        self.zmq_server.close()
++        self.context.term()
++
++    def test_log_pickling(self):
++        # given
++        the_log = "test message"
++        attempts = 5
++        received_log = "wrong message"
++
++        # I couldn't receive the first log message, that's why it is done using loop...
++        # https://zeromq.jira.com/browse/LIBZMQ-270 could be related
++        while attempts >= 0:
++            try:
++                # when
++                self.logger.info(the_log)
++                time.sleep(1)
++                received_log = self.zmq_server.recv(zmq.NOBLOCK)
++
++                # then
++                break
++            except zmq.ZMQError as exc:
++                if exc.errno == errno.EAGAIN:
++                    attempts -= 1
++                    continue
++                raise
++
++        self.assertEqual(received_log, salt.utils.stringutils.to_bytes(the_log),
++                         "Check either pickling failed (and message was not send) or some other error occurred")
+diff --git a/tests/unit/test_module_names.py b/tests/unit/test_module_names.py
+index c55cad4e88113..8ba2bd85df1ba 100644
+--- a/tests/unit/test_module_names.py
++++ b/tests/unit/test_module_names.py
+@@ -131,6 +131,7 @@ def test_module_name_source_match(self):
+             'integration.loader.test_ext_grains',
+             'integration.loader.test_ext_modules',
+             'integration.logging.test_jid_logging',
++            'integration.logging.handlers.test_logstash_mod',
+             'integration.master.test_event_return',
+             'integration.minion.test_blackout',
+             'integration.minion.test_pillar',

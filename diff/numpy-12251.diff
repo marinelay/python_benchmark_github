@@ -1,0 +1,638 @@
+diff --git a/doc/release/1.16.0-notes.rst b/doc/release/1.16.0-notes.rst
+index 599123f97c6..ccb54879993 100644
+--- a/doc/release/1.16.0-notes.rst
++++ b/doc/release/1.16.0-notes.rst
+@@ -224,6 +224,15 @@ The ``help`` function, when applied to numeric types such as `np.intc`,
+ `np.int_`, and `np.longlong`, now lists all of the aliased names for that type,
+ distinguishing between platform -dependent and -independent aliases.
+ 
++``__module__`` attribute now points to public modules
++-----------------------------------------------------
++The ``__module__`` attribute on most NumPy functions has been updated to refer
++to the preferred public module from which to access a function, rather than
++the module in which the function happens to be defined. This produces more
++informative displays for functions in tools such as IPython, e.g., instead of
++``<function 'numpy.core.fromnumeric.sum'>`` you now see
++``<function 'numpy.sum'>``.
++
+ Large allocations marked as suitable for transparent hugepages
+ --------------------------------------------------------------
+ On systems that support transparent hugepages over the madvise system call
+diff --git a/numpy/core/arrayprint.py b/numpy/core/arrayprint.py
+index 1b9fbbfa928..3201b2f7883 100644
+--- a/numpy/core/arrayprint.py
++++ b/numpy/core/arrayprint.py
+@@ -506,7 +506,7 @@ def _array2string_dispatcher(
+     return (a,)
+ 
+ 
+-@array_function_dispatch(_array2string_dispatcher)
++@array_function_dispatch(_array2string_dispatcher, module='numpy')
+ def array2string(a, max_line_width=None, precision=None,
+                  suppress_small=None, separator=' ', prefix="",
+                  style=np._NoValue, formatter=None, threshold=None,
+@@ -1386,7 +1386,7 @@ def _array_repr_dispatcher(
+     return (arr,)
+ 
+ 
+-@array_function_dispatch(_array_repr_dispatcher)
++@array_function_dispatch(_array_repr_dispatcher, module='numpy')
+ def array_repr(arr, max_line_width=None, precision=None, suppress_small=None):
+     """
+     Return the string representation of an array.
+@@ -1480,7 +1480,7 @@ def _array_str_dispatcher(
+     return (a,)
+ 
+ 
+-@array_function_dispatch(_array_str_dispatcher)
++@array_function_dispatch(_array_str_dispatcher, module='numpy')
+ def array_str(a, max_line_width=None, precision=None, suppress_small=None):
+     """
+     Return a string representation of the data in an array.
+diff --git a/numpy/core/defchararray.py b/numpy/core/defchararray.py
+index 0a8c7bbec39..e8608601281 100644
+--- a/numpy/core/defchararray.py
++++ b/numpy/core/defchararray.py
+@@ -17,12 +17,13 @@
+ """
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
+ import sys
+ from .numerictypes import string_, unicode_, integer, object_, bool_, character
+ from .numeric import ndarray, compare_chararrays
+ from .numeric import array as narray
+ from numpy.core.multiarray import _vec_string
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.compat import asbytes, long
+ import numpy
+ 
+@@ -48,6 +49,10 @@
+     _bytes = str
+ _len = len
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy.char')
++
++
+ def _use_unicode(*args):
+     """
+     Helper function for determining the output type of some string
+diff --git a/numpy/core/fromnumeric.py b/numpy/core/fromnumeric.py
+index 2fdbf3e23cd..7dfb52fea6f 100644
+--- a/numpy/core/fromnumeric.py
++++ b/numpy/core/fromnumeric.py
+@@ -3,16 +3,17 @@
+ """
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
+ import types
+ import warnings
+ 
+ import numpy as np
+ from .. import VisibleDeprecationWarning
+ from . import multiarray as mu
++from . import overrides
+ from . import umath as um
+ from . import numerictypes as nt
+ from .numeric import asarray, array, asanyarray, concatenate
+-from .overrides import array_function_dispatch
+ from . import _methods
+ 
+ _dt_ = nt.sctype2char
+@@ -32,6 +33,9 @@
+ # save away Python sum
+ _sum_ = sum
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
+ 
+ # functions that are now methods
+ def _wrapit(obj, method, *args, **kwds):
+diff --git a/numpy/core/multiarray.py b/numpy/core/multiarray.py
+index 4dbd3b0fd08..25debd2f8c6 100644
+--- a/numpy/core/multiarray.py
++++ b/numpy/core/multiarray.py
+@@ -6,8 +6,10 @@
+ 
+ """
+ 
++import functools
++
++from . import overrides
+ from . import _multiarray_umath
+-from .overrides import array_function_dispatch
+ import numpy as np
+ from numpy.core._multiarray_umath import *
+ from numpy.core._multiarray_umath import (
+@@ -37,6 +39,9 @@
+     'tracemalloc_domain', 'typeinfo', 'unpackbits', 'unravel_index', 'vdot',
+     'where', 'zeros']
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
+ 
+ def _empty_like_dispatcher(prototype, dtype=None, order=None, subok=None):
+     return (prototype,)
+diff --git a/numpy/core/numeric.py b/numpy/core/numeric.py
+index 6e4e585c3a3..5d82bbd8de3 100644
+--- a/numpy/core/numeric.py
++++ b/numpy/core/numeric.py
+@@ -6,6 +6,7 @@
+     import collections.abc as collections_abc
+ except ImportError:
+     import collections as collections_abc
++import functools
+ import itertools
+ import operator
+ import sys
+@@ -27,8 +28,8 @@
+ if sys.version_info[0] < 3:
+     from .multiarray import newbuffer, getbuffer
+ 
++from . import overrides
+ from . import umath
+-from .overrides import array_function_dispatch
+ from .umath import (multiply, invert, sin, UFUNC_BUFSIZE_DEFAULT,
+                     ERR_IGNORE, ERR_WARN, ERR_RAISE, ERR_CALL, ERR_PRINT,
+                     ERR_LOG, ERR_DEFAULT, PINF, NAN)
+@@ -55,6 +56,10 @@
+     import __builtin__ as builtins
+ 
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ def loads(*args, **kwargs):
+     # NumPy 1.15.0, 2017-12-10
+     warnings.warn(
+diff --git a/numpy/core/overrides.py b/numpy/core/overrides.py
+index 5be60cd292c..4640efd31f6 100644
+--- a/numpy/core/overrides.py
++++ b/numpy/core/overrides.py
+@@ -105,9 +105,10 @@ def array_function_implementation_or_override(
+         if result is not NotImplemented:
+             return result
+ 
+-    raise TypeError('no implementation found for {} on types that implement '
++    func_name = '{}.{}'.format(public_api.__module__, public_api.__name__)
++    raise TypeError("no implementation found for '{}' on types that implement "
+                     '__array_function__: {}'
+-                    .format(public_api, list(map(type, overloaded_args))))
++                    .format(func_name, list(map(type, overloaded_args))))
+ 
+ 
+ ArgSpec = collections.namedtuple('ArgSpec', 'args varargs keywords defaults')
+@@ -135,7 +136,7 @@ def verify_matching_signatures(implementation, dispatcher):
+                                'default argument values')
+ 
+ 
+-def array_function_dispatch(dispatcher, verify=True):
++def array_function_dispatch(dispatcher, module=None, verify=True):
+     """Decorator for adding dispatch with the __array_function__ protocol."""
+     def decorator(implementation):
+         # TODO: only do this check when the appropriate flag is enabled or for
+@@ -149,6 +150,10 @@ def public_api(*args, **kwargs):
+             relevant_args = dispatcher(*args, **kwargs)
+             return array_function_implementation_or_override(
+                 implementation, public_api, relevant_args, args, kwargs)
++
++        if module is not None:
++            public_api.__module__ = module
++
+         return public_api
+ 
+     return decorator
+diff --git a/numpy/core/tests/test_overrides.py b/numpy/core/tests/test_overrides.py
+index d027f493e0c..7b3472f969b 100644
+--- a/numpy/core/tests/test_overrides.py
++++ b/numpy/core/tests/test_overrides.py
+@@ -296,12 +296,31 @@ def my_array_func_with_option(array, new_option='myarray'):
+     def test_not_implemented(self):
+         MyArray, implements = _new_duck_type_and_implements()
+ 
+-        @array_function_dispatch(lambda array: (array,))
++        @array_function_dispatch(lambda array: (array,), module='my')
+         def func(array):
+             return array
+ 
+         array = np.array(1)
+         assert_(func(array) is array)
+ 
+-        with assert_raises_regex(TypeError, 'no implementation found'):
++        with assert_raises_regex(
++                TypeError, "no implementation found for 'my.func'"):
+             func(MyArray())
++
++
++class TestNumPyFunctions(object):
++
++    def test_module(self):
++        assert_equal(np.sum.__module__, 'numpy')
++        assert_equal(np.char.equal.__module__, 'numpy.char')
++        assert_equal(np.fft.fft.__module__, 'numpy.fft')
++        assert_equal(np.linalg.solve.__module__, 'numpy.linalg')
++
++    def test_override_sum(self):
++        MyArray, implements = _new_duck_type_and_implements()
++
++        @implements(np.sum)
++        def _(array):
++            return 'yes'
++
++        assert_equal(np.sum(MyArray()), 'yes')
+diff --git a/numpy/fft/fftpack.py b/numpy/fft/fftpack.py
+index d8899037373..de675936f44 100644
+--- a/numpy/fft/fftpack.py
++++ b/numpy/fft/fftpack.py
+@@ -35,10 +35,12 @@
+ __all__ = ['fft', 'ifft', 'rfft', 'irfft', 'hfft', 'ihfft', 'rfftn',
+            'irfftn', 'rfft2', 'irfft2', 'fft2', 'ifft2', 'fftn', 'ifftn']
+ 
++import functools
++
+ from numpy.core import (array, asarray, zeros, swapaxes, shape, conjugate,
+                         take, sqrt)
+ from numpy.core.multiarray import normalize_axis_index
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from . import fftpack_lite as fftpack
+ from .helper import _FFTCache
+ 
+@@ -46,6 +48,10 @@
+ _real_fft_cache = _FFTCache(max_size_in_mb=100, max_item_count=32)
+ 
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy.fft')
++
++
+ def _raw_fft(a, n=None, axis=-1, init_function=fftpack.cffti,
+              work_function=fftpack.cfftf, fft_cache=_fft_cache):
+     a = asarray(a)
+diff --git a/numpy/fft/helper.py b/numpy/fft/helper.py
+index 4b698bb4da8..e6588365179 100644
+--- a/numpy/fft/helper.py
++++ b/numpy/fft/helper.py
+@@ -24,7 +24,7 @@ def _fftshift_dispatcher(x, axes=None):
+     return (x,)
+ 
+ 
+-@array_function_dispatch(_fftshift_dispatcher)
++@array_function_dispatch(_fftshift_dispatcher, module='numpy.fft')
+ def fftshift(x, axes=None):
+     """
+     Shift the zero-frequency component to the center of the spectrum.
+@@ -81,7 +81,7 @@ def fftshift(x, axes=None):
+     return roll(x, shift, axes)
+ 
+ 
+-@array_function_dispatch(_fftshift_dispatcher)
++@array_function_dispatch(_fftshift_dispatcher, module='numpy.fft')
+ def ifftshift(x, axes=None):
+     """
+     The inverse of `fftshift`. Although identical for even-length `x`, the
+diff --git a/numpy/lib/arraypad.py b/numpy/lib/arraypad.py
+index f76ad456fe7..d27a3918f51 100644
+--- a/numpy/lib/arraypad.py
++++ b/numpy/lib/arraypad.py
+@@ -995,7 +995,7 @@ def _pad_dispatcher(array, pad_width, mode, **kwargs):
+     return (array,)
+ 
+ 
+-@array_function_dispatch(_pad_dispatcher)
++@array_function_dispatch(_pad_dispatcher, module='numpy')
+ def pad(array, pad_width, mode, **kwargs):
+     """
+     Pads an array.
+diff --git a/numpy/lib/arraysetops.py b/numpy/lib/arraysetops.py
+index ec62cd7a6f6..850e201231c 100644
+--- a/numpy/lib/arraysetops.py
++++ b/numpy/lib/arraysetops.py
+@@ -27,8 +27,14 @@
+ """
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
++
+ import numpy as np
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
++
++
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
+ 
+ 
+ __all__ = [
+diff --git a/numpy/lib/financial.py b/numpy/lib/financial.py
+index d1a0cd9c024..e1e297492ed 100644
+--- a/numpy/lib/financial.py
++++ b/numpy/lib/financial.py
+@@ -13,9 +13,14 @@
+ from __future__ import division, absolute_import, print_function
+ 
+ from decimal import Decimal
++import functools
+ 
+ import numpy as np
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
++
++
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
+ 
+ 
+ __all__ = ['fv', 'pmt', 'nper', 'ipmt', 'ppmt', 'pv', 'rate',
+diff --git a/numpy/lib/function_base.py b/numpy/lib/function_base.py
+index c52ecdbd8ed..fae6541bc10 100644
+--- a/numpy/lib/function_base.py
++++ b/numpy/lib/function_base.py
+@@ -6,6 +6,7 @@
+     import collections.abc as collections_abc
+ except ImportError:
+     import collections as collections_abc
++import functools
+ import re
+ import sys
+ import warnings
+@@ -26,7 +27,7 @@
+     ravel, nonzero, partition, mean, any, sum
+     )
+ from numpy.core.numerictypes import typecodes
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.core.function_base import add_newdoc
+ from numpy.lib.twodim_base import diag
+ from .utils import deprecate
+@@ -44,6 +45,11 @@
+ else:
+     import builtins
+ 
++
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ # needed in this module for compatibility
+ from numpy.lib.histograms import histogram, histogramdd
+ 
+diff --git a/numpy/lib/index_tricks.py b/numpy/lib/index_tricks.py
+index 26243d23191..0cdf78c6dfb 100644
+--- a/numpy/lib/index_tricks.py
++++ b/numpy/lib/index_tricks.py
+@@ -1,5 +1,6 @@
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
+ import sys
+ import math
+ 
+@@ -13,10 +14,14 @@
+ import numpy.matrixlib as matrixlib
+ from .function_base import diff
+ from numpy.core.multiarray import ravel_multi_index, unravel_index
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.lib.stride_tricks import as_strided
+ 
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ __all__ = [
+     'ravel_multi_index', 'unravel_index', 'mgrid', 'ogrid', 'r_', 'c_',
+     's_', 'index_exp', 'ix_', 'ndenumerate', 'ndindex', 'fill_diagonal',
+diff --git a/numpy/lib/nanfunctions.py b/numpy/lib/nanfunctions.py
+index 279c4c5c4f0..d73d844672d 100644
+--- a/numpy/lib/nanfunctions.py
++++ b/numpy/lib/nanfunctions.py
+@@ -22,10 +22,15 @@
+ """
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
+ import warnings
+ import numpy as np
+ from numpy.lib import function_base
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
++
++
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
+ 
+ 
+ __all__ = [
+diff --git a/numpy/lib/polynomial.py b/numpy/lib/polynomial.py
+index 09079db9d29..c2702f0a7bb 100644
+--- a/numpy/lib/polynomial.py
++++ b/numpy/lib/polynomial.py
+@@ -8,19 +8,24 @@
+            'polysub', 'polymul', 'polydiv', 'polyval', 'poly1d',
+            'polyfit', 'RankWarning']
+ 
++import functools
+ import re
+ import warnings
+ import numpy.core.numeric as NX
+ 
+ from numpy.core import (isscalar, abs, finfo, atleast_1d, hstack, dot, array,
+                         ones)
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.lib.twodim_base import diag, vander
+ from numpy.lib.function_base import trim_zeros
+ from numpy.lib.type_check import iscomplex, real, imag, mintypecode
+ from numpy.linalg import eigvals, lstsq, inv
+ 
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ class RankWarning(UserWarning):
+     """
+     Issued by `polyfit` when the Vandermonde matrix is rank deficient.
+diff --git a/numpy/lib/shape_base.py b/numpy/lib/shape_base.py
+index e8d43958a13..00424d55d32 100644
+--- a/numpy/lib/shape_base.py
++++ b/numpy/lib/shape_base.py
+@@ -1,5 +1,6 @@
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
+ import warnings
+ 
+ import numpy.core.numeric as _nx
+@@ -8,7 +9,7 @@
+     )
+ from numpy.core.fromnumeric import product, reshape, transpose
+ from numpy.core.multiarray import normalize_axis_index
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.core import vstack, atleast_3d
+ from numpy.lib.index_tricks import ndindex
+ from numpy.matrixlib.defmatrix import matrix  # this raises all the right alarm bells
+@@ -22,6 +23,10 @@
+     ]
+ 
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ def _make_along_axis_idx(arr_shape, indices, axis):
+ 	# compute dimensions to iterate over
+     if not _nx.issubdtype(indices.dtype, _nx.integer):
+diff --git a/numpy/lib/stride_tricks.py b/numpy/lib/stride_tricks.py
+index 3115c5e37f6..0dc36e41cd2 100644
+--- a/numpy/lib/stride_tricks.py
++++ b/numpy/lib/stride_tricks.py
+@@ -140,7 +140,7 @@ def _broadcast_to_dispatcher(array, shape, subok=None):
+     return (array,)
+ 
+ 
+-@array_function_dispatch(_broadcast_to_dispatcher)
++@array_function_dispatch(_broadcast_to_dispatcher, module='numpy')
+ def broadcast_to(array, shape, subok=False):
+     """Broadcast an array to a new shape.
+ 
+@@ -205,7 +205,7 @@ def _broadcast_arrays_dispatcher(*args, **kwargs):
+     return args
+ 
+ 
+-@array_function_dispatch(_broadcast_arrays_dispatcher)
++@array_function_dispatch(_broadcast_arrays_dispatcher, module='numpy')
+ def broadcast_arrays(*args, **kwargs):
+     """
+     Broadcast any number of arrays against each other.
+diff --git a/numpy/lib/twodim_base.py b/numpy/lib/twodim_base.py
+index aff6cddde0b..a05e683753b 100644
+--- a/numpy/lib/twodim_base.py
++++ b/numpy/lib/twodim_base.py
+@@ -3,12 +3,14 @@
+ """
+ from __future__ import division, absolute_import, print_function
+ 
++import functools
++
+ from numpy.core.numeric import (
+     absolute, asanyarray, arange, zeros, greater_equal, multiply, ones,
+     asarray, where, int8, int16, int32, int64, empty, promote_types, diagonal,
+     nonzero
+     )
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.core import iinfo, transpose
+ 
+ 
+@@ -18,6 +20,10 @@
+     'tril_indices_from', 'triu_indices', 'triu_indices_from', ]
+ 
+ 
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ i1 = iinfo(int8)
+ i2 = iinfo(int16)
+ i4 = iinfo(int32)
+diff --git a/numpy/lib/type_check.py b/numpy/lib/type_check.py
+index 5f74d3ca211..9153e169257 100644
+--- a/numpy/lib/type_check.py
++++ b/numpy/lib/type_check.py
+@@ -2,6 +2,7 @@
+ 
+ """
+ from __future__ import division, absolute_import, print_function
++import functools
+ import warnings
+ 
+ __all__ = ['iscomplexobj', 'isrealobj', 'imag', 'iscomplex',
+@@ -11,11 +12,17 @@
+ 
+ import numpy.core.numeric as _nx
+ from numpy.core.numeric import asarray, asanyarray, array, isnan, zeros
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from .ufunclike import isneginf, isposinf
+ 
++
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy')
++
++
+ _typecodes_by_elsize = 'GDFgdfQqLlIiHhBb?'
+ 
++
+ def mintypecode(typechars,typeset='GDFgdf',default='d'):
+     """
+     Return the character for the minimum-size type to which given types can
+diff --git a/numpy/lib/ufunclike.py b/numpy/lib/ufunclike.py
+index 1c6f0417a6e..ac0af0b37a6 100644
+--- a/numpy/lib/ufunclike.py
++++ b/numpy/lib/ufunclike.py
+@@ -60,7 +60,7 @@ def _dispatcher(x, out=None):
+     return (x, out)
+ 
+ 
+-@array_function_dispatch(_dispatcher, verify=False)
++@array_function_dispatch(_dispatcher, verify=False, module='numpy')
+ @_fix_out_named_y
+ def fix(x, out=None):
+     """
+@@ -107,7 +107,7 @@ def fix(x, out=None):
+     return res
+ 
+ 
+-@array_function_dispatch(_dispatcher, verify=False)
++@array_function_dispatch(_dispatcher, verify=False, module='numpy')
+ @_fix_out_named_y
+ def isposinf(x, out=None):
+     """
+@@ -176,7 +176,7 @@ def isposinf(x, out=None):
+         return nx.logical_and(is_inf, signbit, out)
+ 
+ 
+-@array_function_dispatch(_dispatcher, verify=False)
++@array_function_dispatch(_dispatcher, verify=False, module='numpy')
+ @_fix_out_named_y
+ def isneginf(x, out=None):
+     """
+diff --git a/numpy/linalg/linalg.py b/numpy/linalg/linalg.py
+index 59923f3c5a4..771481e8ebb 100644
+--- a/numpy/linalg/linalg.py
++++ b/numpy/linalg/linalg.py
+@@ -16,6 +16,7 @@
+            'svd', 'eig', 'eigh', 'lstsq', 'norm', 'qr', 'cond', 'matrix_rank',
+            'LinAlgError', 'multi_dot']
+ 
++import functools
+ import operator
+ import warnings
+ 
+@@ -28,10 +29,15 @@
+     swapaxes, divide, count_nonzero, isnan
+ )
+ from numpy.core.multiarray import normalize_axis_index
+-from numpy.core.overrides import array_function_dispatch
++from numpy.core import overrides
+ from numpy.lib.twodim_base import triu, eye
+ from numpy.linalg import lapack_lite, _umath_linalg
+ 
++
++array_function_dispatch = functools.partial(
++    overrides.array_function_dispatch, module='numpy.linalg')
++
++
+ # For Python2/3 compatibility
+ _N = b'N'
+ _V = b'V'

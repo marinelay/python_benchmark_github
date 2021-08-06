@@ -1,0 +1,264 @@
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index 9b71ab656920d..700916ba6066e 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -532,6 +532,35 @@ Current Behavior:
+     ...
+     OverflowError: Trying to coerce negative values to unsigned integers
+ 
++.. _whatsnew_0240.api.crosstab_dtypes
++
++Crosstab Preserves Dtypes
++^^^^^^^^^^^^^^^^^^^^^^^^^
++
++:func:`crosstab` will preserve now dtypes in some cases that previously would
++cast from integer dtype to floating dtype (:issue:`22019`)
++
++Previous Behavior:
++
++.. code-block:: ipython
++
++    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
++       ...:                    'c': [1, 1, np.nan, 1, 1]})
++    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
++    Out[4]:
++    b    3    4
++    a
++    1  0.5  0.0
++    2  0.5  1.0
++
++Current Behavior:
++
++.. code-block:: ipython
++
++    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
++       ...:                    'c': [1, 1, np.nan, 1, 1]})
++    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
++
+ Datetimelike API Changes
+ ^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+diff --git a/pandas/core/frame.py b/pandas/core/frame.py
+index 138d1017aa43d..ff7590f6d5358 100644
+--- a/pandas/core/frame.py
++++ b/pandas/core/frame.py
+@@ -4899,7 +4899,6 @@ def _arith_op(left, right):
+                                      copy=False)
+ 
+     def _combine_match_index(self, other, func, level=None):
+-        assert isinstance(other, Series)
+         left, right = self.align(other, join='outer', axis=0, level=level,
+                                  copy=False)
+         assert left.index.equals(right.index)
+@@ -4919,11 +4918,7 @@ def _combine_match_columns(self, other, func, level=None, try_cast=True):
+         left, right = self.align(other, join='outer', axis=1, level=level,
+                                  copy=False)
+         assert left.columns.equals(right.index)
+-
+-        new_data = left._data.eval(func=func, other=right,
+-                                   axes=[left.columns, self.index],
+-                                   try_cast=try_cast)
+-        return self._constructor(new_data)
++        return ops.dispatch_to_series(left, right, func, axis="columns")
+ 
+     def _combine_const(self, other, func, errors='raise', try_cast=True):
+         if lib.is_scalar(other) or np.ndim(other) == 0:
+diff --git a/pandas/core/ops.py b/pandas/core/ops.py
+index 8171840c96b6e..a05b2bad9bd3e 100644
+--- a/pandas/core/ops.py
++++ b/pandas/core/ops.py
+@@ -1666,7 +1666,7 @@ def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
+ # -----------------------------------------------------------------------------
+ # DataFrame
+ 
+-def dispatch_to_series(left, right, func, str_rep=None):
++def dispatch_to_series(left, right, func, str_rep=None, axis=None):
+     """
+     Evaluate the frame operation func(left, right) by evaluating
+     column-by-column, dispatching to the Series implementation.
+@@ -1677,6 +1677,7 @@ def dispatch_to_series(left, right, func, str_rep=None):
+     right : scalar or DataFrame
+     func : arithmetic or comparison operator
+     str_rep : str or None, default None
++    axis : {None, 0, 1, "index", "columns"}
+ 
+     Returns
+     -------
+@@ -1700,6 +1701,15 @@ def column_op(a, b):
+             return {i: func(a.iloc[:, i], b.iloc[:, i])
+                     for i in range(len(a.columns))}
+ 
++    elif isinstance(right, ABCSeries) and axis == "columns":
++        # We only get here if called via left._combine_match_columns,
++        # in which case we specifically want to operate row-by-row
++        assert right.index.equals(left.columns)
++
++        def column_op(a, b):
++            return {i: func(a.iloc[:, i], b.iloc[i])
++                    for i in range(len(a.columns))}
++
+     elif isinstance(right, ABCSeries):
+         assert right.index.equals(left.index)  # Handle other cases later
+ 
+@@ -1844,7 +1854,10 @@ def f(self, other, axis=default_axis, level=None, fill_value=None):
+             pass_op = op if should_series_dispatch(self, other, op) else na_op
+             return self._combine_frame(other, pass_op, fill_value, level)
+         elif isinstance(other, ABCSeries):
+-            return _combine_series_frame(self, other, na_op,
++            # For these values of `axis`, we end up dispatching to Series op,
++            # so do not want the masked op.
++            pass_op = op if axis in [0, "columns", None] else na_op
++            return _combine_series_frame(self, other, pass_op,
+                                          fill_value=fill_value, axis=axis,
+                                          level=level, try_cast=True)
+         else:
+diff --git a/pandas/tests/arithmetic/test_timedelta64.py b/pandas/tests/arithmetic/test_timedelta64.py
+index 5050922173564..a09efe6d4761c 100644
+--- a/pandas/tests/arithmetic/test_timedelta64.py
++++ b/pandas/tests/arithmetic/test_timedelta64.py
+@@ -505,33 +505,25 @@ def test_tdi_add_dt64_array(self, box_df_broadcast_failure):
+     # ------------------------------------------------------------------
+     # Operations with int-like others
+ 
+-    def test_td64arr_add_int_series_invalid(self, box_df_broadcast_failure,
+-                                            tdser):
+-        box = box_df_broadcast_failure
++    def test_td64arr_add_int_series_invalid(self, box, tdser):
+         tdser = tm.box_expected(tdser, box)
+         err = TypeError if box is not pd.Index else NullFrequencyError
+         with pytest.raises(err):
+             tdser + Series([2, 3, 4])
+ 
+-    def test_td64arr_radd_int_series_invalid(self, box_df_broadcast_failure,
+-                                             tdser):
+-        box = box_df_broadcast_failure
++    def test_td64arr_radd_int_series_invalid(self, box, tdser):
+         tdser = tm.box_expected(tdser, box)
+         err = TypeError if box is not pd.Index else NullFrequencyError
+         with pytest.raises(err):
+             Series([2, 3, 4]) + tdser
+ 
+-    def test_td64arr_sub_int_series_invalid(self, box_df_broadcast_failure,
+-                                            tdser):
+-        box = box_df_broadcast_failure
++    def test_td64arr_sub_int_series_invalid(self, box, tdser):
+         tdser = tm.box_expected(tdser, box)
+         err = TypeError if box is not pd.Index else NullFrequencyError
+         with pytest.raises(err):
+             tdser - Series([2, 3, 4])
+ 
+-    def test_td64arr_rsub_int_series_invalid(self, box_df_broadcast_failure,
+-                                             tdser):
+-        box = box_df_broadcast_failure
++    def test_td64arr_rsub_int_series_invalid(self, box, tdser):
+         tdser = tm.box_expected(tdser, box)
+         err = TypeError if box is not pd.Index else NullFrequencyError
+         with pytest.raises(err):
+@@ -605,9 +597,10 @@ def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar, tdser):
+         Series([1, 2, 3])
+         # TODO: Add DataFrame in here?
+     ], ids=lambda x: type(x).__name__)
+-    def test_td64arr_add_sub_numeric_arr_invalid(
+-            self, box_df_broadcast_failure, vec, dtype, tdser):
+-        box = box_df_broadcast_failure
++    def test_td64arr_add_sub_numeric_arr_invalid(self, box, vec, dtype, tdser):
++        if box is pd.DataFrame and not isinstance(vec, Series):
++            raise pytest.xfail(reason="Tries to broadcast incorrectly")
++
+         tdser = tm.box_expected(tdser, box)
+         err = TypeError
+         if box is pd.Index and not dtype.startswith('float'):
+@@ -930,9 +923,9 @@ def test_td64arr_sub_offset_array(self, box_df_broadcast_failure):
+     @pytest.mark.parametrize('names', [(None, None, None),
+                                        ('foo', 'bar', None),
+                                        ('foo', 'foo', 'foo')])
+-    def test_td64arr_with_offset_series(self, names, box_df_broadcast_failure):
++    def test_td64arr_with_offset_series(self, names, box_df_fail):
+         # GH#18849
+-        box = box_df_broadcast_failure
++        box = box_df_fail
+         box2 = Series if box is pd.Index else box
+ 
+         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+@@ -963,10 +956,11 @@ def test_td64arr_with_offset_series(self, names, box_df_broadcast_failure):
+         tm.assert_equal(res3, expected_sub)
+ 
+     @pytest.mark.parametrize('obox', [np.array, pd.Index, pd.Series])
+-    def test_td64arr_addsub_anchored_offset_arraylike(
+-            self, obox, box_df_broadcast_failure):
++    def test_td64arr_addsub_anchored_offset_arraylike(self, obox, box):
+         # GH#18824
+-        box = box_df_broadcast_failure
++        if box is pd.DataFrame and obox is not pd.Series:
++            raise pytest.xfail(reason="Attempts to broadcast incorrectly")
++
+         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+         tdi = tm.box_expected(tdi, box)
+ 
+diff --git a/pandas/tests/frame/test_axis_select_reindex.py b/pandas/tests/frame/test_axis_select_reindex.py
+index 0bc74c6890ee9..6186ce4d45ef2 100644
+--- a/pandas/tests/frame/test_axis_select_reindex.py
++++ b/pandas/tests/frame/test_axis_select_reindex.py
+@@ -721,7 +721,7 @@ def test_align_int_fill_bug(self):
+ 
+         result = df1 - df1.mean()
+         expected = df2 - df2.mean()
+-        assert_frame_equal(result, expected)
++        assert_frame_equal(result.astype('f8'), expected)
+ 
+     def test_align_multiindex(self):
+         # GH 10665
+diff --git a/pandas/tests/reshape/test_pivot.py b/pandas/tests/reshape/test_pivot.py
+index 1ee48d0120c7d..1cb036dccf23c 100644
+--- a/pandas/tests/reshape/test_pivot.py
++++ b/pandas/tests/reshape/test_pivot.py
+@@ -1566,8 +1566,9 @@ def test_crosstab_normalize(self):
+                               full_normal)
+         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index'),
+                               row_normal)
+-        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns'),
+-                              col_normal)
++        tm.assert_frame_equal(
++            pd.crosstab(df.a, df.b, normalize='columns').astype('f8'),
++            col_normal)
+         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=1),
+                               pd.crosstab(df.a, df.b, normalize='columns'))
+         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=0),
+@@ -1600,7 +1601,8 @@ def test_crosstab_normalize(self):
+         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
+                                           margins=True), row_normal_margins)
+         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',
+-                                          margins=True), col_normal_margins)
++                                          margins=True).astype('f8'),
++                              col_normal_margins)
+         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=True,
+                                           margins=True), all_normal_margins)
+ 
+diff --git a/pandas/tests/series/test_operators.py b/pandas/tests/series/test_operators.py
+index 601e251d45b4b..f3ab197771d53 100644
+--- a/pandas/tests/series/test_operators.py
++++ b/pandas/tests/series/test_operators.py
+@@ -758,9 +758,6 @@ def test_operators_bitwise(self):
+     def test_scalar_na_cmp_corners(self):
+         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
+ 
+-        def tester(a, b):
+-            return a & b
+-
+         with pytest.raises(TypeError):
+             s & datetime(2005, 1, 1)
+ 
+@@ -780,8 +777,11 @@ def tester(a, b):
+         # this is an alignment issue; these are equivalent
+         # https://github.com/pandas-dev/pandas/issues/5284
+ 
+-        pytest.raises(ValueError, lambda: d.__and__(s, axis='columns'))
+-        pytest.raises(ValueError, tester, s, d)
++        with pytest.raises(TypeError):
++            d.__and__(s, axis='columns')
++
++        with pytest.raises(TypeError):
++            s & d
+ 
+         # this is wrong as its not a boolean result
+         # result = d.__and__(s,axis='index')

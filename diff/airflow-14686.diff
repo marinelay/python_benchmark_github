@@ -1,0 +1,31 @@
+diff --git a/airflow/providers/elasticsearch/log/es_task_handler.py b/airflow/providers/elasticsearch/log/es_task_handler.py
+index 064b796afd435..2302d8b0a8d71 100644
+--- a/airflow/providers/elasticsearch/log/es_task_handler.py
++++ b/airflow/providers/elasticsearch/log/es_task_handler.py
+@@ -183,11 +183,11 @@ def _read(
+             if (
+                 cur_ts.diff(last_log_ts).in_minutes() >= 5
+                 or 'max_offset' in metadata
+-                and offset >= metadata['max_offset']
++                and int(offset) >= int(metadata['max_offset'])
+             ):
+                 metadata['end_of_log'] = True
+ 
+-        if offset != next_offset or 'last_log_timestamp' not in metadata:
++        if int(offset) != int(next_offset) or 'last_log_timestamp' not in metadata:
+             metadata['last_log_timestamp'] = str(cur_ts)
+ 
+         # If we hit the end of the log, remove the actual end_of_log message
+diff --git a/tests/providers/elasticsearch/log/test_es_task_handler.py b/tests/providers/elasticsearch/log/test_es_task_handler.py
+index a00b9f05745e8..1262c26161be5 100644
+--- a/tests/providers/elasticsearch/log/test_es_task_handler.py
++++ b/tests/providers/elasticsearch/log/test_es_task_handler.py
+@@ -131,7 +131,7 @@ def test_read_with_match_phrase_query(self):
+ 
+         ts = pendulum.now()
+         logs, metadatas = self.es_task_handler.read(
+-            self.ti, 1, {'offset': 0, 'last_log_timestamp': str(ts), 'end_of_log': False}
++            self.ti, 1, {'offset': '0', 'last_log_timestamp': str(ts), 'end_of_log': False, 'max_offset': 2}
+         )
+         assert 1 == len(logs)
+         assert len(logs) == len(metadatas)

@@ -1,0 +1,36 @@
+diff --git a/airflow/providers/grpc/hooks/grpc.py b/airflow/providers/grpc/hooks/grpc.py
+index 818273c497a34..ccfbd8f166a50 100644
+--- a/airflow/providers/grpc/hooks/grpc.py
++++ b/airflow/providers/grpc/hooks/grpc.py
+@@ -72,7 +72,8 @@ def get_conn(self) -> grpc.Channel:
+             channel = grpc.insecure_channel(base_url)
+         elif auth_type in {"SSL", "TLS"}:
+             credential_file_name = self._get_field("credential_pem_file")
+-            creds = grpc.ssl_channel_credentials(open(credential_file_name).read())
++            with open(credential_file_name, "rb") as credential_file:
++                creds = grpc.ssl_channel_credentials(credential_file.read())
+             channel = grpc.secure_channel(base_url, creds)
+         elif auth_type == "JWT_GOOGLE":
+             credentials, _ = google_auth.default()
+diff --git a/tests/providers/grpc/hooks/test_grpc.py b/tests/providers/grpc/hooks/test_grpc.py
+index 4ec9267c4670a..e42002222669d 100644
+--- a/tests/providers/grpc/hooks/test_grpc.py
++++ b/tests/providers/grpc/hooks/test_grpc.py
+@@ -114,7 +114,7 @@ def test_connection_with_ssl(
+         channel = hook.get_conn()
+         expected_url = "test:8080"
+ 
+-        mock_open.assert_called_once_with("pem")
++        mock_open.assert_called_once_with("pem", "rb")
+         mock_channel_credentials.assert_called_once_with('credential')
+         mock_secure_channel.assert_called_once_with(expected_url, mock_credential_object)
+         self.assertEqual(channel, mocked_channel)
+@@ -138,7 +138,7 @@ def test_connection_with_tls(
+         channel = hook.get_conn()
+         expected_url = "test:8080"
+ 
+-        mock_open.assert_called_once_with("pem")
++        mock_open.assert_called_once_with("pem", "rb")
+         mock_channel_credentials.assert_called_once_with('credential')
+         mock_secure_channel.assert_called_once_with(expected_url, mock_credential_object)
+         self.assertEqual(channel, mocked_channel)

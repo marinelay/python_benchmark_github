@@ -1,0 +1,508 @@
+diff --git a/pandas/plotting/_matplotlib/core.py b/pandas/plotting/_matplotlib/core.py
+index 3cf72edcc505e..f0e15c19da5d3 100644
+--- a/pandas/plotting/_matplotlib/core.py
++++ b/pandas/plotting/_matplotlib/core.py
+@@ -1232,8 +1232,8 @@ def _get_stacked_values(cls, ax: "Axes", stacking_id, values, label):
+ 
+         raise ValueError(
+             "When stacked is True, each column must be either "
+-            "all positive or negative."
+-            f"{label} contains both positive and negative values"
++            "all positive or all negative. "
++            f"Column '{label}' contains both positive and negative values"
+         )
+ 
+     @classmethod
+@@ -1555,7 +1555,7 @@ class PiePlot(MPLPlot):
+     def __init__(self, data, kind=None, **kwargs):
+         data = data.fillna(value=0)
+         if (data < 0).any().any():
+-            raise ValueError(f"{kind} doesn't allow negative values")
++            raise ValueError(f"{self._kind} plot doesn't allow negative values")
+         MPLPlot.__init__(self, data, kind=kind, **kwargs)
+ 
+     def _args_adjust(self):
+diff --git a/pandas/tests/plotting/frame/test_frame.py b/pandas/tests/plotting/frame/test_frame.py
+index 06a4474fcb3a6..31a16e21b7ac4 100644
+--- a/pandas/tests/plotting/frame/test_frame.py
++++ b/pandas/tests/plotting/frame/test_frame.py
+@@ -1,7 +1,7 @@
+ """ Test cases for DataFrame.plot """
+-
+ from datetime import date, datetime
+ import itertools
++import re
+ import string
+ import warnings
+ 
+@@ -358,10 +358,10 @@ def test_negative_log(self):
+             index=list(string.ascii_letters[:6]),
+             columns=["x", "y", "z", "four"],
+         )
+-
+-        with pytest.raises(ValueError):
++        msg = "Log-y scales are not supported in area plot"
++        with pytest.raises(ValueError, match=msg):
+             df.plot.area(logy=True)
+-        with pytest.raises(ValueError):
++        with pytest.raises(ValueError, match=msg):
+             df.plot.area(loglog=True)
+ 
+     def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
+@@ -406,7 +406,12 @@ def test_line_area_stacked(self):
+                 self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
+ 
+                 _check_plot_works(mixed_df.plot, stacked=False)
+-                with pytest.raises(ValueError):
++                msg = (
++                    "When stacked is True, each column must be either all positive or "
++                    "all negative. Column 'w' contains both positive and negative "
++                    "values"
++                )
++                with pytest.raises(ValueError, match=msg):
+                     mixed_df.plot(stacked=True)
+ 
+                 # Use an index with strictly positive values, preventing
+@@ -650,9 +655,11 @@ def test_plot_scatter(self):
+         _check_plot_works(df.plot.scatter, x="x", y="y")
+         _check_plot_works(df.plot.scatter, x=1, y=2)
+ 
+-        with pytest.raises(TypeError):
++        msg = re.escape("scatter() missing 1 required positional argument: 'y'")
++        with pytest.raises(TypeError, match=msg):
+             df.plot.scatter(x="x")
+-        with pytest.raises(TypeError):
++        msg = re.escape("scatter() missing 1 required positional argument: 'x'")
++        with pytest.raises(TypeError, match=msg):
+             df.plot.scatter(y="y")
+ 
+         # GH 6951
+@@ -850,8 +857,9 @@ def test_boxplot_return_type(self):
+             index=list(string.ascii_letters[:6]),
+             columns=["one", "two", "three", "four"],
+         )
+-        with pytest.raises(ValueError):
+-            df.plot.box(return_type="NOTATYPE")
++        msg = "return_type must be {None, 'axes', 'dict', 'both'}"
++        with pytest.raises(ValueError, match=msg):
++            df.plot.box(return_type="not_a_type")
+ 
+         result = df.plot.box(return_type="dict")
+         self._check_box_return_type(result, "dict")
+@@ -1309,44 +1317,47 @@ def test_partially_invalid_plot_data(self):
+             df = DataFrame(np.random.randn(10, 2), dtype=object)
+             df[np.random.rand(df.shape[0]) > 0.5] = "a"
+             for kind in plotting.PlotAccessor._common_kinds:
+-
+                 msg = "no numeric data to plot"
+                 with pytest.raises(TypeError, match=msg):
+                     df.plot(kind=kind)
+ 
+         with tm.RNGContext(42):
+             # area plot doesn't support positive/negative mixed data
+-            kinds = ["area"]
+             df = DataFrame(np.random.rand(10, 2), dtype=object)
+             df[np.random.rand(df.shape[0]) > 0.5] = "a"
+-            for kind in kinds:
+-                with pytest.raises(TypeError):
+-                    df.plot(kind=kind)
++            with pytest.raises(TypeError, match="no numeric data to plot"):
++                df.plot(kind="area")
+ 
+     def test_invalid_kind(self):
+         df = DataFrame(np.random.randn(10, 2))
+-        with pytest.raises(ValueError):
+-            df.plot(kind="aasdf")
++        msg = "invalid_plot_kind is not a valid plot kind"
++        with pytest.raises(ValueError, match=msg):
++            df.plot(kind="invalid_plot_kind")
+ 
+     @pytest.mark.parametrize(
+         "x,y,lbl",
+         [
+             (["B", "C"], "A", "a"),
+             (["A"], ["B", "C"], ["b", "c"]),
+-            ("A", ["B", "C"], "badlabel"),
+         ],
+     )
+     def test_invalid_xy_args(self, x, y, lbl):
+         # GH 18671, 19699 allows y to be list-like but not x
+         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+-        with pytest.raises(ValueError):
++        with pytest.raises(ValueError, match="x must be a label or position"):
+             df.plot(x=x, y=y, label=lbl)
+ 
++    def test_bad_label(self):
++        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
++        msg = "label should be list-like and same length as y"
++        with pytest.raises(ValueError, match=msg):
++            df.plot(x="A", y=["B", "C"], label="bad_label")
++
+     @pytest.mark.parametrize("x,y", [("A", "B"), (["A"], "B")])
+     def test_invalid_xy_args_dup_cols(self, x, y):
+         # GH 18671, 19699 allows y to be list-like but not x
+         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list("AAB"))
+-        with pytest.raises(ValueError):
++        with pytest.raises(ValueError, match="x must be a label or position"):
+             df.plot(x=x, y=y)
+ 
+     @pytest.mark.parametrize(
+@@ -1416,7 +1427,8 @@ def test_pie_df(self):
+             columns=["X", "Y", "Z"],
+             index=["a", "b", "c", "d", "e"],
+         )
+-        with pytest.raises(ValueError):
++        msg = "pie requires either y column or 'subplots=True'"
++        with pytest.raises(ValueError, match=msg):
+             df.plot.pie()
+ 
+         ax = _check_plot_works(df.plot.pie, y="Y")
+@@ -1520,11 +1532,11 @@ def test_errorbar_plot(self):
+             ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
+             self._check_has_errorbars(ax, xerr=0, yerr=1)
+ 
+-        with pytest.raises(ValueError):
++        with tm.external_error_raised(ValueError):
+             df.plot(yerr=np.random.randn(11))
+ 
+         df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
+-        with pytest.raises((ValueError, TypeError)):
++        with tm.external_error_raised(TypeError):
+             df.plot(yerr=df_err)
+ 
+     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
+@@ -1647,7 +1659,10 @@ def test_errorbar_asymmetrical(self):
+         expected_0_0 = err[0, :, 0] * np.array([-1, 1])
+         tm.assert_almost_equal(yerr_0_0, expected_0_0)
+ 
+-        with pytest.raises(ValueError):
++        msg = re.escape(
++            "Asymmetrical error bars should be provided with the shape (3, 2, 5)"
++        )
++        with pytest.raises(ValueError, match=msg):
+             df.plot(yerr=err.T)
+ 
+         tm.close()
+@@ -1837,9 +1852,10 @@ def test_memory_leak(self):
+         tm.close()
+         # force a garbage collection
+         gc.collect()
++        msg = "weakly-referenced object no longer exists"
+         for key in results:
+             # check that every plot was collected
+-            with pytest.raises(ReferenceError):
++            with pytest.raises(ReferenceError, match=msg):
+                 # need to actually access something to get an error
+                 results[key].lines
+ 
+@@ -2095,7 +2111,7 @@ def test_plot_no_rows(self):
+ 
+     def test_plot_no_numeric_data(self):
+         df = DataFrame(["a", "b", "c"])
+-        with pytest.raises(TypeError):
++        with pytest.raises(TypeError, match="no numeric data to plot"):
+             df.plot()
+ 
+     def test_missing_markers_legend(self):
+diff --git a/pandas/tests/plotting/frame/test_frame_color.py b/pandas/tests/plotting/frame/test_frame_color.py
+index bc64014cdb6d4..7eb12d3193b09 100644
+--- a/pandas/tests/plotting/frame/test_frame_color.py
++++ b/pandas/tests/plotting/frame/test_frame_color.py
+@@ -1,5 +1,5 @@
+ """ Test cases for DataFrame.plot """
+-
++import re
+ import warnings
+ 
+ import numpy as np
+@@ -63,7 +63,7 @@ def test_rgb_tuple_color(self, color):
+ 
+     def test_color_empty_string(self):
+         df = DataFrame(np.random.randn(10, 2))
+-        with pytest.raises(ValueError):
++        with pytest.raises(ValueError, match="Invalid color argument:"):
+             df.plot(color="")
+ 
+     def test_color_and_style_arguments(self):
+@@ -79,7 +79,12 @@ def test_color_and_style_arguments(self):
+         assert color == ["red", "black"]
+         # passing both 'color' and 'style' arguments should not be allowed
+         # if there is a color symbol in the style strings:
+-        with pytest.raises(ValueError):
++        msg = (
++            "Cannot pass 'style' string with a color symbol and 'color' keyword "
++            "argument. Please use one or the other or pass 'style' without a color "
++            "symbol"
++        )
++        with pytest.raises(ValueError, match=msg):
+             df.plot(color=["red", "black"], style=["k-", "r--"])
+ 
+     @pytest.mark.parametrize(
+@@ -217,7 +222,7 @@ def test_scatter_with_c_column_name_with_colors(self, cmap):
+ 
+     def test_scatter_colors(self):
+         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
+-        with pytest.raises(TypeError):
++        with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
+             df.plot.scatter(x="a", y="b", c="c", color="green")
+ 
+         default_colors = self._unpack_cycler(self.plt.rcParams)
+@@ -585,7 +590,11 @@ def _check_colors(bp, box_c, whiskers_c, medians_c, caps_c="k", fliers_c=None):
+         bp = df.plot.box(color=(0, 1, 0), sym="#123456", return_type="dict")
+         _check_colors(bp, (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), "#123456")
+ 
+-        with pytest.raises(ValueError):
++        msg = re.escape(
++            "color dict contains invalid key 'xxxx'. The key must be either "
++            "['boxes', 'whiskers', 'medians', 'caps']"
++        )
++        with pytest.raises(ValueError, match=msg):
+             # Color contains invalid key results in ValueError
+             df.plot.box(color={"boxes": "red", "xxxx": "blue"})
+ 
+@@ -641,6 +650,36 @@ def test_colors_of_columns_with_same_name(self):
+ 
+     def test_invalid_colormap(self):
+         df = DataFrame(np.random.randn(3, 2), columns=["A", "B"])
+-
+-        with pytest.raises(ValueError):
++        msg = (
++            "'invalid_colormap' is not a valid value for name; supported values are "
++            "'Accent', 'Accent_r', 'Blues', 'Blues_r', 'BrBG', 'BrBG_r', 'BuGn', "
++            "'BuGn_r', 'BuPu', 'BuPu_r', 'CMRmap', 'CMRmap_r', 'Dark2', 'Dark2_r', "
++            "'GnBu', 'GnBu_r', 'Greens', 'Greens_r', 'Greys', 'Greys_r', 'OrRd', "
++            "'OrRd_r', 'Oranges', 'Oranges_r', 'PRGn', 'PRGn_r', 'Paired', "
++            "'Paired_r', 'Pastel1', 'Pastel1_r', 'Pastel2', 'Pastel2_r', 'PiYG', "
++            "'PiYG_r', 'PuBu', 'PuBuGn', 'PuBuGn_r', 'PuBu_r', 'PuOr', 'PuOr_r', "
++            "'PuRd', 'PuRd_r', 'Purples', 'Purples_r', 'RdBu', 'RdBu_r', 'RdGy', "
++            "'RdGy_r', 'RdPu', 'RdPu_r', 'RdYlBu', 'RdYlBu_r', 'RdYlGn', "
++            "'RdYlGn_r', 'Reds', 'Reds_r', 'Set1', 'Set1_r', 'Set2', 'Set2_r', "
++            "'Set3', 'Set3_r', 'Spectral', 'Spectral_r', 'Wistia', 'Wistia_r', "
++            "'YlGn', 'YlGnBu', 'YlGnBu_r', 'YlGn_r', 'YlOrBr', 'YlOrBr_r', "
++            "'YlOrRd', 'YlOrRd_r', 'afmhot', 'afmhot_r', 'autumn', 'autumn_r', "
++            "'binary', 'binary_r', 'bone', 'bone_r', 'brg', 'brg_r', 'bwr', "
++            "'bwr_r', 'cividis', 'cividis_r', 'cool', 'cool_r', 'coolwarm', "
++            "'coolwarm_r', 'copper', 'copper_r', 'cubehelix', 'cubehelix_r', "
++            "'flag', 'flag_r', 'gist_earth', 'gist_earth_r', 'gist_gray', "
++            "'gist_gray_r', 'gist_heat', 'gist_heat_r', 'gist_ncar', "
++            "'gist_ncar_r', 'gist_rainbow', 'gist_rainbow_r', 'gist_stern', "
++            "'gist_stern_r', 'gist_yarg', 'gist_yarg_r', 'gnuplot', 'gnuplot2', "
++            "'gnuplot2_r', 'gnuplot_r', 'gray', 'gray_r', 'hot', 'hot_r', 'hsv', "
++            "'hsv_r', 'inferno', 'inferno_r', 'jet', 'jet_r', 'magma', 'magma_r', "
++            "'nipy_spectral', 'nipy_spectral_r', 'ocean', 'ocean_r', 'pink', "
++            "'pink_r', 'plasma', 'plasma_r', 'prism', 'prism_r', 'rainbow', "
++            "'rainbow_r', 'seismic', 'seismic_r', 'spring', 'spring_r', 'summer', "
++            "'summer_r', 'tab10', 'tab10_r', 'tab20', 'tab20_r', 'tab20b', "
++            "'tab20b_r', 'tab20c', 'tab20c_r', 'terrain', 'terrain_r', 'turbo', "
++            "'turbo_r', 'twilight', 'twilight_r', 'twilight_shifted', "
++            "'twilight_shifted_r', 'viridis', 'viridis_r', 'winter', 'winter_r'"
++        )
++        with pytest.raises(ValueError, match=msg):
+             df.plot(colormap="invalid_colormap")
+diff --git a/pandas/tests/plotting/test_backend.py b/pandas/tests/plotting/test_backend.py
+index 567d159f723a5..2eef940ee9a40 100644
+--- a/pandas/tests/plotting/test_backend.py
++++ b/pandas/tests/plotting/test_backend.py
+@@ -95,7 +95,11 @@ def test_setting_backend_without_plot_raises():
+ 
+ @td.skip_if_mpl
+ def test_no_matplotlib_ok():
+-    with pytest.raises(ImportError):
++    msg = (
++        'matplotlib is required for plotting when the default backend "matplotlib" is '
++        "selected."
++    )
++    with pytest.raises(ImportError, match=msg):
+         pandas.plotting._core._get_plot_backend("matplotlib")
+ 
+ 
+diff --git a/pandas/tests/plotting/test_boxplot_method.py b/pandas/tests/plotting/test_boxplot_method.py
+index 54a40afd019c3..b7dab714961db 100644
+--- a/pandas/tests/plotting/test_boxplot_method.py
++++ b/pandas/tests/plotting/test_boxplot_method.py
+@@ -91,8 +91,9 @@ def test_boxplot_return_type_legacy(self):
+             index=list(string.ascii_letters[:6]),
+             columns=["one", "two", "three", "four"],
+         )
+-        with pytest.raises(ValueError):
+-            df.boxplot(return_type="NOTATYPE")
++        msg = "return_type must be {'axes', 'dict', 'both'}"
++        with pytest.raises(ValueError, match=msg):
++            df.boxplot(return_type="NOT_A_TYPE")
+ 
+         result = df.boxplot()
+         self._check_box_return_type(result, "axes")
+@@ -431,7 +432,8 @@ def test_grouped_box_multiple_axes(self):
+         tm.assert_numpy_array_equal(returned, axes[1])
+         assert returned[0].figure is fig
+ 
+-        with pytest.raises(ValueError):
++        msg = "The number of passed axes must be 3, the same as the output plot"
++        with pytest.raises(ValueError, match=msg):
+             fig, axes = self.plt.subplots(2, 3)
+             # pass different number of axes from required
+             with tm.assert_produces_warning(UserWarning):
+diff --git a/pandas/tests/plotting/test_hist_method.py b/pandas/tests/plotting/test_hist_method.py
+index c72e59658d346..d4901ba5576c9 100644
+--- a/pandas/tests/plotting/test_hist_method.py
++++ b/pandas/tests/plotting/test_hist_method.py
+@@ -1,4 +1,5 @@
+ """ Test cases for .hist method """
++import re
+ 
+ import numpy as np
+ import pytest
+@@ -43,7 +44,11 @@ def test_hist_legacy(self):
+         _check_plot_works(self.ts.hist, figure=fig, ax=ax1, default_axes=True)
+         _check_plot_works(self.ts.hist, figure=fig, ax=ax2, default_axes=True)
+ 
+-        with pytest.raises(ValueError):
++        msg = (
++            "Cannot pass 'figure' when using the 'by' argument, since a new 'Figure' "
++            "instance will be created"
++        )
++        with pytest.raises(ValueError, match=msg):
+             self.ts.hist(by=self.ts.index, figure=fig)
+ 
+     def test_hist_bins_legacy(self):
+@@ -53,10 +58,11 @@ def test_hist_bins_legacy(self):
+ 
+     def test_hist_layout(self):
+         df = self.hist_df
+-        with pytest.raises(ValueError):
++        msg = "The 'layout' keyword is not supported when 'by' is None"
++        with pytest.raises(ValueError, match=msg):
+             df.height.hist(layout=(1, 1))
+ 
+-        with pytest.raises(ValueError):
++        with pytest.raises(ValueError, match=msg):
+             df.height.hist(layout=[1, 1])
+ 
+     def test_hist_layout_with_by(self):
+@@ -120,7 +126,8 @@ def test_plot_fails_when_ax_differs_from_figure(self):
+         fig1 = figure()
+         fig2 = figure()
+         ax1 = fig1.add_subplot(111)
+-        with pytest.raises(AssertionError):
++        msg = "passed axis not bound to passed figure"
++        with pytest.raises(AssertionError, match=msg):
+             self.ts.hist(ax=ax1, figure=fig2)
+ 
+     @pytest.mark.parametrize(
+@@ -300,7 +307,7 @@ def test_hist_df_legacy(self):
+         tm.close()
+ 
+         # propagate attr exception from matplotlib.Axes.hist
+-        with pytest.raises(AttributeError):
++        with tm.external_error_raised(AttributeError):
+             ser.hist(foo="bar")
+ 
+     def test_hist_non_numerical_or_datetime_raises(self):
+@@ -357,13 +364,16 @@ def test_hist_layout(self):
+             self._check_axes_shape(axes, axes_num=3, layout=expected)
+ 
+         # layout too small for all 4 plots
+-        with pytest.raises(ValueError):
++        msg = "Layout of 1x1 must be larger than required size 3"
++        with pytest.raises(ValueError, match=msg):
+             df.hist(layout=(1, 1))
+ 
+         # invalid format for layout
+-        with pytest.raises(ValueError):
++        msg = re.escape("Layout must be a tuple of (rows, columns)")
++        with pytest.raises(ValueError, match=msg):
+             df.hist(layout=(1,))
+-        with pytest.raises(ValueError):
++        msg = "At least one dimension of layout must be positive"
++        with pytest.raises(ValueError, match=msg):
+             df.hist(layout=(-1, -1))
+ 
+     # GH 9351
+@@ -607,7 +617,7 @@ def test_grouped_hist_legacy(self):
+ 
+         tm.close()
+         # propagate attr exception from matplotlib.Axes.hist
+-        with pytest.raises(AttributeError):
++        with tm.external_error_raised(AttributeError):
+             _grouped_hist(df.A, by=df.C, foo="bar")
+ 
+         msg = "Specify figure size by tuple instead"
+@@ -695,9 +705,10 @@ def test_grouped_hist_multiple_axes(self):
+         tm.assert_numpy_array_equal(returned, axes[1])
+         assert returned[0].figure is fig
+ 
+-        with pytest.raises(ValueError):
+-            fig, axes = self.plt.subplots(2, 3)
+-            # pass different number of axes from required
++        fig, axes = self.plt.subplots(2, 3)
++        # pass different number of axes from required
++        msg = "The number of passed axes must be 1, the same as the output plot"
++        with pytest.raises(ValueError, match=msg):
+             axes = df.hist(column="height", ax=axes)
+ 
+     def test_axis_share_x(self):
+diff --git a/pandas/tests/plotting/test_series.py b/pandas/tests/plotting/test_series.py
+index 0a521b81c6be7..b707757574ecd 100644
+--- a/pandas/tests/plotting/test_series.py
++++ b/pandas/tests/plotting/test_series.py
+@@ -348,8 +348,8 @@ def test_pie_series(self):
+             assert t.get_fontsize() == 7
+ 
+         # includes negative value
+-        with pytest.raises(ValueError):
+-            series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
++        series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
++        with pytest.raises(ValueError, match="pie plot doesn't allow negative values"):
+             series.plot.pie()
+ 
+         # includes nan
+@@ -445,8 +445,13 @@ def test_secondary_logy(self, input_logy, expected_scale):
+ 
+     def test_plot_fails_with_dupe_color_and_style(self):
+         x = Series(np.random.randn(2))
+-        with pytest.raises(ValueError):
+-            _, ax = self.plt.subplots()
++        _, ax = self.plt.subplots()
++        msg = (
++            "Cannot pass 'style' string with a color symbol and 'color' keyword "
++            "argument. Please use one or the other or pass 'style' without a color "
++            "symbol"
++        )
++        with pytest.raises(ValueError, match=msg):
+             x.plot(style="k--", color="k", ax=ax)
+ 
+     @td.skip_if_no_scipy
+@@ -518,8 +523,8 @@ def test_partially_invalid_plot_data(self):
+ 
+     def test_invalid_kind(self):
+         s = Series([1, 2])
+-        with pytest.raises(ValueError):
+-            s.plot(kind="aasdf")
++        with pytest.raises(ValueError, match="invalid_kind is not a valid plot kind"):
++            s.plot(kind="invalid_kind")
+ 
+     def test_dup_datetime_index_plot(self):
+         dr1 = date_range("1/1/2009", periods=4)
+@@ -583,11 +588,11 @@ def test_errorbar_plot(self):
+         self._check_has_errorbars(ax, xerr=0, yerr=1)
+ 
+         # check incorrect lengths and types
+-        with pytest.raises(ValueError):
++        with tm.external_error_raised(ValueError):
+             s.plot(yerr=np.arange(11))
+ 
+         s_err = ["zzz"] * 10
+-        with pytest.raises(TypeError):
++        with tm.external_error_raised(TypeError):
+             s.plot(yerr=s_err)
+ 
+     def test_table(self):
+@@ -744,7 +749,7 @@ def test_plot_no_rows(self):
+ 
+     def test_plot_no_numeric_data(self):
+         df = Series(["a", "b", "c"])
+-        with pytest.raises(TypeError):
++        with pytest.raises(TypeError, match="no numeric data to plot"):
+             df.plot()
+ 
+     def test_style_single_ok(self):

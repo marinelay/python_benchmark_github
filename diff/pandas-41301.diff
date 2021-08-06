@@ -1,0 +1,55 @@
+diff --git a/pandas/core/frame.py b/pandas/core/frame.py
+index 6d3042507d930..d1ff69f16d993 100644
+--- a/pandas/core/frame.py
++++ b/pandas/core/frame.py
+@@ -9206,9 +9206,12 @@ def _series_round(s, decimals):
+         nv.validate_round(args, kwargs)
+ 
+         if isinstance(decimals, (dict, Series)):
+-            if isinstance(decimals, Series):
+-                if not decimals.index.is_unique:
+-                    raise ValueError("Index of decimals must be unique")
++            if isinstance(decimals, Series) and not decimals.index.is_unique:
++                raise ValueError("Index of decimals must be unique")
++            if is_dict_like(decimals) and not all(
++                is_integer(value) for _, value in decimals.items()
++            ):
++                raise TypeError("Values in decimals must be integers")
+             new_cols = list(_dict_round(self, decimals))
+         elif is_integer(decimals):
+             # Dispatch to Series.round
+diff --git a/pandas/tests/frame/methods/test_round.py b/pandas/tests/frame/methods/test_round.py
+index ebe33922be541..dd9206940bcd6 100644
+--- a/pandas/tests/frame/methods/test_round.py
++++ b/pandas/tests/frame/methods/test_round.py
+@@ -62,13 +62,12 @@ def test_round(self):
+ 
+         # float input to `decimals`
+         non_int_round_dict = {"col1": 1, "col2": 0.5}
+-        msg = "integer argument expected, got float"
++        msg = "Values in decimals must be integers"
+         with pytest.raises(TypeError, match=msg):
+             df.round(non_int_round_dict)
+ 
+         # String input
+         non_int_round_dict = {"col1": 1, "col2": "foo"}
+-        msg = r"an integer is required \(got type str\)"
+         with pytest.raises(TypeError, match=msg):
+             df.round(non_int_round_dict)
+ 
+@@ -78,7 +77,6 @@ def test_round(self):
+ 
+         # List input
+         non_int_round_dict = {"col1": 1, "col2": [1, 2]}
+-        msg = r"an integer is required \(got type list\)"
+         with pytest.raises(TypeError, match=msg):
+             df.round(non_int_round_dict)
+ 
+@@ -106,7 +104,6 @@ def test_round(self):
+         # nan in Series round
+         nan_round_Series = Series({"col1": np.nan, "col2": 1})
+ 
+-        msg = "integer argument expected, got float"
+         with pytest.raises(TypeError, match=msg):
+             df.round(nan_round_Series)
+ 

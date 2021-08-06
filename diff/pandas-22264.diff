@@ -1,0 +1,179 @@
+diff --git a/doc/source/text.rst b/doc/source/text.rst
+index 0081b592f91bf..61583a179e572 100644
+--- a/doc/source/text.rst
++++ b/doc/source/text.rst
+@@ -306,7 +306,7 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
+ Concatenating a Series and many objects into a Series
+ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+-All one-dimensional list-likes can be arbitrarily combined in a list-like container (including iterators, ``dict``-views, etc.):
++All one-dimensional list-likes can be combined in a list-like container (including iterators, ``dict``-views, etc.):
+ 
+ .. ipython:: python
+ 
+diff --git a/doc/source/whatsnew/v0.24.0.txt b/doc/source/whatsnew/v0.24.0.txt
+index 3e22084d98234..99e44c54c44cb 100644
+--- a/doc/source/whatsnew/v0.24.0.txt
++++ b/doc/source/whatsnew/v0.24.0.txt
+@@ -507,13 +507,15 @@ Other API Changes
+ Deprecations
+ ~~~~~~~~~~~~
+ 
+-- :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
+-- :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
++- :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument. The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`)
++- :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version (:issue:`21613`)
+ - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
+ - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
+ - The signature of :meth:`Series.to_csv` has been uniformed to that of doc:meth:`DataFrame.to_csv`: the name of the first argument is now 'path_or_buf', the order of subsequent arguments has changed, the 'header' argument now defaults to True. (:issue:`19715`)
+ - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
+ - :func:`pandas.read_table` is deprecated. Instead, use :func:`pandas.read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
++- :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
++  many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
+ 
+ .. _whatsnew_0240.prior_deprecations:
+ 
+diff --git a/pandas/core/strings.py b/pandas/core/strings.py
+index 07e744a6284ef..e455c751057d1 100644
+--- a/pandas/core/strings.py
++++ b/pandas/core/strings.py
+@@ -1930,8 +1930,8 @@ def _get_series_list(self, others, ignore_index=False):
+ 
+         Parameters
+         ----------
+-        others : Series, DataFrame, np.ndarray, list-like or list-like of
+-            objects that are either Series, np.ndarray (1-dim) or list-like
++        others : Series, Index, DataFrame, np.ndarray, list-like or list-like
++            of objects that are Series, Index or np.ndarray (1-dim)
+         ignore_index : boolean, default False
+             Determines whether to forcefully align others with index of caller
+ 
+@@ -1941,7 +1941,7 @@ def _get_series_list(self, others, ignore_index=False):
+                  boolean whether FutureWarning should be raised)
+         """
+ 
+-        # once str.cat defaults to alignment, this function can be simplified;
++        # Once str.cat defaults to alignment, this function can be simplified;
+         # will not need `ignore_index` and the second boolean output anymore
+ 
+         from pandas import Index, Series, DataFrame
+@@ -1986,11 +1986,20 @@ def _get_series_list(self, others, ignore_index=False):
+             # either one-dimensional list-likes or scalars
+             if all(is_list_like(x) for x in others):
+                 los = []
+-                warn = False
++                join_warn = False
++                depr_warn = False
+                 # iterate through list and append list of series for each
+                 # element (which we check to be one-dimensional and non-nested)
+                 while others:
+                     nxt = others.pop(0)  # nxt is guaranteed list-like by above
++
++                    # GH 21950 - DeprecationWarning
++                    # only allowing Series/Index/np.ndarray[1-dim] will greatly
++                    # simply this function post-deprecation.
++                    if not (isinstance(nxt, (Series, Index)) or
++                            (isinstance(nxt, np.ndarray) and nxt.ndim == 1)):
++                        depr_warn = True
++
+                     if not isinstance(nxt, (DataFrame, Series,
+                                             Index, np.ndarray)):
+                         # safety for non-persistent list-likes (e.g. iterators)
+@@ -2013,8 +2022,14 @@ def _get_series_list(self, others, ignore_index=False):
+                     nxt, wnx = self._get_series_list(nxt,
+                                                      ignore_index=ignore_index)
+                     los = los + nxt
+-                    warn = warn or wnx
+-                return (los, warn)
++                    join_warn = join_warn or wnx
++
++                if depr_warn:
++                    warnings.warn('list-likes other than Series, Index, or '
++                                  'np.ndarray WITHIN another list-like are '
++                                  'deprecated and will be removed in a future '
++                                  'version.', FutureWarning, stacklevel=3)
++                return (los, join_warn)
+             elif all(not is_list_like(x) for x in others):
+                 return ([Series(others, index=idx)], False)
+         raise TypeError(err_msg)
+@@ -2037,8 +2052,8 @@ def cat(self, others=None, sep=None, na_rep=None, join=None):
+             Series/Index/DataFrame) if `join` is not None.
+ 
+             If others is a list-like that contains a combination of Series,
+-            np.ndarray (1-dim) or list-like, then all elements will be unpacked
+-            and must satisfy the above criteria individually.
++            Index or np.ndarray (1-dim), then all elements will be unpacked and
++            must satisfy the above criteria individually.
+ 
+             If others is None, the method returns the concatenation of all
+             strings in the calling Series/Index.
+diff --git a/pandas/tests/test_strings.py b/pandas/tests/test_strings.py
+index 9d008dfd25c90..ab508174fa4a9 100644
+--- a/pandas/tests/test_strings.py
++++ b/pandas/tests/test_strings.py
+@@ -313,7 +313,9 @@ def test_str_cat_mixed_inputs(self, series_or_index):
+             assert_series_or_index_equal(s.str.cat([tt, s]), exp)
+ 
+         # Series/Index with list of list-likes
+-        assert_series_or_index_equal(s.str.cat([t.values, list(s)]), exp)
++        with tm.assert_produces_warning(expected_warning=FutureWarning):
++            # nested lists will be deprecated
++            assert_series_or_index_equal(s.str.cat([t.values, list(s)]), exp)
+ 
+         # Series/Index with mixed list of Series/list-like
+         # s as Series has same index as t -> no warning
+@@ -327,7 +329,10 @@ def test_str_cat_mixed_inputs(self, series_or_index):
+             assert_series_or_index_equal(s.str.cat([tt, s.values]), exp)
+ 
+         # Series/Index with iterator of list-likes
+-        assert_series_or_index_equal(s.str.cat(iter([t.values, list(s)])), exp)
++        with tm.assert_produces_warning(expected_warning=FutureWarning):
++            # nested list-likes will be deprecated
++            assert_series_or_index_equal(s.str.cat(iter([t.values, list(s)])),
++                                         exp)
+ 
+         # errors for incorrect lengths
+         rgx = 'All arrays must be same length, except.*'
+@@ -348,11 +353,11 @@ def test_str_cat_mixed_inputs(self, series_or_index):
+ 
+         # list of list-likes
+         with tm.assert_raises_regex(ValueError, rgx):
+-            s.str.cat([z.values, list(s)])
++            s.str.cat([z.values, s.values])
+ 
+         # mixed list of Series/list-like
+         with tm.assert_raises_regex(ValueError, rgx):
+-            s.str.cat([z, list(s)])
++            s.str.cat([z, s.values])
+ 
+         # errors for incorrect arguments in list-like
+         rgx = 'others must be Series, Index, DataFrame,.*'
+@@ -423,11 +428,15 @@ def test_str_cat_align_mixed_inputs(self, join):
+         e = concat([t, s], axis=1, join=(join if join == 'inner' else 'outer'))
+         sa, ea = s.align(e, join=join)
+         exp = exp_outer.loc[ea.index]
+-        tm.assert_series_equal(s.str.cat([t, u], join=join, na_rep='-'), exp)
++
++        with tm.assert_produces_warning(expected_warning=FutureWarning):
++            # nested lists will be deprecated
++            tm.assert_series_equal(s.str.cat([t, u], join=join, na_rep='-'),
++                                   exp)
+ 
+         # errors for incorrect lengths
+         rgx = 'If `others` contains arrays or lists.*'
+-        z = ['1', '2', '3']
++        z = Series(['1', '2', '3']).values
+ 
+         # unindexed object of wrong length
+         with tm.assert_raises_regex(ValueError, rgx):
+@@ -442,8 +451,8 @@ def test_str_cat_special_cases(self):
+         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])
+ 
+         # iterator of elements with different types
+-        exp = Series(['aaA', 'bbB', 'c-C', 'ddD', '-e-'])
+-        tm.assert_series_equal(s.str.cat(iter([t, ['A', 'B', 'C', 'D']]),
++        exp = Series(['aaa', 'bbb', 'c-c', 'ddd', '-e-'])
++        tm.assert_series_equal(s.str.cat(iter([t, s.values]),
+                                          join='outer', na_rep='-'), exp)
+ 
+         # right-align with different indexes in others

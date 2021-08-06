@@ -1,0 +1,31 @@
+diff --git a/luigi/contrib/s3.py b/luigi/contrib/s3.py
+index 1c0e4b780c..6caef4a096 100644
+--- a/luigi/contrib/s3.py
++++ b/luigi/contrib/s3.py
+@@ -162,8 +162,8 @@ def s3(self):
+                                       aws_session_token=aws_session_token,
+                                       **options)
+         except TypeError as e:
+-            logger.error(e.message)
+-            if 'got an unexpected keyword argument' in e.message:
++            logger.error(e.args[0])
++            if 'got an unexpected keyword argument' in e.args[0]:
+                 raise DeprecatedBotoClientException(
+                     "Now using boto3. Check that you're passing the correct arguments")
+             raise
+diff --git a/test/contrib/s3_test.py b/test/contrib/s3_test.py
+index e9605e83d1..6fb0c5311d 100644
+--- a/test/contrib/s3_test.py
++++ b/test/contrib/s3_test.py
+@@ -175,6 +175,11 @@ def test_init_with_config_and_roles(self, sts_mock, s3_mock):
+         sts_mock.client.assume_role.called_with(
+             RoleArn='role', RoleSessionName='name')
+ 
++    @patch('boto3.client')
++    def test_init_with_host_deprecated(self, mock):
++        with self.assertRaises(DeprecatedBotoClientException):
++            S3Client(AWS_ACCESS_KEY, AWS_SECRET_KEY, host='us-east-1').s3
++
+     def test_put(self):
+         create_bucket()
+         s3_client = S3Client(AWS_ACCESS_KEY, AWS_SECRET_KEY)

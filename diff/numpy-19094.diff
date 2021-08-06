@@ -1,0 +1,82 @@
+diff --git a/numpy/typing/_add_docstring.py b/numpy/typing/_add_docstring.py
+index 34dbdb0c6e7..56ef41cfdb3 100644
+--- a/numpy/typing/_add_docstring.py
++++ b/numpy/typing/_add_docstring.py
+@@ -114,7 +114,7 @@ def _parse_docstrings() -> str:
+ add_newdoc('NDArray', repr(NDArray),
+     """
+     A :term:`generic <generic type>` version of
+-    `np.ndarray[Any, np.dtype[~ScalarType]] <numpy.ndarray>`.
++    `np.ndarray[Any, np.dtype[+ScalarType]] <numpy.ndarray>`.
+ 
+     Can be used during runtime for typing arrays with a given dtype
+     and unspecified shape.
+@@ -127,7 +127,7 @@ def _parse_docstrings() -> str:
+         >>> import numpy.typing as npt
+ 
+         >>> print(npt.NDArray)
+-        numpy.ndarray[typing.Any, numpy.dtype[~ScalarType]]
++        numpy.ndarray[typing.Any, numpy.dtype[+ScalarType]]
+ 
+         >>> print(npt.NDArray[np.float64])
+         numpy.ndarray[typing.Any, numpy.dtype[numpy.float64]]
+diff --git a/numpy/typing/_generic_alias.py b/numpy/typing/_generic_alias.py
+index f98fca62edf..68523827a71 100644
+--- a/numpy/typing/_generic_alias.py
++++ b/numpy/typing/_generic_alias.py
+@@ -63,7 +63,8 @@ def _reconstruct_alias(alias: _T, parameters: Iterator[TypeVar]) -> _T:
+         elif isinstance(i, _GenericAlias):
+             value = _reconstruct_alias(i, parameters)
+         elif hasattr(i, "__parameters__"):
+-            value = i[next(parameters)]
++            prm_tup = tuple(next(parameters) for _ in i.__parameters__)
++            value = i[prm_tup]
+
+# tuple-iterator를 뜯어서 tuple화 시켜야해
+# 따라서, 이런거도 됨 x = tuple(y for y in parameters)
+# 왜 뜯어야만 하는가?
+
+# 여기를 지나는 테스트 2개
+# pass의 경우 parameters iteration 돌리면 float64 하나 나옴
+# 그리고 i.__parameters__ 하나 나옴
+# fail의 경우 paramters iteration 돌리면 float64 두개 나옴
+# 그리고 i.__parameters__ 두개 나옴
+
+# 이거를 일치 시켜야해서??
+# tc 분석이 필요하다
+
+         else:
+             value = i
+         args.append(value)
+@@ -195,7 +196,7 @@ def __getattribute__(self, name: str) -> Any:
+ else:
+     _GENERIC_ALIAS_TYPE = (_GenericAlias,)
+ 
+-ScalarType = TypeVar("ScalarType", bound=np.generic)
++ScalarType = TypeVar("ScalarType", bound=np.generic, covariant=True)
+ 
+ if TYPE_CHECKING:
+     NDArray = np.ndarray[Any, np.dtype[ScalarType]]
+diff --git a/numpy/typing/tests/test_generic_alias.py b/numpy/typing/tests/test_generic_alias.py
+index 13072051a83..0b99174392f 100644
+--- a/numpy/typing/tests/test_generic_alias.py
++++ b/numpy/typing/tests/test_generic_alias.py
+@@ -10,7 +10,9 @@
+ import numpy as np
+ from numpy.typing._generic_alias import _GenericAlias
+ 
+-ScalarType = TypeVar("ScalarType", bound=np.generic)
++ScalarType = TypeVar("ScalarType", bound=np.generic, covariant=True)
++T1 = TypeVar("T1")
++T2 = TypeVar("T2")
+ DType = _GenericAlias(np.dtype, (ScalarType,))
+ NDArray = _GenericAlias(np.ndarray, (Any, DType))
+ 
+@@ -50,6 +52,7 @@ class TestGenericAlias:
+         ("__getitem__", lambda n: n[np.float64]),
+         ("__getitem__", lambda n: n[ScalarType][np.float64]),
+         ("__getitem__", lambda n: n[Union[np.int64, ScalarType]][np.float64]),
++        ("__getitem__", lambda n: n[Union[T1, T2]][np.float32, np.float64]),
+         ("__eq__", lambda n: n == n),
+         ("__ne__", lambda n: n != np.ndarray),
+         ("__dir__", lambda n: dir(n)),

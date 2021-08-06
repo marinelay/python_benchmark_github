@@ -1,0 +1,131 @@
+diff --git a/python/paddle/fluid/tests/unittests/test_multiply.py b/python/paddle/fluid/tests/unittests/test_multiply.py
+old mode 100644
+new mode 100755
+index 32d0f7b63b8f..dbf167617a24
+--- a/python/paddle/fluid/tests/unittests/test_multiply.py
++++ b/python/paddle/fluid/tests/unittests/test_multiply.py
+@@ -44,8 +44,8 @@ def __run_static_graph_case(self, x_data, y_data, axis=-1):
+ 
+     def __run_dynamic_graph_case(self, x_data, y_data, axis=-1):
+         paddle.disable_static()
+-        x = paddle.to_variable(x_data)
+-        y = paddle.to_variable(y_data)
++        x = paddle.to_tensor(x_data)
++        y = paddle.to_tensor(y_data)
+         res = paddle.multiply(x, y, axis=axis)
+         return res.numpy()
+ 
+@@ -126,17 +126,31 @@ def test_errors(self):
+         paddle.disable_static()
+         x_data = np.random.randn(200).astype(np.int8)
+         y_data = np.random.randn(200).astype(np.int8)
+-        x = paddle.to_variable(x_data)
+-        y = paddle.to_variable(y_data)
++        x = paddle.to_tensor(x_data)
++        y = paddle.to_tensor(y_data)
+         self.assertRaises(fluid.core.EnforceNotMet, paddle.multiply, x, y)
+ 
+         # test dynamic computation graph: inputs must be broadcastable
+         x_data = np.random.rand(200, 5)
+         y_data = np.random.rand(200)
+-        x = paddle.to_variable(x_data)
+-        y = paddle.to_variable(y_data)
++        x = paddle.to_tensor(x_data)
++        y = paddle.to_tensor(y_data)
+         self.assertRaises(fluid.core.EnforceNotMet, paddle.multiply, x, y)
+ 
++        # test dynamic computation graph: inputs must be broadcastable(python)
++        x_data = np.random.rand(200, 5)
++        y_data = np.random.rand(200)
++        x = paddle.to_tensor(x_data)
++        y = paddle.to_tensor(y_data)
++        self.assertRaises(fluid.core.EnforceNotMet, paddle.multiply, x, y)
++
++        # test dynamic computation graph: dtype must be same
++        x_data = np.random.randn(200).astype(np.int64)
++        y_data = np.random.randn(200).astype(np.float64)
++        x = paddle.to_tensor(x_data)
++        y = paddle.to_tensor(y_data)
++        self.assertRaises(TypeError, paddle.multiply, x, y)
++
+ 
+ if __name__ == '__main__':
+     unittest.main()
+diff --git a/python/paddle/tensor/math.py b/python/paddle/tensor/math.py
+old mode 100644
+new mode 100755
+index 85441597cf56..4c7eef5fa651
+--- a/python/paddle/tensor/math.py
++++ b/python/paddle/tensor/math.py
+@@ -562,34 +562,52 @@ def remainder(x, y, name=None):
+ 
+ def multiply(x, y, axis=-1, name=None):
+     """
+-	:alias_main: paddle.multiply
+-	:alias: paddle.multiply,paddle.tensor.multiply,paddle.tensor.math.multiply
++    multiply two tensors element-wise. The equation is:
+ 
+-Examples:
++    .. math::
++        out = x * y
+ 
+-    .. code-block:: python
++    **Note**:
++    ``paddle.multiply`` supports broadcasting. If you would like to know more about broadcasting, please refer to :ref:`user_guide_broadcasting` .
+ 
+-        import paddle
+-        import numpy as np
++    Args:
++        x (Tensor): the input tensor, its data type should be float32, float64, int32, int64.
++        y (Tensor): the input tensor, its data type should be float32, float64, int32, int64.
++        name (str, optional): Name for the operation (optional, default is None). For more information, please refer to :ref:`api_guide_Name`.
+ 
+-        paddle.disable_static()
+-        x_data = np.array([[1, 2], [3, 4]], dtype=np.float32)
+-        y_data = np.array([[5, 6], [7, 8]], dtype=np.float32)
+-        x = paddle.to_variable(x_data)
+-        y = paddle.to_variable(y_data)
+-        res = paddle.multiply(x, y)
+-        print(res.numpy()) # [[5, 12], [21, 32]]
++    Returns:
++        N-D Tensor. A location into which the result is stored. Its dimension equals with $x$.
+ 
+-        x_data = np.array([[[1, 2, 3], [1, 2, 3]]], dtype=np.float32)
+-        y_data = np.array([1, 2], dtype=np.float32)
+-        x = paddle.to_variable(x_data)
+-        y = paddle.to_variable(y_data)
+-        res = paddle.multiply(x, y, axis=1)
+-        print(res.numpy()) # [[[1, 2, 3], [2, 4, 6]]]
++    Examples:
++
++        ..  code-block:: python
++
++            import paddle
++            import numpy as np
++
++            paddle.disable_static()
++            x_data = np.array([[1, 2], [3, 4]], dtype=np.float32)
++            y_data = np.array([[5, 6], [7, 8]], dtype=np.float32)
++            x = paddle.to_tensor(x_data)
++            y = paddle.to_tensor(y_data)
++            res = paddle.multiply(x, y)
++            print(res.numpy()) # [[5, 12], [21, 32]]
++
++            x_data = np.array([[[1, 2, 3], [1, 2, 3]]], dtype=np.float32)
++            y_data = np.array([1, 2], dtype=np.float32)
++            x = paddle.to_tensor(x_data)
++            y = paddle.to_tensor(y_data)
++            res = paddle.multiply(x, y, axis=1)
++            print(res.numpy()) # [[[1, 2, 3], [2, 4, 6]]]
+ 
+     """
+     op_type = 'elementwise_mul'
+     act = None
++    if x.dtype != y.dtype:
++        raise TypeError(
++            'Input tensors must be same type, but received type of x: %s, type of y: %s '
++            % (x.dtype, y.dtype))
++
+     if in_dygraph_mode():
+         return _elementwise_op_in_dygraph(
+             x, y, axis=axis, act=act, op_name=op_type)

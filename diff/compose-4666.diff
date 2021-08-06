@@ -1,0 +1,390 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 581d45bbf4..0aa3acf65a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -92,6 +92,9 @@ Change log
+ - Fixed a bug where `docker-compose` would crash when trying to write into
+   a closed pipe
+ 
++- Fixed an issue where Compose would not pick up on the value of
++  COMPOSE_TLS_VERSION when used in combination with command-line TLS flags
++
+ 1.11.2 (2017-02-17)
+ -------------------
+ 
+diff --git a/compose/__init__.py b/compose/__init__.py
+index 502e9cc4f0..4399b28af6 100644
+--- a/compose/__init__.py
++++ b/compose/__init__.py
+@@ -1,4 +1,4 @@
+ from __future__ import absolute_import
+ from __future__ import unicode_literals
+ 
+-__version__ = '1.12.0-rc1'
++__version__ = '1.12.0-rc2'
+diff --git a/compose/cli/__init__.py b/compose/cli/__init__.py
+index c5db44558e..1fe9aab8df 100644
+--- a/compose/cli/__init__.py
++++ b/compose/cli/__init__.py
+@@ -20,18 +20,23 @@
+         list(filter(lambda p: p.startswith(b'docker-py=='), packages))
+     ) > 0
+     if dockerpy_installed:
+-        from .colors import red
++        from .colors import yellow
+         print(
+-            red('ERROR:'),
++            yellow('WARNING:'),
+             "Dependency conflict: an older version of the 'docker-py' package "
+-            "is polluting the namespace. "
+-            "Run the following command to remedy the issue:\n"
+-            "pip uninstall docker docker-py; pip install docker",
++            "may be polluting the namespace. "
++            "If you're experiencing crashes, run the following command to remedy the issue:\n"
++            "pip uninstall docker-py; pip uninstall docker; pip install docker",
+             file=sys.stderr
+         )
+-        sys.exit(1)
+ 
+ except OSError:
+     # pip command is not available, which indicates it's probably the binary
+     # distribution of Compose which is not affected
+     pass
++except UnicodeDecodeError:
++    # ref: https://github.com/docker/compose/issues/4663
++    # This could be caused by a number of things, but it seems to be a
++    # python 2 + MacOS interaction. It's not ideal to ignore this, but at least
++    # it doesn't make the program unusable.
++    pass
+diff --git a/compose/cli/command.py b/compose/cli/command.py
+index 4e27226488..ccc76ceb4e 100644
+--- a/compose/cli/command.py
++++ b/compose/cli/command.py
+@@ -4,7 +4,6 @@
+ import logging
+ import os
+ import re
+-import ssl
+ 
+ import six
+ 
+@@ -15,6 +14,7 @@
+ from ..const import API_VERSIONS
+ from ..project import Project
+ from .docker_client import docker_client
++from .docker_client import get_tls_version
+ from .docker_client import tls_config_from_options
+ from .utils import get_version_info
+ 
+@@ -60,23 +60,6 @@ def get_config_path_from_options(base_dir, options, environment):
+     return None
+ 
+ 
+-def get_tls_version(environment):
+-    compose_tls_version = environment.get('COMPOSE_TLS_VERSION', None)
+-    if not compose_tls_version:
+-        return None
+-
+-    tls_attr_name = "PROTOCOL_{}".format(compose_tls_version)
+-    if not hasattr(ssl, tls_attr_name):
+-        log.warn(
+-            'The "{}" protocol is unavailable. You may need to update your '
+-            'version of Python or OpenSSL. Falling back to TLSv1 (default).'
+-            .format(compose_tls_version)
+-        )
+-        return None
+-
+-    return getattr(ssl, tls_attr_name)
+-
+-
+ def get_client(environment, verbose=False, version=None, tls_config=None, host=None,
+                tls_version=None):
+ 
+diff --git a/compose/cli/docker_client.py b/compose/cli/docker_client.py
+index 018d24513d..44c7ad91d8 100644
+--- a/compose/cli/docker_client.py
++++ b/compose/cli/docker_client.py
+@@ -2,6 +2,7 @@
+ from __future__ import unicode_literals
+ 
+ import logging
++import ssl
+ 
+ from docker import APIClient
+ from docker.errors import TLSParameterError
+@@ -16,7 +17,24 @@
+ log = logging.getLogger(__name__)
+ 
+ 
+-def tls_config_from_options(options):
++def get_tls_version(environment):
++    compose_tls_version = environment.get('COMPOSE_TLS_VERSION', None)
++    if not compose_tls_version:
++        return None
++
++    tls_attr_name = "PROTOCOL_{}".format(compose_tls_version)
++    if not hasattr(ssl, tls_attr_name):
++        log.warn(
++            'The "{}" protocol is unavailable. You may need to update your '
++            'version of Python or OpenSSL. Falling back to TLSv1 (default).'
++            .format(compose_tls_version)
++        )
++        return None
++
++    return getattr(ssl, tls_attr_name)
++
++
++def tls_config_from_options(options, environment=None):
+     tls = options.get('--tls', False)
+     ca_cert = unquote_path(options.get('--tlscacert'))
+     cert = unquote_path(options.get('--tlscert'))
+@@ -24,7 +42,9 @@ def tls_config_from_options(options):
+     verify = options.get('--tlsverify')
+     skip_hostname_check = options.get('--skip-hostname-check', False)
+ 
+-    advanced_opts = any([ca_cert, cert, key, verify])
++    tls_version = get_tls_version(environment or {})
++
++    advanced_opts = any([ca_cert, cert, key, verify, tls_version])
+ 
+     if tls is True and not advanced_opts:
+         return True
+@@ -35,7 +55,8 @@ def tls_config_from_options(options):
+ 
+         return TLSConfig(
+             client_cert=client_cert, verify=verify, ca_cert=ca_cert,
+-            assert_hostname=False if skip_hostname_check else None
++            assert_hostname=False if skip_hostname_check else None,
++            ssl_version=tls_version
+         )
+ 
+     return None
+diff --git a/compose/config/config.py b/compose/config/config.py
+index 8cbaae272c..72687d756c 100644
+--- a/compose/config/config.py
++++ b/compose/config/config.py
+@@ -1033,8 +1033,11 @@ def resolve_volume_path(working_dir, volume):
+     if isinstance(volume, dict):
+         host_path = volume.get('source')
+         container_path = volume.get('target')
+-        if host_path and volume.get('read_only'):
+-            container_path += ':ro'
++        if host_path:
++            if volume.get('read_only'):
++                container_path += ':ro'
++            if volume.get('volume', {}).get('nocopy'):
++                container_path += ':nocopy'
+     else:
+         container_path, host_path = split_path_mapping(volume)
+ 
+diff --git a/compose/config/types.py b/compose/config/types.py
+index a8d366fba3..96846b5ba6 100644
+--- a/compose/config/types.py
++++ b/compose/config/types.py
+@@ -266,6 +266,10 @@ class ServicePort(namedtuple('_ServicePort', 'target published protocol mode ext
+ 
+     @classmethod
+     def parse(cls, spec):
++        if isinstance(spec, cls):
++            # WHen extending a service with ports, the port definitions have already been parsed
++            return [spec]
++
+         if not isinstance(spec, dict):
+             result = []
+             for k, v in build_port_bindings([spec]).items():
+diff --git a/script/run/run.sh b/script/run/run.sh
+index 192b31219a..62c065bbc5 100755
+--- a/script/run/run.sh
++++ b/script/run/run.sh
+@@ -15,7 +15,7 @@
+ 
+ set -e
+ 
+-VERSION="1.12.0-rc1"
++VERSION="1.12.0-rc2"
+ IMAGE="docker/compose:$VERSION"
+ 
+ 
+diff --git a/tests/acceptance/cli_test.py b/tests/acceptance/cli_test.py
+index 14e6f73362..bceb102a2c 100644
+--- a/tests/acceptance/cli_test.py
++++ b/tests/acceptance/cli_test.py
+@@ -374,7 +374,8 @@ def test_config_v3(self):
+                     'volumes': [
+                         '/host/path:/container/path:ro',
+                         'foobar:/container/volumepath:rw',
+-                        '/anonymous'
++                        '/anonymous',
++                        'foobar:/container/volumepath2:nocopy'
+                     ],
+ 
+                     'stop_grace_period': '20s',
+diff --git a/tests/fixtures/v3-full/docker-compose.yml b/tests/fixtures/v3-full/docker-compose.yml
+index 27f3c6e04f..2bc0e248d1 100644
+--- a/tests/fixtures/v3-full/docker-compose.yml
++++ b/tests/fixtures/v3-full/docker-compose.yml
+@@ -44,6 +44,11 @@ services:
+         target: /container/volumepath
+       - type: volume
+         target: /anonymous
++      - type: volume
++        source: foobar
++        target: /container/volumepath2
++        volume:
++          nocopy: true
+ 
+     stop_grace_period: 20s
+ volumes:
+diff --git a/tests/integration/project_test.py b/tests/integration/project_test.py
+index e8dbe8fbf7..4551898516 100644
+--- a/tests/integration/project_test.py
++++ b/tests/integration/project_test.py
+@@ -1419,7 +1419,7 @@ def test_project_up_healthy_dependency(self):
+                         'test': 'exit 0',
+                         'retries': 1,
+                         'timeout': '10s',
+-                        'interval': '0.1s'
++                        'interval': '1s'
+                     },
+                 },
+                 'svc2': {
+@@ -1456,7 +1456,7 @@ def test_project_up_unhealthy_dependency(self):
+                         'test': 'exit 1',
+                         'retries': 1,
+                         'timeout': '10s',
+-                        'interval': '0.1s'
++                        'interval': '1s'
+                     },
+                 },
+                 'svc2': {
+diff --git a/tests/unit/cli/command_test.py b/tests/unit/cli/command_test.py
+index 3655c432e9..c64a0401b6 100644
+--- a/tests/unit/cli/command_test.py
++++ b/tests/unit/cli/command_test.py
+@@ -2,12 +2,10 @@
+ from __future__ import unicode_literals
+ 
+ import os
+-import ssl
+ 
+ import pytest
+ 
+ from compose.cli.command import get_config_path_from_options
+-from compose.cli.command import get_tls_version
+ from compose.config.environment import Environment
+ from compose.const import IS_WINDOWS_PLATFORM
+ from tests import mock
+@@ -57,21 +55,3 @@ def test_multiple_path_from_env_custom_separator(self):
+     def test_no_path(self):
+         environment = Environment.from_env_file('.')
+         assert not get_config_path_from_options('.', {}, environment)
+-
+-
+-class TestGetTlsVersion(object):
+-    def test_get_tls_version_default(self):
+-        environment = {}
+-        assert get_tls_version(environment) is None
+-
+-    @pytest.mark.skipif(not hasattr(ssl, 'PROTOCOL_TLSv1_2'), reason='TLS v1.2 unsupported')
+-    def test_get_tls_version_upgrade(self):
+-        environment = {'COMPOSE_TLS_VERSION': 'TLSv1_2'}
+-        assert get_tls_version(environment) == ssl.PROTOCOL_TLSv1_2
+-
+-    def test_get_tls_version_unavailable(self):
+-        environment = {'COMPOSE_TLS_VERSION': 'TLSv5_5'}
+-        with mock.patch('compose.cli.command.log') as mock_log:
+-            tls_version = get_tls_version(environment)
+-        mock_log.warn.assert_called_once_with(mock.ANY)
+-        assert tls_version is None
+diff --git a/tests/unit/cli/docker_client_test.py b/tests/unit/cli/docker_client_test.py
+index aaa935afab..482ad98502 100644
+--- a/tests/unit/cli/docker_client_test.py
++++ b/tests/unit/cli/docker_client_test.py
+@@ -3,6 +3,7 @@
+ 
+ import os
+ import platform
++import ssl
+ 
+ import docker
+ import pytest
+@@ -10,6 +11,7 @@
+ import compose
+ from compose.cli import errors
+ from compose.cli.docker_client import docker_client
++from compose.cli.docker_client import get_tls_version
+ from compose.cli.docker_client import tls_config_from_options
+ from tests import mock
+ from tests import unittest
+@@ -157,3 +159,29 @@ def test_tls_client_and_ca_quoted_paths(self):
+         assert result.cert == (self.client_cert, self.key)
+         assert result.ca_cert == self.ca_cert
+         assert result.verify is True
++
++    def test_tls_simple_with_tls_version(self):
++        tls_version = 'TLSv1'
++        options = {'--tls': True}
++        environment = {'COMPOSE_TLS_VERSION': tls_version}
++        result = tls_config_from_options(options, environment)
++        assert isinstance(result, docker.tls.TLSConfig)
++        assert result.ssl_version == ssl.PROTOCOL_TLSv1
++
++
++class TestGetTlsVersion(object):
++    def test_get_tls_version_default(self):
++        environment = {}
++        assert get_tls_version(environment) is None
++
++    @pytest.mark.skipif(not hasattr(ssl, 'PROTOCOL_TLSv1_2'), reason='TLS v1.2 unsupported')
++    def test_get_tls_version_upgrade(self):
++        environment = {'COMPOSE_TLS_VERSION': 'TLSv1_2'}
++        assert get_tls_version(environment) == ssl.PROTOCOL_TLSv1_2
++
++    def test_get_tls_version_unavailable(self):
++        environment = {'COMPOSE_TLS_VERSION': 'TLSv5_5'}
++        with mock.patch('compose.cli.docker_client.log') as mock_log:
++            tls_version = get_tls_version(environment)
++        mock_log.warn.assert_called_once_with(mock.ANY)
++        assert tls_version is None
+diff --git a/tests/unit/config/config_test.py b/tests/unit/config/config_test.py
+index 195efe3b95..4db87ecb65 100644
+--- a/tests/unit/config/config_test.py
++++ b/tests/unit/config/config_test.py
+@@ -3403,7 +3403,7 @@ def test_extends_with_defined_version_passes(self):
+         self.assertEqual(service[0]['command'], "top")
+ 
+     def test_extends_with_depends_on(self):
+-        tmpdir = py.test.ensuretemp('test_extends_with_defined_version')
++        tmpdir = py.test.ensuretemp('test_extends_with_depends_on')
+         self.addCleanup(tmpdir.remove)
+         tmpdir.join('docker-compose.yml').write("""
+             version: "2"
+@@ -3435,6 +3435,28 @@ def test_extends_with_healthcheck(self):
+             }
+         }]
+ 
++    def test_extends_with_ports(self):
++        tmpdir = py.test.ensuretemp('test_extends_with_ports')
++        self.addCleanup(tmpdir.remove)
++        tmpdir.join('docker-compose.yml').write("""
++            version: '2'
++
++            services:
++              a:
++                image: nginx
++                ports:
++                  - 80
++
++              b:
++                extends:
++                  service: a
++        """)
++        services = load_from_filename(str(tmpdir.join('docker-compose.yml')))
++
++        assert len(services) == 2
++        for svc in services:
++            assert svc['ports'] == [types.ServicePort('80', None, None, None, None)]
++
+ 
+ @pytest.mark.xfail(IS_WINDOWS_PLATFORM, reason='paths use slash')
+ class ExpandPathTest(unittest.TestCase):

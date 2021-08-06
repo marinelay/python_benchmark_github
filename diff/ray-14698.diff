@@ -1,0 +1,52 @@
+diff --git a/python/ray/exceptions.py b/python/ray/exceptions.py
+index a1c09802d56..7dc88fcc462 100644
+--- a/python/ray/exceptions.py
++++ b/python/ray/exceptions.py
+@@ -76,6 +76,11 @@ def __init__(self,
+                  ip=None):
+         """Initialize a RayTaskError."""
+         import ray
++
++        # BaseException implements a __reduce__ method that returns
++        # a tuple with the type and the value of self.args.
++        # https://stackoverflow.com/a/49715949/2213289
++        self.args = (function_name, traceback_str, cause, proctitle, pid, ip)
+         if proctitle:
+             self.proctitle = proctitle
+         else:
+@@ -108,6 +113,10 @@ def as_instanceof_cause(self):
+         class cls(RayTaskError, cause_cls):
+             def __init__(self, cause):
+                 self.cause = cause
++                # BaseException implements a __reduce__ method that returns
++                # a tuple with the type and the value of self.args.
++                # https://stackoverflow.com/a/49715949/2213289
++                self.args = (cause, )
+ 
+             def __getattr__(self, name):
+                 return getattr(self.cause, name)
+diff --git a/python/ray/tests/test_client.py b/python/ray/tests/test_client.py
+index bb3ed173304..7a885953bf5 100644
+--- a/python/ray/tests/test_client.py
++++ b/python/ray/tests/test_client.py
+@@ -415,6 +415,20 @@ def get(self):
+         assert ray.get(detatched_actor.get.remote()) == 6
+ 
+ 
++def test_error_serialization(ray_start_regular_shared):
++    """Test that errors will be serialized properly."""
++    with pytest.raises(PermissionError):
++        with ray_start_client_server() as ray:
++
++            @ray.remote
++            def g():
++                with open("/dev/asdf", "w") as f:
++                    f.write("HI")
++
++            # Raises a PermissionError
++            ray.get(g.remote())
++
++
+ @pytest.mark.skipif(sys.platform == "win32", reason="Failing on Windows.")
+ def test_internal_kv(ray_start_regular_shared):
+     with ray_start_client_server() as ray:

@@ -1,0 +1,28 @@
+diff --git a/src/transformers/trainer_callback.py b/src/transformers/trainer_callback.py
+index 0a654caa4ded..24fc975f5b01 100644
+--- a/src/transformers/trainer_callback.py
++++ b/src/transformers/trainer_callback.py
+@@ -325,7 +325,7 @@ def remove_callback(self, callback):
+ 
+     @property
+     def callback_list(self):
+-        return "\n".join(self.callbacks)
++        return "\n".join(cb.__class__.__name__ for cb in self.callbacks)
+ 
+     def on_init_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl):
+         return self.call_event("on_init_end", args, state, control)
+diff --git a/tests/test_trainer_callback.py b/tests/test_trainer_callback.py
+index 133c4e29f238..cc21d2d57ba1 100644
+--- a/tests/test_trainer_callback.py
++++ b/tests/test_trainer_callback.py
+@@ -221,3 +221,10 @@ def test_event_flow(self):
+         trainer.train()
+         events = trainer.callback_handler.callbacks[-2].events
+         self.assertEqual(events, self.get_expected_events(trainer))
++
++        # warning should be emitted for duplicated callbacks
++        with unittest.mock.patch("transformers.trainer_callback.logger.warn") as warn_mock:
++            trainer = self.get_trainer(
++                callbacks=[MyTestTrainerCallback, MyTestTrainerCallback],
++            )
++            assert str(MyTestTrainerCallback) in warn_mock.call_args[0][0]

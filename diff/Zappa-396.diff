@@ -1,0 +1,75 @@
+diff --git a/tests/test_bad_environment_vars.json b/tests/test_bad_environment_vars.json
+new file mode 100644
+index 000000000..b8ab11d76
+--- /dev/null
++++ b/tests/test_bad_environment_vars.json
+@@ -0,0 +1,19 @@
++{
++    "ttt888": {
++       "touch": false,
++       "s3_bucket": "lmbda",
++       "app_function": "tests.test_app.hello_world",
++       "callbacks": {
++           "settings": "test_settings.callback",
++           "post": "test_settings.callback",
++           "zip": "test_settings.callback"
++       },
++       "delete_local_zip": true,
++       "debug": true,
++       "parameter_depth": 2,
++        "environment_variables": {
++            "REMOTE_HOST": "example.net",
++            "REMOTE_PORT": 9004,
++        },
++    }
++}
+diff --git a/tests/tests.py b/tests/tests.py
+index 581fc6c0c..b3c464263 100644
+--- a/tests/tests.py
++++ b/tests/tests.py
+@@ -749,6 +749,11 @@ def test_bad_stage_name_catch(self):
+         zappa_cli = ZappaCLI()
+         self.assertRaises(ValueError, zappa_cli.load_settings, 'tests/test_bad_stage_name_settings.json')
+ 
++    def test_bad_environment_vars_catch(self):
++        zappa_cli = ZappaCLI()
++        zappa_cli.api_stage = 'ttt888'
++        self.assertRaises(ValueError, zappa_cli.load_settings, 'tests/test_bad_environment_vars.json')
++
+     @placebo_session
+     def test_cli_aws(self, session):
+         zappa_cli = ZappaCLI()
+diff --git a/zappa/cli.py b/zappa/cli.py
+index caa8a0204..20d021196 100644
+--- a/zappa/cli.py
++++ b/zappa/cli.py
+@@ -792,6 +792,21 @@ def check_stage_name(self, stage_name):
+             return True
+         raise ValueError("AWS requires stage name to match a-zA-Z0-9_")
+ 
++    def check_environment(self, environment):
++        """
++        Make sure the environment contains only strings
++
++        (since putenv needs a string)
++        """
++
++        non_strings = []
++        for k,v in environment.iteritems():
++            if not isinstance(v, basestring):
++                non_strings.append(k)
++        if non_strings:
++            raise ValueError("The following environment variables are not strings: {}".format(", ".join(non_strings)))
++        else:
++            return True
+ 
+     def init(self, settings_file="zappa_settings.json"):
+         """
+@@ -1126,6 +1141,7 @@ def load_settings(self, settings_file="zappa_settings.json", session=None):
+             self.api_stage].get('lambda_description', "Zappa Deployment")
+         self.environment_variables = self.zappa_settings[
+             self.api_stage].get('environment_variables', {})
++        self.check_environment(self.environment_variables)
+         self.authorizer = self.stage_config.get('authorizer', {})
+ 
+         self.zappa = Zappa( boto_session=session,

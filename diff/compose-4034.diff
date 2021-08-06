@@ -1,0 +1,39 @@
+diff --git a/compose/config/types.py b/compose/config/types.py
+index 9664b58029..c450a0f984 100644
+--- a/compose/config/types.py
++++ b/compose/config/types.py
+@@ -93,6 +93,8 @@ def parse_restart_spec(restart_config):
+ 
+ 
+ def serialize_restart_spec(restart_spec):
++    if not restart_spec:
++        return ''
+     parts = [restart_spec['Name']]
+     if restart_spec['MaximumRetryCount']:
+         parts.append(six.text_type(restart_spec['MaximumRetryCount']))
+diff --git a/tests/acceptance/cli_test.py b/tests/acceptance/cli_test.py
+index 0c7c17bd3d..e2c0279806 100644
+--- a/tests/acceptance/cli_test.py
++++ b/tests/acceptance/cli_test.py
+@@ -236,6 +236,10 @@ def test_config_restart(self):
+                     'image': 'busybox',
+                     'restart': 'on-failure:5',
+                 },
++                'restart-null': {
++                    'image': 'busybox',
++                    'restart': ''
++                },
+             },
+             'networks': {},
+             'volumes': {},
+diff --git a/tests/fixtures/restart/docker-compose.yml b/tests/fixtures/restart/docker-compose.yml
+index 2d10aa3970..ecfdfbf537 100644
+--- a/tests/fixtures/restart/docker-compose.yml
++++ b/tests/fixtures/restart/docker-compose.yml
+@@ -12,3 +12,6 @@ services:
+   on-failure-5:
+     image: busybox
+     restart: "on-failure:5"
++  restart-null:
++    image: busybox
++    restart: ""

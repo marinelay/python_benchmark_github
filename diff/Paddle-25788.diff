@@ -1,0 +1,55 @@
+diff --git a/python/paddle/fluid/data_feeder.py b/python/paddle/fluid/data_feeder.py
+index 71c722fb8619..e8d708e04ce5 100644
+--- a/python/paddle/fluid/data_feeder.py
++++ b/python/paddle/fluid/data_feeder.py
+@@ -66,9 +66,9 @@ def convert_dtype(dtype):
+             # may still be a long-lasting problem.
+             return str(dtype)
+ 
+-    raise ValueError(
++    raise TypeError(
+         "dtype must be any of [bool, float16, float32, float64, int8, int16, "
+-        "int32, int64, uint8]")
++        "int32, int64, uint8], but received %s" % dtype)
+ 
+ 
+ def check_variable_and_dtype(input,
+diff --git a/python/paddle/fluid/tests/unittests/test_create_global_var.py b/python/paddle/fluid/tests/unittests/test_create_global_var.py
+index 140d47696774..39fb0355190c 100644
+--- a/python/paddle/fluid/tests/unittests/test_create_global_var.py
++++ b/python/paddle/fluid/tests/unittests/test_create_global_var.py
+@@ -38,7 +38,7 @@ def test_shape_item():
+             def test_dtype():
+                 fluid.layers.create_global_var([1, 2, 3], 2.0, np.complex128)
+ 
+-            self.assertRaises(ValueError, test_dtype)
++            self.assertRaises(TypeError, test_dtype)
+ 
+ 
+ if __name__ == '__main__':
+diff --git a/python/paddle/fluid/tests/unittests/test_fill_constant_op.py b/python/paddle/fluid/tests/unittests/test_fill_constant_op.py
+index 2ca3729306e1..3eb761f925a6 100644
+--- a/python/paddle/fluid/tests/unittests/test_fill_constant_op.py
++++ b/python/paddle/fluid/tests/unittests/test_fill_constant_op.py
+@@ -297,7 +297,7 @@ def test_errors(self):
+             #for ci coverage
+             x1 = fluid.layers.data(name='x1', shape=[1], dtype="int16")
+             self.assertRaises(
+-                ValueError,
++                TypeError,
+                 fluid.layers.fill_constant,
+                 shape=[1],
+                 value=5,
+diff --git a/python/paddle/fluid/tests/unittests/test_full_op.py b/python/paddle/fluid/tests/unittests/test_full_op.py
+index 01761b661e47..2d850db78377 100644
+--- a/python/paddle/fluid/tests/unittests/test_full_op.py
++++ b/python/paddle/fluid/tests/unittests/test_full_op.py
+@@ -81,7 +81,7 @@ def test_errors(self):
+         with program_guard(Program(), Program()):
+             #for ci coverage
+             self.assertRaises(
+-                ValueError, paddle.full, shape=[1], fill_value=5, dtype='uint4')
++                TypeError, paddle.full, shape=[1], fill_value=5, dtype='uint4')
+ 
+             # The argument dtype of full must be one of bool, float16,
+             #float32, float64, int32 or int64

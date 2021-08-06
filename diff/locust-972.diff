@@ -1,0 +1,35 @@
+diff --git a/locust/rpc/zmqrpc.py b/locust/rpc/zmqrpc.py
+index 164d3cb26..0c10db33d 100644
+--- a/locust/rpc/zmqrpc.py
++++ b/locust/rpc/zmqrpc.py
+@@ -21,7 +21,7 @@ def recv(self):
+ 
+     def recv_from_client(self):
+         data = self.socket.recv_multipart()
+-        addr = data[0]
++        addr = data[0].decode()
+
+# data[0]이 역시 bytes여서 decode 해주는 모습
+
+         msg = Message.unserialize(data[1])
+         return addr, msg
+ 
+diff --git a/locust/test/test_zmqrpc.py b/locust/test/test_zmqrpc.py
+index de077e70e..23eab59b8 100644
+--- a/locust/test/test_zmqrpc.py
++++ b/locust/test/test_zmqrpc.py
+@@ -17,12 +17,12 @@ def tearDown(self):
+     def test_client_send(self):
+         self.client.send(Message('test', 'message', 'identity'))
+         addr, msg = self.server.recv_from_client()
+-        self.assertEqual(addr, b'identity')
++        self.assertEqual(addr, 'identity')
+         self.assertEqual(msg.type, 'test')
+         self.assertEqual(msg.data, 'message')
+ 
+     def test_client_recv(self):
+-        sleep(0.01)
++        sleep(0.1)
+         # We have to wait for the client to finish connecting 
+         # before sending a msg to it.
+         self.server.send_to_client(Message('test', 'message', 'identity'))

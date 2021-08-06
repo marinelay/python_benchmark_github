@@ -1,0 +1,294 @@
+diff --git a/homeassistant/components/homekit_controller/config_flow.py b/homeassistant/components/homekit_controller/config_flow.py
+index 4f704d7ea59b8..1cd4a0b4c50ef 100644
+--- a/homeassistant/components/homekit_controller/config_flow.py
++++ b/homeassistant/components/homekit_controller/config_flow.py
+@@ -238,10 +238,42 @@ async def async_step_pair(self, pair_info=None):
+         # in.
+ 
+         errors = {}
++
+         if self.controller is None:
+             await self._async_setup_controller()
+ 
+-        if pair_info:
++        if not self.finish_pairing:
++            # Its possible that the first try may have been busy so
++            # we always check to see if self.finish_paring has been
++            # set.
++            discovery = await self.controller.find_ip_by_device_id(self.hkid)
++
++            try:
++                self.finish_pairing = await discovery.start_pairing(self.hkid)
++
++            except aiohomekit.BusyError:
++                # Already performing a pair setup operation with a different
++                # controller
++                errors["base"] = "busy_error"
++            except aiohomekit.MaxTriesError:
++                # The accessory has received more than 100 unsuccessful auth
++                # attempts.
++                errors["base"] = "max_tries_error"
++            except aiohomekit.UnavailableError:
++                # The accessory is already paired - cannot try to pair again.
++                return self.async_abort(reason="already_paired")
++            except aiohomekit.AccessoryNotFoundError:
++                # Can no longer find the device on the network
++                return self.async_abort(reason="accessory_not_found_error")
++            except IndexError:
++                # TLV error, usually not in pairing mode
++                _LOGGER.exception("Pairing communication failed")
++                errors["base"] = "protocol_error"
++            except Exception:  # pylint: disable=broad-except
++                _LOGGER.exception("Pairing attempt failed with an unhandled exception")
++                errors["pairing_code"] = "pairing_failed"
++
++        if pair_info and self.finish_pairing:
+             code = pair_info["pairing_code"]
+             try:
+                 code = ensure_pin_format(code)
+@@ -257,45 +289,33 @@ async def async_step_pair(self, pair_info=None):
+                 # PairVerify M4 - Device not recognised
+                 # PairVerify M4 - Ed25519 signature verification failed
+                 errors["pairing_code"] = "authentication_error"
++                self.finish_pairing = None
+             except aiohomekit.UnknownError:
+                 # An error occurred on the device whilst performing this
+                 # operation.
+                 errors["pairing_code"] = "unknown_error"
++                self.finish_pairing = None
+             except aiohomekit.MaxPeersError:
+                 # The device can't pair with any more accessories.
+                 errors["pairing_code"] = "max_peers_error"
++                self.finish_pairing = None
+             except aiohomekit.AccessoryNotFoundError:
+                 # Can no longer find the device on the network
+                 return self.async_abort(reason="accessory_not_found_error")
+             except Exception:  # pylint: disable=broad-except
+                 _LOGGER.exception("Pairing attempt failed with an unhandled exception")
++                self.finish_pairing = None
+                 errors["pairing_code"] = "pairing_failed"
+ 
+-        discovery = await self.controller.find_ip_by_device_id(self.hkid)
+-
+-        try:
+-            self.finish_pairing = await discovery.start_pairing(self.hkid)
+-
+-        except aiohomekit.BusyError:
+-            # Already performing a pair setup operation with a different
+-            # controller
+-            errors["pairing_code"] = "busy_error"
+-        except aiohomekit.MaxTriesError:
+-            # The accessory has received more than 100 unsuccessful auth
+-            # attempts.
+-            errors["pairing_code"] = "max_tries_error"
+-        except aiohomekit.UnavailableError:
+-            # The accessory is already paired - cannot try to pair again.
+-            return self.async_abort(reason="already_paired")
+-        except aiohomekit.AccessoryNotFoundError:
+-            # Can no longer find the device on the network
+-            return self.async_abort(reason="accessory_not_found_error")
+-        except Exception:  # pylint: disable=broad-except
+-            _LOGGER.exception("Pairing attempt failed with an unhandled exception")
+-            errors["pairing_code"] = "pairing_failed"
++        if errors and "base" in errors:
++            return self.async_show_form(step_id="try_pair_later", errors=errors)
+ 
+         return self._async_step_pair_show_form(errors)
+ 
++    async def async_step_try_pair_later(self, pair_info=None):
++        """Retry pairing after the accessory is busy or unavailable."""
++        return await self.async_step_pair(pair_info)
++
+     @callback
+     def _async_step_pair_show_form(self, errors=None):
+         return self.async_show_form(
+diff --git a/homeassistant/components/homekit_controller/strings.json b/homeassistant/components/homekit_controller/strings.json
+index 118c3bf7f8a9f..6be751e63c90a 100644
+--- a/homeassistant/components/homekit_controller/strings.json
++++ b/homeassistant/components/homekit_controller/strings.json
+@@ -16,11 +16,16 @@
+         "data": {
+           "pairing_code": "Pairing Code"
+         }
+-      }
++      },
++      "try_pair_later": {
++        "title": "Pairing Unavailable",
++        "description": "Ensure the device is in pairing mode or try restarting the device, then continue to re-start pairing."
++      }      
+     },
+     "error": {
+       "unable_to_pair": "Unable to pair, please try again.",
+       "unknown_error": "Device reported an unknown error. Pairing failed.",
++      "protocol_error": "Error communicating with the accessory. Device may not be in pairing mode and may require a physical or virtual button press.",
+       "authentication_error": "Incorrect HomeKit code. Please check it and try again.",
+       "max_peers_error": "Device refused to add pairing as it has no free pairing storage.",
+       "busy_error": "Device refused to add pairing as it is already pairing with another controller.",
+diff --git a/homeassistant/components/homekit_controller/translations/en.json b/homeassistant/components/homekit_controller/translations/en.json
+index 69ea4c3c351a7..6be751e63c90a 100644
+--- a/homeassistant/components/homekit_controller/translations/en.json
++++ b/homeassistant/components/homekit_controller/translations/en.json
+@@ -1,40 +1,45 @@
+ {
+-    "config": {
+-        "abort": {
+-            "accessory_not_found_error": "Cannot add pairing as device can no longer be found.",
+-            "already_configured": "Accessory is already configured with this controller.",
+-            "already_in_progress": "Config flow for device is already in progress.",
+-            "already_paired": "This accessory is already paired to another device. Please reset the accessory and try again.",
+-            "ignored_model": "HomeKit support for this model is blocked as a more feature complete native integration is available.",
+-            "invalid_config_entry": "This device is showing as ready to pair but there is already a conflicting configuration entry for it in Home Assistant that must first be removed.",
+-            "no_devices": "No unpaired devices could be found"
+-        },
+-        "error": {
+-            "authentication_error": "Incorrect HomeKit code. Please check it and try again.",
+-            "busy_error": "Device refused to add pairing as it is already pairing with another controller.",
+-            "max_peers_error": "Device refused to add pairing as it has no free pairing storage.",
+-            "max_tries_error": "Device refused to add pairing as it has received more than 100 unsuccessful authentication attempts.",
+-            "pairing_failed": "An unhandled error occurred while attempting to pair with this device. This may be a temporary failure or your device may not be supported currently.",
+-            "unable_to_pair": "Unable to pair, please try again.",
+-            "unknown_error": "Device reported an unknown error. Pairing failed."
+-        },
+-        "flow_title": "HomeKit Accessory: {name}",
+-        "step": {
+-            "pair": {
+-                "data": {
+-                    "pairing_code": "Pairing Code"
+-                },
+-                "description": "Enter your HomeKit pairing code (in the format XXX-XX-XXX) to use this accessory",
+-                "title": "Pair with HomeKit Accessory"
+-            },
+-            "user": {
+-                "data": {
+-                    "device": "Device"
+-                },
+-                "description": "Select the device you want to pair with",
+-                "title": "Pair with HomeKit Accessory"
+-            }
++  "title": "HomeKit Controller",
++  "config": {
++    "flow_title": "HomeKit Accessory: {name}",
++    "step": {
++      "user": {
++        "title": "Pair with HomeKit Accessory",
++        "description": "Select the device you want to pair with",
++        "data": {
++          "device": "Device"
+         }
++      },
++      "pair": {
++        "title": "Pair with HomeKit Accessory",
++        "description": "Enter your HomeKit pairing code (in the format XXX-XX-XXX) to use this accessory",
++        "data": {
++          "pairing_code": "Pairing Code"
++        }
++      },
++      "try_pair_later": {
++        "title": "Pairing Unavailable",
++        "description": "Ensure the device is in pairing mode or try restarting the device, then continue to re-start pairing."
++      }      
++    },
++    "error": {
++      "unable_to_pair": "Unable to pair, please try again.",
++      "unknown_error": "Device reported an unknown error. Pairing failed.",
++      "protocol_error": "Error communicating with the accessory. Device may not be in pairing mode and may require a physical or virtual button press.",
++      "authentication_error": "Incorrect HomeKit code. Please check it and try again.",
++      "max_peers_error": "Device refused to add pairing as it has no free pairing storage.",
++      "busy_error": "Device refused to add pairing as it is already pairing with another controller.",
++      "max_tries_error": "Device refused to add pairing as it has received more than 100 unsuccessful authentication attempts.",
++      "pairing_failed": "An unhandled error occurred while attempting to pair with this device. This may be a temporary failure or your device may not be supported currently."
+     },
+-    "title": "HomeKit Controller"
+-}
+\ No newline at end of file
++    "abort": {
++      "no_devices": "No unpaired devices could be found",
++      "already_paired": "This accessory is already paired to another device. Please reset the accessory and try again.",
++      "ignored_model": "HomeKit support for this model is blocked as a more feature complete native integration is available.",
++      "already_configured": "Accessory is already configured with this controller.",
++      "invalid_config_entry": "This device is showing as ready to pair but there is already a conflicting configuration entry for it in Home Assistant that must first be removed.",
++      "accessory_not_found_error": "Cannot add pairing as device can no longer be found.",
++      "already_in_progress": "Config flow for device is already in progress."
++    }
++  }
++}
+diff --git a/tests/components/homekit_controller/test_config_flow.py b/tests/components/homekit_controller/test_config_flow.py
+index a9aef723164ed..caab127aa875e 100644
+--- a/tests/components/homekit_controller/test_config_flow.py
++++ b/tests/components/homekit_controller/test_config_flow.py
+@@ -14,8 +14,6 @@
+ from tests.common import MockConfigEntry
+ 
+ PAIRING_START_FORM_ERRORS = [
+-    (aiohomekit.BusyError, "busy_error"),
+-    (aiohomekit.MaxTriesError, "max_tries_error"),
+     (KeyError, "pairing_failed"),
+ ]
+ 
+@@ -24,6 +22,12 @@
+     (aiohomekit.UnavailableError, "already_paired"),
+ ]
+ 
++PAIRING_TRY_LATER_ERRORS = [
++    (aiohomekit.BusyError, "busy_error"),
++    (aiohomekit.MaxTriesError, "max_tries_error"),
++    (IndexError, "protocol_error"),
++]
++
+ PAIRING_FINISH_FORM_ERRORS = [
+     (aiohomekit.exceptions.MalformedPinError, "authentication_error"),
+     (aiohomekit.MaxPeersError, "max_peers_error"),
+@@ -314,6 +318,39 @@ async def test_pair_abort_errors_on_start(hass, controller, exception, expected)
+     assert result["reason"] == expected
+ 
+ 
++@pytest.mark.parametrize("exception,expected", PAIRING_TRY_LATER_ERRORS)
++async def test_pair_try_later_errors_on_start(hass, controller, exception, expected):
++    """Test various pairing errors."""
++
++    device = setup_mock_accessory(controller)
++    discovery_info = get_device_discovery_info(device)
++
++    # Device is discovered
++    result = await hass.config_entries.flow.async_init(
++        "homekit_controller", context={"source": "zeroconf"}, data=discovery_info
++    )
++
++    # User initiates pairing - device refuses to enter pairing mode but may be successful after entering pairing mode or rebooting
++    test_exc = exception("error")
++    with patch.object(device, "start_pairing", side_effect=test_exc):
++        result2 = await hass.config_entries.flow.async_configure(result["flow_id"])
++    assert result2["step_id"] == "try_pair_later"
++    assert result2["type"] == "form"
++    assert result2["errors"]["base"] == expected
++
++    # Device is rebooted or placed into pairing mode as they have been instructed
++
++    # We start pairing again
++    result3 = await hass.config_entries.flow.async_configure(result2["flow_id"])
++
++    # .. and successfully complete pair
++    result4 = await hass.config_entries.flow.async_configure(
++        result3["flow_id"], user_input={"pairing_code": "111-22-333"}
++    )
++    assert result4["type"] == "create_entry"
++    assert result4["title"] == "Koogeek-LS1-20833F"
++
++
+ @pytest.mark.parametrize("exception,expected", PAIRING_START_FORM_ERRORS)
+ async def test_pair_form_errors_on_start(hass, controller, exception, expected):
+     """Test various pairing errors."""
+@@ -347,6 +384,13 @@ async def test_pair_form_errors_on_start(hass, controller, exception, expected):
+         "source": "zeroconf",
+     }
+ 
++    # User re-tries entering pairing code
++    result = await hass.config_entries.flow.async_configure(
++        result["flow_id"], user_input={"pairing_code": "111-22-333"}
++    )
++    assert result["type"] == "create_entry"
++    assert result["title"] == "Koogeek-LS1-20833F"
++
+ 
+ @pytest.mark.parametrize("exception,expected", PAIRING_FINISH_ABORT_ERRORS)
+ async def test_pair_abort_errors_on_finish(hass, controller, exception, expected):

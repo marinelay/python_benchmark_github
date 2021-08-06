@@ -1,0 +1,91 @@
+diff --git a/salt/utils/stringutils.py b/salt/utils/stringutils.py
+index df056f6459b77..a1acd03824fe2 100644
+--- a/salt/utils/stringutils.py
++++ b/salt/utils/stringutils.py
+@@ -294,20 +294,29 @@ def __build_parts(text):
+ 
+ def expr_match(line, expr):
+     '''
+-    Evaluate a line of text against an expression. First try a full-string
+-    match, next try globbing, and then try to match assuming expr is a regular
+-    expression. Originally designed to match minion IDs for
+-    whitelists/blacklists.
++    Checks whether or not the passed value matches the specified expression.
++    Tries to match expr first as a glob using fnmatch.fnmatch(), and then tries
++    to match expr as a regular expression. Originally designed to match minion
++    IDs for whitelists/blacklists.
++
++    Note that this also does exact matches, as fnmatch.fnmatch() will return
++    ``True`` when no glob characters are used and the string is an exact match:
++
++    .. code-block:: python
++
++        >>> fnmatch.fnmatch('foo', 'foo')
++        True
+     '''
+-    if line == expr:
+-        return True
+-    if fnmatch.fnmatch(line, expr):
+-        return True
+     try:
+-        if re.match(r'\A{0}\Z'.format(expr), line):
++        if fnmatch.fnmatch(line, expr):
+             return True
+-    except re.error:
+-        pass
++        try:
++            if re.match(r'\A{0}\Z'.format(expr), line):
++                return True
++        except re.error:
++            pass
++    except TypeError:
++        log.exception('Value %r or expression %r is not a string', line, expr)
+     return False
+ 
+ 
+@@ -337,22 +346,16 @@ def check_whitelist_blacklist(value, whitelist=None, blacklist=None):
+     if blacklist is not None:
+         if not hasattr(blacklist, '__iter__'):
+             blacklist = [blacklist]
+-        try:
+-            for expr in blacklist:
+-                if expr_match(value, expr):
+-                    return False
+-        except TypeError:
+-            log.error('Non-iterable blacklist %s', blacklist)
++        for expr in blacklist:
++            if expr_match(value, expr):
++                return False
+ 
+     if whitelist:
+         if not hasattr(whitelist, '__iter__'):
+             whitelist = [whitelist]
+-        try:
+-            for expr in whitelist:
+-                if expr_match(value, expr):
+-                    return True
+-        except TypeError:
+-            log.error('Non-iterable whitelist %s', whitelist)
++        for expr in whitelist:
++            if expr_match(value, expr):
++                return True
+     else:
+         return True
+ 
+diff --git a/tests/unit/utils/test_stringutils.py b/tests/unit/utils/test_stringutils.py
+index 36ff9308a454c..77df863096fb4 100644
+--- a/tests/unit/utils/test_stringutils.py
++++ b/tests/unit/utils/test_stringutils.py
+@@ -169,3 +169,12 @@ def test_get_context_with_marker(self):
+         context = salt.utils.stringutils.get_context(template, 8, num_lines=2, marker=' <---')
+         expected = '---\n[...]\n6\n7\n8 <---\n9\na\n[...]\n---'
+         self.assertEqual(expected, context)
++
++    def test_expr_match(self):
++        val = 'foo/bar/baz'
++        # Exact match
++        self.assertTrue(salt.utils.stringutils.expr_match(val, val))
++        # Glob match
++        self.assertTrue(salt.utils.stringutils.expr_match(val, 'foo/*/baz'))
++        # Glob non-match
++        self.assertFalse(salt.utils.stringutils.expr_match(val, 'foo/*/bar'))

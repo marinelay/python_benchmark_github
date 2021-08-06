@@ -1,0 +1,75 @@
+diff --git a/doc/source/whatsnew/v0.25.0.rst b/doc/source/whatsnew/v0.25.0.rst
+index 8e72ce83ac028..cae73386bc1e1 100644
+--- a/doc/source/whatsnew/v0.25.0.rst
++++ b/doc/source/whatsnew/v0.25.0.rst
+@@ -205,7 +205,7 @@ Interval
+ Indexing
+ ^^^^^^^^
+ 
+--
++- Improved exception message when calling :meth:`DataFrame.iloc` with a list of non-numeric objects (:issue:`25753`).
+ -
+ -
+ 
+diff --git a/pandas/core/indexing.py b/pandas/core/indexing.py
+index 623a48acdd48b..46904e32f88a6 100755
+--- a/pandas/core/indexing.py
++++ b/pandas/core/indexing.py
+@@ -13,7 +13,7 @@
+ 
+ from pandas.core.dtypes.common import (
+     ensure_platform_int, is_float, is_integer, is_integer_dtype, is_iterator,
+-    is_list_like, is_scalar, is_sequence, is_sparse)
++    is_list_like, is_numeric_dtype, is_scalar, is_sequence, is_sparse)
+ from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
+ from pandas.core.dtypes.missing import _infer_fill_value, isna
+ 
+@@ -2075,10 +2075,15 @@ def _validate_key(self, key, axis):
+             # so don't treat a tuple as a valid indexer
+             raise IndexingError('Too many indexers')
+         elif is_list_like_indexer(key):
+-            # check that the key does not exceed the maximum size of the index
+             arr = np.array(key)
+             len_axis = len(self.obj._get_axis(axis))
+ 
++            # check that the key has a numeric dtype
++            if not is_numeric_dtype(arr.dtype):
++                raise IndexError(".iloc requires numeric indexers, got "
++                                 "{arr}".format(arr=arr))
++
++            # check that the key does not exceed the maximum size of the index
+
+
+# positive가 지나가는것 int64, float64
+# 이거 두개를 다 체크하거나, 타입을 뭉뚱그려서 numeric으로 체킹하기
+# arr는 당연히 ndarray로 arr.dtype을 보아야함
+
+             if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
+                 raise IndexError("positional indexers are out-of-bounds")
+         else:
+diff --git a/pandas/tests/indexing/test_iloc.py b/pandas/tests/indexing/test_iloc.py
+index 7147757953b01..27f62af8394ef 100644
+--- a/pandas/tests/indexing/test_iloc.py
++++ b/pandas/tests/indexing/test_iloc.py
+@@ -118,6 +118,21 @@ def check(result, expected):
+         with pytest.raises(IndexError, match=msg):
+             dfl.iloc[:, 4]
+ 
++    @pytest.mark.parametrize("index,columns", [(np.arange(20), list('ABCDE'))])
++    @pytest.mark.parametrize("index_vals,column_vals", [
++        ([slice(None), ['A', 'D']]),
++        (['1', '2'], slice(None)),
++        ([pd.datetime(2019, 1, 1)], slice(None))])
++    def test_iloc_non_integer_raises(self, index, columns,
++                                     index_vals, column_vals):
++        # GH 25753
++        df = DataFrame(np.random.randn(len(index), len(columns)),
++                       index=index,
++                       columns=columns)
++        msg = '.iloc requires numeric indexers, got'
++        with pytest.raises(IndexError, match=msg):
++            df.iloc[index_vals, column_vals]
++
+     def test_iloc_getitem_int(self):
+ 
+         # integer

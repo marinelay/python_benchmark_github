@@ -1,0 +1,45 @@
+diff --git a/numpy/lib/stride_tricks.py b/numpy/lib/stride_tricks.py
+index bc599380237..ca13738c1f3 100644
+--- a/numpy/lib/stride_tricks.py
++++ b/numpy/lib/stride_tricks.py
+@@ -242,7 +242,7 @@ def broadcast_arrays(*args, **kwargs):
+     subok = kwargs.pop('subok', False)
+     if kwargs:
+         raise TypeError('broadcast_arrays() got an unexpected keyword '
+-                        'argument {!r}'.format(kwargs.keys()[0]))
++                        'argument {!r}'.format(list(kwargs.keys())[0]))
+     args = [np.array(_m, copy=False, subok=subok) for _m in args]
+ 
+     shape = _broadcast_shape(*args)
+diff --git a/numpy/lib/tests/test_stride_tricks.py b/numpy/lib/tests/test_stride_tricks.py
+index 3c2ca8b8793..b2bd7da3ef4 100644
+--- a/numpy/lib/tests/test_stride_tricks.py
++++ b/numpy/lib/tests/test_stride_tricks.py
+@@ -3,7 +3,8 @@
+ import numpy as np
+ from numpy.core._rational_tests import rational
+ from numpy.testing import (
+-    assert_equal, assert_array_equal, assert_raises, assert_
++    assert_equal, assert_array_equal, assert_raises, assert_,
++    assert_raises_regex
+     )
+ from numpy.lib.stride_tricks import (
+     as_strided, broadcast_arrays, _broadcast_shape, broadcast_to
+@@ -57,6 +58,17 @@ def test_same():
+     assert_array_equal(x, bx)
+     assert_array_equal(y, by)
+ 
++def test_broadcast_kwargs():
++    # ensure that a TypeError is appropriately raised when
++    # np.broadcast_arrays() is called with any keyword
++    # argument other than 'subok'
++    x = np.arange(10)
++    y = np.arange(10)
++
++    with assert_raises_regex(TypeError,
++                             r'broadcast_arrays\(\) got an unexpected keyword*'):
++        broadcast_arrays(x, y, dtype='float64')
++
+ 
+ def test_one_off():
+     x = np.array([[1, 2, 3]])

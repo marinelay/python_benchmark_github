@@ -1,0 +1,71 @@
+diff --git a/doc/source/whatsnew/v0.23.0.txt b/doc/source/whatsnew/v0.23.0.txt
+index 86fc47dee09fc..cf3c3089750f8 100644
+--- a/doc/source/whatsnew/v0.23.0.txt
++++ b/doc/source/whatsnew/v0.23.0.txt
+@@ -312,6 +312,7 @@ Other API Changes
+ - Addition or subtraction of ``NaT`` from :class:`TimedeltaIndex` will return ``TimedeltaIndex`` instead of ``DatetimeIndex`` (:issue:`19124`)
+ - :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
+ - Addition and subtraction of ``NaN`` from a :class:`Series` with ``dtype='timedelta64[ns]'`` will raise a ``TypeError` instead of treating the ``NaN`` as ``NaT`` (:issue:`19274`)
++- Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
+ 
+ .. _whatsnew_0230.deprecations:
+ 
+diff --git a/pandas/core/indexes/interval.py b/pandas/core/indexes/interval.py
+index 58b1bdb3f55ea..68145ebaed7e7 100644
+--- a/pandas/core/indexes/interval.py
++++ b/pandas/core/indexes/interval.py
+@@ -1152,12 +1152,17 @@ def insert(self, loc, item):
+         new_right = self.right.insert(loc, right_insert)
+         return self._shallow_copy(new_left, new_right)
+ 
+-    def _as_like_interval_index(self, other, error_msg):
++    def _as_like_interval_index(self, other):
+         self._assert_can_do_setop(other)
+         other = _ensure_index(other)
+-        if (not isinstance(other, IntervalIndex) or
+-                self.closed != other.closed):
+-            raise ValueError(error_msg)
++        if not isinstance(other, IntervalIndex):
++            msg = ('the other index needs to be an IntervalIndex too, but '
++                   'was type {}').format(other.__class__.__name__)
++            raise TypeError(msg)
++        elif self.closed != other.closed:
++            msg = ('can only do set operations between two IntervalIndex '
++                   'objects that are closed on the same side')
++            raise ValueError(msg)
+         return other
+ 
+     def _concat_same_dtype(self, to_concat, name):
+@@ -1296,9 +1301,7 @@ def equals(self, other):
+ 
+     def _setop(op_name):
+         def func(self, other):
+-            msg = ('can only do set operations between two IntervalIndex '
+-                   'objects that are closed on the same side')
+-            other = self._as_like_interval_index(other, msg)
++            other = self._as_like_interval_index(other)
+ 
+             # GH 19016: ensure set op will not return a prohibited dtype
+             subtypes = [self.dtype.subtype, other.dtype.subtype]
+diff --git a/pandas/tests/indexes/interval/test_interval.py b/pandas/tests/indexes/interval/test_interval.py
+index 9895ee06a22c0..345d3a9a0878b 100644
+--- a/pandas/tests/indexes/interval/test_interval.py
++++ b/pandas/tests/indexes/interval/test_interval.py
+@@ -934,12 +934,14 @@ def test_set_operation_errors(self, closed, op_name):
+         set_op = getattr(index, op_name)
+ 
+         # non-IntervalIndex
+-        msg = ('can only do set operations between two IntervalIndex objects '
+-               'that are closed on the same side')
+-        with tm.assert_raises_regex(ValueError, msg):
++        msg = ('the other index needs to be an IntervalIndex too, but '
++               'was type Int64Index')
++        with tm.assert_raises_regex(TypeError, msg):
+             set_op(Index([1, 2, 3]))
+ 
+         # mixed closed
++        msg = ('can only do set operations between two IntervalIndex objects '
++               'that are closed on the same side')
+         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
+             other = self.create_index(closed=other_closed)
+             with tm.assert_raises_regex(ValueError, msg):

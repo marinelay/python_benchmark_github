@@ -1,0 +1,198 @@
+diff --git a/paddle/fluid/operators/elementwise/elementwise_op.h b/paddle/fluid/operators/elementwise/elementwise_op.h
+index 74392ab36424..8da447adaa70 100644
+--- a/paddle/fluid/operators/elementwise/elementwise_op.h
++++ b/paddle/fluid/operators/elementwise/elementwise_op.h
+@@ -52,14 +52,25 @@ class ElementwiseOp : public framework::OperatorWithKernel {
+         framework::proto::VarType::LOD_TENSOR) {
+       auto x_dim = ctx->GetInputDim("X");
+       auto y_dim = ctx->GetInputDim("Y");
+-      PADDLE_ENFORCE_GE(x_dim.size(), y_dim.size(),
+-                        "Rank of first input must >= rank of second input.");
++      PADDLE_ENFORCE_GE(
++          x_dim.size(), y_dim.size(),
++          "ShapeError: the dimension of input X must greater than or equal to "
++          "the one of input Y. But received: the shape of input X = [%s], the "
++          "dimension of input X = %d, the shape of input Y = [%s], the "
++          "dimension of input Y = %d",
++          x_dim, x_dim.size(), y_dim, y_dim.size());
+     } else if (ctx->GetInputsVarType("X").front() ==
+                framework::proto::VarType::SELECTED_ROWS) {
+-      PADDLE_ENFORCE((ctx->GetInputDim("Y").size() == 1u) &&
+-                         (ctx->GetInputDim("Y")[0] == 1),
+-                     "For elementwise_op, if X is Sparse, "
+-                     "Y must be scalar.");
++      PADDLE_ENFORCE_EQ(
++          ctx->GetInputDim("Y").size(), 1u,
++          "ShapeError: For elementwise_op, if X is Sparse(VarType.SELECTED_ROWS"
++          "), Y must be scalar. But reveived the dimension of Y = %s",
++          ctx->GetInputDim("Y").size());
++      PADDLE_ENFORCE_EQ(
++          ctx->GetInputDim("Y")[0], 1,
++          "ShapeError: For elementwise_op, if X is Sparse(VarType.SELECTED_ROWS"
++          "), Y must be scalar. But reveived the first dimension of Y = %s",
++          ctx->GetInputDim("Y")[0]);
+     } else {
+       PADDLE_THROW("X's type[%s] is not supported by elementwise_op.",
+                    ctx->GetInputsVarType("X").front());
+@@ -203,8 +214,13 @@ class ElementwiseOpGrad : public framework::OperatorWithKernel {
+     auto x_dims = ctx->GetInputDim(out_grad_name);
+     auto y_dims = ctx->GetInputDim("Y");
+ 
+-    PADDLE_ENFORCE_GE(x_dims.size(), y_dims.size(),
+-                      "Rank of first input must >= rank of second input.");
++    PADDLE_ENFORCE_GE(
++        x_dims.size(), y_dims.size(),
++        "ShapeError: the dimension of Out@GRAD must greater than or equal to "
++        "the one of input Y. But received: the shape of Out@GRAD = [%s], the "
++        "dimension of Out@GRAD = %d, the shape of input Y = [%s], the "
++        "dimension of of input Y = %d",
++        x_dims, x_dims.size(), y_dims, y_dims.size());
+ 
+     auto x_grad_name = framework::GradVarName("X");
+     auto y_grad_name = framework::GradVarName("Y");
+diff --git a/paddle/fluid/operators/elementwise/elementwise_op_function.h b/paddle/fluid/operators/elementwise/elementwise_op_function.h
+index 59a9c3086df7..049a6fb0d110 100644
+--- a/paddle/fluid/operators/elementwise/elementwise_op_function.h
++++ b/paddle/fluid/operators/elementwise/elementwise_op_function.h
+@@ -71,7 +71,12 @@ inline void get_mid_dims(const framework::DDim &x_dims,
+         // only support single y_dims[i] = 1 now.
+         PADDLE_ENFORCE_EQ(*mid_flag, 0,
+                           "Broadcast support y_dims with single 1.");
+-        PADDLE_ENFORCE_EQ(y_dims[i], 1, "Broadcast dimension mismatch.");
++        PADDLE_ENFORCE_EQ(y_dims[i], 1,
++                          "ShapeError: broadcast dimension mismatch. Operands "
++                          "could not be broadcast together with the shape of "
++                          "X = [%s] and the shape of Y = [%s]. Received [%d] "
++                          "in X is not equal to [%d] in Y",
++                          x_dims, y_dims, x_dims[i + axis], y_dims[i]);
+         // m*n*k m*1*k
+         for (int j = 0; j < i; ++j) {
+           (*pre) *= y_dims[j];
+@@ -823,8 +828,13 @@ void ElementwiseComputeEx(const framework::ExecutionContext &ctx,
+       x, y, z, ctx.template device_context<DeviceContext>(), func);
+   auto x_dims = x->dims();
+   auto y_dims_untrimed = y->dims();
+-  PADDLE_ENFORCE_GE(x_dims.size(), y_dims_untrimed.size(),
+-                    "Rank of first input must >= rank of second input.");
++  PADDLE_ENFORCE_GE(
++      x_dims.size(), y_dims_untrimed.size(),
++      "ShapeError: the dimension of input X must greater than or equal to "
++      "the one of input Y. But received: the shape of input X = [%s], the "
++      "dimension of input X = %d, the shape of input Y = [%s], the dimension "
++      "of of input Y = %d",
++      x_dims, x_dims.size(), y_dims_untrimed, y_dims_untrimed.size());
+   if (x_dims == y_dims_untrimed) {
+     functor.Run();
+     return;
+diff --git a/python/paddle/fluid/layers/nn.py b/python/paddle/fluid/layers/nn.py
+index bb12a20a9112..2618988efec8 100755
+--- a/python/paddle/fluid/layers/nn.py
++++ b/python/paddle/fluid/layers/nn.py
+@@ -12296,6 +12296,35 @@ def _elementwise_op(helper):
+ 
+     assert x is not None, 'x cannot be None in {}'.format(op_type)
+     assert y is not None, 'y cannot be None in {}'.format(op_type)
++    if not isinstance(x, Variable):
++        raise TypeError(
++            "The type of 'x' in %s must be Variable, but received %s" %
++            (op_type, type(x)))
++    if not isinstance(y, Variable):
++        raise TypeError(
++            "The type of 'y' in %s must be Variable, but received %s" %
++            (op_type, type(y)))
++    if convert_dtype(x.dtype) in ['float16']:
++        warnings.warn(
++            "The data type of 'x' in batch_norm only support float16 on GPU now."
++        )
++    if convert_dtype(y.dtype) in ['float16']:
++        warnings.warn(
++            "The data type of 'y' in batch_norm only support float16 on GPU now."
++        )
++    if convert_dtype(x.dtype) not in [
++            'float16', 'float32', 'float64', 'int32', 'int64'
++    ]:
++        raise TypeError(
++            "The data type of 'x' in batch_norm must be float16 or float32 or float64 or int32 or int64, but received %s."
++            % (convert_dtype(x.dtype)))
++    if convert_dtype(y.dtype) not in [
++            'float16', 'float32', 'float64', 'int32', 'int64'
++    ]:
++        raise TypeError(
++            "The data type of 'y' in batch_norm must be float16 or float32 or float64 or int32 or int64, but received %s."
++            % (convert_dtype(y.dtype)))
++
+     axis = helper.kwargs.get('axis', -1)
+     use_mkldnn = helper.kwargs.get('use_mkldnn', False)
+     name = helper.kwargs.get('name', None)
+diff --git a/python/paddle/fluid/tests/unittests/test_elementwise_add_op.py b/python/paddle/fluid/tests/unittests/test_elementwise_add_op.py
+index 5783048f5fb6..e54827feee1c 100644
+--- a/python/paddle/fluid/tests/unittests/test_elementwise_add_op.py
++++ b/python/paddle/fluid/tests/unittests/test_elementwise_add_op.py
+@@ -17,6 +17,8 @@
+ import numpy as np
+ import paddle.fluid.core as core
+ from op_test import OpTest
++import paddle.fluid as fluid
++from paddle.fluid import compiler, Program, program_guard
+ 
+ 
+ class TestElementwiseAddOp(OpTest):
+@@ -306,5 +308,22 @@ def init_axis(self):
+         self.axis = -1
+ 
+ 
++class TestElementwiseAddOpError(OpTest):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # the input of elementwise_add must be Variable.
++            x1 = fluid.create_lod_tensor(
++                np.array([-1, 3, 5, 5]), [[1, 1, 1, 1]], fluid.CPUPlace())
++            y1 = fluid.create_lod_tensor(
++                np.array([-1, 3, 5, 5]), [[1, 1, 1, 1]], fluid.CPUPlace())
++            self.assertRaises(TypeError, fluid.layers.elementwise_add, x1, y1)
++
++            # the input dtype of elementwise_add must be float16 or float32 or float64 or int32 or int64
++            # float16 only can be set on GPU place
++            x2 = fluid.layers.data(name='x2', shape=[3, 4, 5, 6], dtype="uint8")
++            y2 = fluid.layers.data(name='y2', shape=[3, 4, 5, 6], dtype="uint8")
++            self.assertRaises(TypeError, fluid.layers.elementwise_add, x2, y2)
++
++
+ if __name__ == '__main__':
+     unittest.main()
+diff --git a/python/paddle/fluid/tests/unittests/test_elementwise_mul_op.py b/python/paddle/fluid/tests/unittests/test_elementwise_mul_op.py
+index 2415aeb0cbf2..7ee24d465d57 100644
+--- a/python/paddle/fluid/tests/unittests/test_elementwise_mul_op.py
++++ b/python/paddle/fluid/tests/unittests/test_elementwise_mul_op.py
+@@ -18,6 +18,8 @@
+ from op_test import OpTest
+ import paddle.fluid.core as core
+ from paddle.fluid.op import Operator
++import paddle.fluid as fluid
++from paddle.fluid import compiler, Program, program_guard
+ 
+ 
+ class ElementwiseMulOp(OpTest):
+@@ -160,5 +162,22 @@ def init_dtype(self):
+         self.dtype = np.float16
+ 
+ 
++class TestElementwiseMulOpError(OpTest):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # the input of elementwise_mul must be Variable.
++            x1 = fluid.create_lod_tensor(
++                np.array([-1, 3, 5, 5]), [[1, 1, 1, 1]], fluid.CPUPlace())
++            y1 = fluid.create_lod_tensor(
++                np.array([-1, 3, 5, 5]), [[1, 1, 1, 1]], fluid.CPUPlace())
++            self.assertRaises(TypeError, fluid.layers.elementwise_mul, x1, y1)
++
++            # the input dtype of elementwise_mul must be float16 or float32 or float64 or int32 or int64
++            # float16 only can be set on GPU place
++            x2 = fluid.layers.data(name='x2', shape=[3, 4, 5, 6], dtype="uint8")
++            y2 = fluid.layers.data(name='y2', shape=[3, 4, 5, 6], dtype="uint8")
++            self.assertRaises(TypeError, fluid.layers.elementwise_mul, x2, y2)
++
++
+ if __name__ == '__main__':
+     unittest.main()

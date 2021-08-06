@@ -1,0 +1,76 @@
+diff --git a/pandas/core/indexing.py b/pandas/core/indexing.py
+index 8ffc7548059b7..e0b6048b2ad64 100755
+--- a/pandas/core/indexing.py
++++ b/pandas/core/indexing.py
+@@ -2124,7 +2124,25 @@ def _getitem_scalar(self, key):
+         return values
+ 
+     def _validate_integer(self, key, axis):
+-        # return a boolean if we have a valid integer indexer
++        """
++        Check that 'key' is a valid position in the desired axis.
++
++        Parameters
++        ----------
++        key : int
++            Requested position
++        axis : int
++            Desired axis
++
++        Returns
++        -------
++        None
++
++        Raises
++        ------
++        IndexError
++            If 'key' is not a valid position in axis 'axis'
++        """
+ 
+         ax = self.obj._get_axis(axis)
+         l = len(ax)
+@@ -2215,8 +2233,6 @@ def _getitem_axis(self, key, axis=None):
+ 
+         # a single integer
+         else:
+-            key = self._convert_scalar_indexer(key, axis)
+-
+             if not is_integer(key):
+                 raise TypeError("Cannot index by location index with a "
+                                 "non-integer key")
+diff --git a/pandas/tests/indexing/test_floats.py b/pandas/tests/indexing/test_floats.py
+index 32a56aeafc6ad..ba1f1de21871f 100644
+--- a/pandas/tests/indexing/test_floats.py
++++ b/pandas/tests/indexing/test_floats.py
+@@ -50,7 +50,7 @@ def test_scalar_error(self):
+             def f():
+                 s.iloc[3.0]
+             tm.assert_raises_regex(TypeError,
+-                                   'cannot do positional indexing',
++                                   'Cannot index by location index',
+                                    f)
+ 
+             def f():
+diff --git a/pandas/tests/indexing/test_iloc.py b/pandas/tests/indexing/test_iloc.py
+index 81397002abd2b..3dcfe6a68ad9f 100644
+--- a/pandas/tests/indexing/test_iloc.py
++++ b/pandas/tests/indexing/test_iloc.py
+@@ -126,6 +126,18 @@ def test_iloc_getitem_neg_int(self):
+                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
+                           fails=IndexError)
+ 
++    @pytest.mark.parametrize('dims', [1, 2])
++    def test_iloc_getitem_invalid_scalar(self, dims):
++        # GH 21982
++
++        if dims == 1:
++            s = Series(np.arange(10))
++        else:
++            s = DataFrame(np.arange(100).reshape(10, 10))
++
++        tm.assert_raises_regex(TypeError, 'Cannot index by location index',
++                               lambda: s.iloc['a'])
++
+     def test_iloc_array_not_mutating_negative_indices(self):
+ 
+         # GH 21867

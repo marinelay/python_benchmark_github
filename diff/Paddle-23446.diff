@@ -1,0 +1,110 @@
+diff --git a/python/paddle/fluid/backward.py b/python/paddle/fluid/backward.py
+index 10742af4ff43..5d4fb2d15864 100644
+--- a/python/paddle/fluid/backward.py
++++ b/python/paddle/fluid/backward.py
+@@ -1243,7 +1243,8 @@ def append_backward(loss,
+             p_g_list6 = fluid.backward.append_backward(loss=avg_loss, parameter_list=all_weights, no_grad_set=set(all_weights))
+ 
+     """
+-    assert isinstance(loss, framework.Variable)
++    check_type(loss, 'loss', framework.Variable,
++               'fluid.backward.append_backward')
+ 
+     if loss.op is None:
+         # the loss is from a cloned program. Find loss op manually.
+@@ -1254,7 +1255,8 @@ def append_backward(loss,
+                       int(core.op_proto_and_checker_maker.OpRole.Loss))
+ 
+     if callbacks is not None:
+-        isinstance(callbacks, list)
++        check_type(callbacks, 'callbacks', list,
++                   'fluid.backward.append_backward')
+ 
+     program = loss.block.program
+     root_block = program.block(0)
+@@ -1370,20 +1372,17 @@ def append_backward(loss,
+     program._sync_with_cpp()
+ 
+     if parameter_list is not None:
+-        if not isinstance(parameter_list, (list, tuple, set)):
+-            raise TypeError(
+-                "The type of parameter_list argument must be list or tuple or set, but received %s."
+-                % (type(parameter_list)))
++        check_type(parameter_list, 'parameter_list', (list, tuple, set),
++                   'fluid.backward.append_backward')
+         parameters = []
+         for i, param in enumerate(parameter_list):
++            check_type(param, 'parameter_list[%s]' % i, (framework.Variable,
++                                                         six.string_types),
++                       'fluid.backward.append_backward')
+             if isinstance(param, framework.Variable):
+                 parameters.append(param.name)
+             elif isinstance(param, six.string_types):
+                 parameters.append(param)
+-            else:
+-                raise TypeError(
+-                    "The type of parameter_list's member must be paddle.fluid.Variable or str, but received %s."
+-                    % (type(param)))
+     else:
+         params = program.global_block().all_parameters()
+         parameters = [param.name for param in params if param.trainable]
+@@ -1716,8 +1715,6 @@ def gradients(targets, inputs, target_gradients=None, no_grad_set=None):
+                'fluid.backward.gradients')
+     check_type(target_gradients, 'target_gradients', (
+         framework.Variable, list, type(None)), 'fluid.backward.gradients')
+-    check_type(no_grad_set, 'no_grad_set', (set, type(None)),
+-               'fluid.backward.gradients')
+ 
+     outs = calc_gradient(targets, inputs, target_gradients, no_grad_set)
+     return _as_list(outs)
+diff --git a/python/paddle/fluid/tests/unittests/test_backward.py b/python/paddle/fluid/tests/unittests/test_backward.py
+index 3b064c2a7a98..2a4d024aa432 100644
+--- a/python/paddle/fluid/tests/unittests/test_backward.py
++++ b/python/paddle/fluid/tests/unittests/test_backward.py
+@@ -287,6 +287,46 @@ def test_no_grad_set_type_error(self):
+             self._check_error_no_grad_set(self.net, [test, "test", 3])
+ 
+ 
++class TestAppendBackwardWithError(unittest.TestCase):
++    def build_net(self):
++        x = fluid.data(name='x', shape=[None, 13], dtype='int64')
++        y = fluid.data(name='y', shape=[None, 1], dtype='float32')
++        x_emb = fluid.embedding(x, size=[100, 256])
++        y_predict = fluid.layers.fc(input=x_emb, size=1, name='my_fc')
++        loss = fluid.layers.square_error_cost(input=y_predict, label=y)
++        avg_loss = fluid.layers.mean(loss)
++        param_names = [
++            param.name
++            for param in fluid.default_main_program().block(0).all_parameters()
++        ]
++
++        return avg_loss, param_names
++
++    def setUp(self):
++        main_program = fluid.Program()
++        with fluid.program_guard(main_program):
++            self.avg_loss, self.param_names = self.build_net()
++
++    def test_loss_type_error(self):
++        with self.assertRaises(TypeError):
++            fluid.backward.append_backward(loss=self.avg_loss.name)
++
++    def test_parameter_list_type_error(self):
++        with self.assertRaises(TypeError):
++            self.param_names[0] = np.random.random([10])
++            fluid.backward.append_backward(
++                loss=self.avg_loss, parameter_list=self.param_names)
++
++    def test_callback_type_error(self):
++        with self.assertRaises(TypeError):
++
++            def callback(block, context):
++                return
++
++            fluid.backward.append_backward(
++                loss=self.avg_loss, callbacks=callback)
++
++
+ # TODO(Aurelius84): add conditional network test
+ class ConditionalNet(BackwardNet):
+     def __init__(self):

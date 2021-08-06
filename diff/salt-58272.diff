@@ -1,0 +1,450 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 86e1ae7f0b45e..16c0b20f96b24 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -63,6 +63,7 @@ Fixed
+ - Fixed bug with distro version breaking osrelease on Centos 7. (#57781)
+ - Fixed macOS build scripts. (#57973)
+ - Fixed Salt-API startup failure. (#57975)
++- Fixed CSR handling in x509 module (#54867)
+ 
+ 
+ Added
+diff --git a/salt/modules/x509.py b/salt/modules/x509.py
+index 83f163190a068..32b9f89e36bb0 100644
+--- a/salt/modules/x509.py
++++ b/salt/modules/x509.py
+@@ -1,4 +1,3 @@
+-# -*- coding: utf-8 -*-
+ """
+ Manage X509 certificates
+ 
+@@ -7,7 +6,6 @@
+ :depends: M2Crypto
+ 
+ """
+-from __future__ import absolute_import, print_function, unicode_literals
+ 
+ import ast
+ import ctypes
+@@ -151,7 +149,7 @@ def _new_extension(name, value, critical=0, issuer=None, _pyfree=1):
+ 
+     if x509_ext_ptr is None:
+         raise M2Crypto.X509.X509Error(
+-            "Cannot create X509_Extension with name '{0}' and value '{1}'".format(
++            "Cannot create X509_Extension with name '{}' and value '{}'".format(
+                 name, value
+             )
+         )
+@@ -170,7 +168,7 @@ def _parse_openssl_req(csr_filename):
+     """
+     if not salt.utils.path.which("openssl"):
+         raise salt.exceptions.SaltInvocationError("openssl binary not found in path")
+-    cmd = "openssl req -text -noout -in {0}".format(csr_filename)
++    cmd = "openssl req -text -noout -in {}".format(csr_filename)
+ 
+     output = __salt__["cmd.run_stdout"](cmd)
+ 
+@@ -213,7 +211,7 @@ def _parse_openssl_crl(crl_filename):
+     """
+     if not salt.utils.path.which("openssl"):
+         raise salt.exceptions.SaltInvocationError("openssl binary not found in path")
+-    cmd = "openssl crl -text -noout -in {0}".format(crl_filename)
++    cmd = "openssl crl -text -noout -in {}".format(crl_filename)
+ 
+     output = __salt__["cmd.run_stdout"](cmd)
+ 
+@@ -298,7 +296,7 @@ def _dec2hex(decval):
+     """
+     Converts decimal values to nicely formatted hex strings
+     """
+-    return _pretty_hex("{0:X}".format(decval))
++    return _pretty_hex("{:X}".format(decval))
+ 
+ 
+ def _isfile(path):
+@@ -486,9 +484,9 @@ def get_pem_entry(text, pem_type=None):
+                     pem_temp = pem_temp[pem_temp.index("-") :]
+         text = "\n".join(pem_fixed)
+ 
+-    errmsg = "PEM text not valid:\n{0}".format(text)
++    errmsg = "PEM text not valid:\n{}".format(text)
+     if pem_type:
+-        errmsg = "PEM does not contain a single entry of type {0}:\n" "{1}".format(
++        errmsg = "PEM does not contain a single entry of type {}:\n" "{}".format(
+             pem_type, text
+         )
+ 
+@@ -675,7 +673,7 @@ def read_crl(crl):
+     text = get_pem_entry(text, pem_type="X509 CRL")
+ 
+     crltempfile = tempfile.NamedTemporaryFile(delete=True)
+-    crltempfile.write(salt.utils.stringutils.to_str(text))
++    crltempfile.write(salt.utils.stringutils.to_bytes(text, encoding="ascii"))
+     crltempfile.flush()
+     crlparsed = _parse_openssl_crl(crltempfile.name)
+     crltempfile.close()
+@@ -805,7 +803,7 @@ def write_pem(text, path, overwrite=True, pem_type=None):
+             _fp.write(salt.utils.stringutils.to_str(text))
+             if pem_type and pem_type == "CERTIFICATE" and _dhparams:
+                 _fp.write(salt.utils.stringutils.to_str(_dhparams))
+-    return "PEM written to {0}".format(path)
++    return "PEM written to {}".format(path)
+ 
+ 
+ def create_private_key(
+@@ -1004,7 +1002,7 @@ def create_crl(
+ 
+         if "reason" in rev_item:
+             # Same here for OpenSSL bindings and non-unicode strings
+-            reason = salt.utils.stringutils.to_str(rev_item["reason"])
++            reason = salt.utils.stringutils.to_bytes(rev_item["reason"])
+             rev.set_reason(reason)
+ 
+         crl.add_revoked(rev)
+@@ -1074,7 +1072,7 @@ def sign_remote_certificate(argdic, **kwargs):
+     if "signing_policy" in argdic:
+         signing_policy = _get_signing_policy(argdic["signing_policy"])
+         if not signing_policy:
+-            return "Signing policy {0} does not exist.".format(argdic["signing_policy"])
++            return "Signing policy {} does not exist.".format(argdic["signing_policy"])
+ 
+         if isinstance(signing_policy, list):
+             dict_ = {}
+@@ -1086,7 +1084,7 @@ def sign_remote_certificate(argdic, **kwargs):
+         if "__pub_id" not in kwargs:
+             return "minion sending this request could not be identified"
+         if not _match_minions(signing_policy["minions"], kwargs["__pub_id"]):
+-            return "{0} not permitted to use signing policy {1}".format(
++            return "{} not permitted to use signing policy {}".format(
+                 kwargs["__pub_id"], argdic["signing_policy"]
+             )
+ 
+@@ -1110,7 +1108,7 @@ def get_signing_policy(signing_policy_name):
+     """
+     signing_policy = _get_signing_policy(signing_policy_name)
+     if not signing_policy:
+-        return "Signing policy {0} does not exist.".format(signing_policy_name)
++        return "Signing policy {} does not exist.".format(signing_policy_name)
+     if isinstance(signing_policy, list):
+         dict_ = {}
+         for item in signing_policy:
+@@ -1419,7 +1417,7 @@ def create_certificate(path=None, text=False, overwrite=True, ca_server=None, **
+         if "signing_policy" not in kwargs:
+             raise salt.exceptions.SaltInvocationError(
+                 "signing_policy must be specified"
+-                "if requesting remote certificate from ca_server {0}.".format(ca_server)
++                "if requesting remote certificate from ca_server {}.".format(ca_server)
+             )
+         if "csr" in kwargs:
+             kwargs["csr"] = get_pem_entry(
+@@ -1517,7 +1515,7 @@ def create_certificate(path=None, text=False, overwrite=True, ca_server=None, **
+             time = datetime.datetime.strptime(kwargs["not_before"], fmt)
+         except:
+             raise salt.exceptions.SaltInvocationError(
+-                "not_before: {0} is not in required format {1}".format(
++                "not_before: {} is not in required format {}".format(
+                     kwargs["not_before"], fmt
+                 )
+             )
+@@ -1535,7 +1533,7 @@ def create_certificate(path=None, text=False, overwrite=True, ca_server=None, **
+             time = datetime.datetime.strptime(kwargs["not_after"], fmt)
+         except:
+             raise salt.exceptions.SaltInvocationError(
+-                "not_after: {0} is not in required format {1}".format(
++                "not_after: {} is not in required format {}".format(
+                     kwargs["not_after"], fmt
+                 )
+             )
+@@ -1628,7 +1626,7 @@ def create_certificate(path=None, text=False, overwrite=True, ca_server=None, **
+             name=extname, value=extval, critical=critical, issuer=issuer
+         )
+         if not ext.x509_ext:
+-            log.info("Invalid X509v3 Extension. {0}: {1}".format(extname, extval))
++            log.info("Invalid X509v3 Extension. {}: {}".format(extname, extval))
+             continue
+ 
+         cert.add_ext(ext)
+@@ -1649,8 +1647,8 @@ def create_certificate(path=None, text=False, overwrite=True, ca_server=None, **
+         public_key=signing_cert,
+     ):
+         raise salt.exceptions.SaltInvocationError(
+-            "signing_private_key: {0} "
+-            "does no match signing_cert: {1}".format(
++            "signing_private_key: {} "
++            "does no match signing_cert: {}".format(
+                 kwargs["signing_private_key"], kwargs.get("signing_cert", "")
+             )
+         )
+@@ -1790,7 +1788,7 @@ def create_csr(path=None, text=False, **kwargs):
+             name=extname, value=extval, critical=critical, issuer=issuer
+         )
+         if not ext.x509_ext:
+-            log.info("Invalid X509v3 Extension. {0}: {1}".format(extname, extval))
++            log.info("Invalid X509v3 Extension. {}: {}".format(extname, extval))
+             continue
+ 
+         extstack.push(ext)
+@@ -1892,16 +1890,16 @@ def verify_crl(crl, cert):
+     crltext = _text_or_file(crl)
+     crltext = get_pem_entry(crltext, pem_type="X509 CRL")
+     crltempfile = tempfile.NamedTemporaryFile(delete=True)
+-    crltempfile.write(salt.utils.stringutils.to_str(crltext))
++    crltempfile.write(salt.utils.stringutils.to_bytes(crltext, encoding="ascii"))
+     crltempfile.flush()
+ 
+     certtext = _text_or_file(cert)
+     certtext = get_pem_entry(certtext, pem_type="CERTIFICATE")
+     certtempfile = tempfile.NamedTemporaryFile(delete=True)
+-    certtempfile.write(salt.utils.stringutils.to_str(certtext))
++    certtempfile.write(salt.utils.stringutils.to_bytes(certtext, encoding="ascii"))
+     certtempfile.flush()
+ 
+-    cmd = "openssl crl -noout -in {0} -CAfile {1}".format(
++    cmd = "openssl crl -noout -in {} -CAfile {}".format(
+         crltempfile.name, certtempfile.name
+     )
+ 
+diff --git a/tests/integration/files/file/base/x509/crl_managed.sls b/tests/integration/files/file/base/x509/crl_managed.sls
+new file mode 100644
+index 0000000000000..6453d69cf332a
+--- /dev/null
++++ b/tests/integration/files/file/base/x509/crl_managed.sls
+@@ -0,0 +1,76 @@
++{% set tmp_dir = pillar['tmp_dir'] %}
++
++{{ tmp_dir }}/pki:
++  file.directory: []
++
++{{ tmp_dir }}/pki/issued_certs:
++  file.directory: []
++
++{{ tmp_dir }}/pki/ca.key:
++  x509.private_key_managed:
++    - bits: 4096
++    - require:
++      - file: {{ tmp_dir }}/pki
++
++{{ tmp_dir }}/pki/ca.crt:
++  x509.certificate_managed:
++    - signing_private_key: {{ tmp_dir }}/pki/ca.key
++    - CN: ca.example.com
++    - C: US
++    - ST: Utah
++    - L: Salt Lake City
++    - basicConstraints: "critical CA:true"
++    - keyUsage: "critical cRLSign, keyCertSign"
++    - subjectKeyIdentifier: hash
++    - authorityKeyIdentifier: keyid,issuer:always
++    - days_valid: 3650
++    - days_remaining: 0
++    - backup: True
++    - require:
++      - file: {{ tmp_dir }}/pki
++      - {{ tmp_dir }}/pki/ca.key
++
++{{ tmp_dir }}/pki/test.key:
++  x509.private_key_managed:
++    - bits: 1024
++    - backup: True
++
++test_crt:
++  x509.certificate_managed:
++    - name: {{ tmp_dir }}/pki/test.crt
++    - ca_server: minion
++    - signing_policy: ca_policy
++    - public_key: {{ tmp_dir }}/pki/test.key
++    - CN: minion
++    - days_remaining: 30
++    - backup: True
++    - require:
++        - {{ tmp_dir }}/pki/ca.crt
++        - {{ tmp_dir }}/pki/test.key
++
++#mine.send:
++#  module.run:
++#    - func: x509.get_pem_entries
++#    - kwargs:
++#        glob_path: {{ tmp_dir }}/pki/ca.crt
++#    - onchanges:
++#      - x509: {{ tmp_dir }}/pki/ca.crt
++
++{{ tmp_dir }}/pki/ca.crl:
++  x509.crl_managed:
++    - signing_private_key: {{ tmp_dir }}/pki/ca.key
++    - signing_cert: {{ tmp_dir }}/pki/ca.crt
++    - digest: sha512
++    - revoked:
++      - compromized_Web_key:
++        - certificate: {{ tmp_dir }}/pki/test.crt
++        - revocation_date: 2015-03-01 00:00:00
++        - reason: keyCompromise
++      #- terminated_vpn_user:
++      #  - serial_number: D6:D2:DC:D8:4D:5C:C0:F4
++      #  - not_after: 2016-01-01 00:00:00
++      #  - revocation_date: 2015-02-25 00:00:00
++      #  - reason: cessationOfOperation
++    - require:
++      - x509: {{ tmp_dir }}/pki/ca.crt
++      - x509: test_crt
+diff --git a/tests/integration/states/test_x509.py b/tests/integration/states/test_x509.py
+index 2d2229f02c9c9..150a0f2e748f1 100644
+--- a/tests/integration/states/test_x509.py
++++ b/tests/integration/states/test_x509.py
+@@ -1,6 +1,3 @@
+-# -*- coding: utf-8 -*-
+-from __future__ import absolute_import, unicode_literals
+-
+ import datetime
+ import hashlib
+ import logging
+@@ -103,7 +100,7 @@ def tearDown(self):
+         self.run_function("grains.delkey", ["x509_test_grain"], minion_tgt="minion")
+ 
+     def run_function(self, *args, **kwargs):  # pylint: disable=arguments-differ
+-        ret = super(x509Test, self).run_function(*args, **kwargs)
++        ret = super().run_function(*args, **kwargs)
+         return ret
+ 
+     @staticmethod
+@@ -153,6 +150,77 @@ def test_cert_signing(self):
+         assert "Certificate" in ret[key]["changes"]
+         assert "New" in ret[key]["changes"]["Certificate"]
+ 
++    @slowTest
++    def test_crl_managed(self):
++        ret = self.run_function(
++            "state.apply", ["x509.crl_managed"], pillar={"tmp_dir": RUNTIME_VARS.TMP}
++        )
++        key = "x509_|-{}/pki/ca.crl_|-{}/pki/ca.crl_|-crl_managed".format(
++            RUNTIME_VARS.TMP, RUNTIME_VARS.TMP
++        )
++
++        # hints for easier debugging
++        # import json
++        # print(json.dumps(ret[key], indent=4, sort_keys=True))
++        # print(ret[key]['comment'])
++
++        assert key in ret
++        assert "changes" in ret[key]
++        self.assertEqual(ret[key]["result"], True)
++        assert "New" in ret[key]["changes"]
++        assert "Revoked Certificates" in ret[key]["changes"]["New"]
++        self.assertEqual(
++            ret[key]["changes"]["Old"],
++            "{}/pki/ca.crl does not exist.".format(RUNTIME_VARS.TMP),
++        )
++
++    @slowTest
++    def test_crl_managed_replacing_existing_crl(self):
++        os.mkdir(os.path.join(RUNTIME_VARS.TMP, "pki"))
++        with salt.utils.files.fopen(
++            os.path.join(RUNTIME_VARS.TMP, "pki/ca.crl"), "wb"
++        ) as crl_file:
++            crl_file.write(
++                b"""-----BEGIN RSA PRIVATE KEY-----
++MIICWwIBAAKBgQCjdjbgL4kQ8Lu73xeRRM1q3C3K3ptfCLpyfw38LRnymxaoJ6ls
++pNSx2dU1uJ89YKFlYLo1QcEk4rJ2fdIjarV0kuNCY3rC8jYUp9BpAU5Z6p9HKeT1
++2rTPH81JyjbQDR5PyfCyzYOQtpwpB4zIUUK/Go7tTm409xGKbbUFugJNgQIDAQAB
++AoGAF24we34U1ZrMLifSRv5nu3OIFNZHyx2DLDpOFOGaII5edwgIXwxZeIzS5Ppr
++yO568/8jcdLVDqZ4EkgCwRTgoXRq3a1GLHGFmBdDNvWjSTTMLoozuM0t2zjRmIsH
++hUd7tnai9Lf1Bp5HlBEhBU2gZWk+SXqLvxXe74/+BDAj7gECQQDRw1OPsrgTvs3R
++3MNwX6W8+iBYMTGjn6f/6rvEzUs/k6rwJluV7n8ISNUIAxoPy5g5vEYK6Ln/Ttc7
++u0K1KNlRAkEAx34qcxjuswavL3biNGE+8LpDJnJx1jaNWoH+ObuzYCCVMusdT2gy
++kKuq9ytTDgXd2qwZpIDNmscvReFy10glMQJAXebMz3U4Bk7SIHJtYy7OKQzn0dMj
++35WnRV81c2Jbnzhhu2PQeAvt/i1sgEuzLQL9QEtSJ6wLJ4mJvImV0TdaIQJAAYyk
++TcKK0A8kOy0kMp3yvDHmJZ1L7wr7bBGIZPBlQ0Ddh8i1sJExm1gJ+uN2QKyg/XrK
++tDFf52zWnCdVGgDwcQJALW/WcbSEK+JVV6KDJYpwCzWpKIKpBI0F6fdCr1G7Xcwj
++c9bcgp7D7xD+TxWWNj4CSXEccJgGr91StV+gFg4ARQ==
++-----END RSA PRIVATE KEY-----
++"""
++            )
++
++        ret = self.run_function(
++            "state.apply", ["x509.crl_managed"], pillar={"tmp_dir": RUNTIME_VARS.TMP}
++        )
++        key = "x509_|-{}/pki/ca.crl_|-{}/pki/ca.crl_|-crl_managed".format(
++            RUNTIME_VARS.TMP, RUNTIME_VARS.TMP
++        )
++
++        # hints for easier debugging
++        # import json
++        # print(json.dumps(ret[key], indent=4, sort_keys=True))
++        # print(ret[key]['comment'])
++
++        assert key in ret
++        assert "changes" in ret[key]
++        self.assertEqual(ret[key]["result"], True)
++        assert "New" in ret[key]["changes"]
++        assert "Revoked Certificates" in ret[key]["changes"]["New"]
++        self.assertEqual(
++            ret[key]["changes"]["Old"],
++            "{}/pki/ca.crl is not a valid CRL.".format(RUNTIME_VARS.TMP),
++        )
++
+     def test_cert_issue_not_before_not_after(self):
+         ret = self.run_function(
+             "state.apply",
+@@ -210,7 +278,7 @@ def test_cert_issue_not_after(self):
+     @with_tempfile(suffix=".crt", create=False)
+     @with_tempfile(suffix=".key", create=False)
+     def test_issue_41858(self, keyfile, crtfile):
+-        ret_key = "x509_|-test_crt_|-{0}_|-certificate_managed".format(crtfile)
++        ret_key = "x509_|-test_crt_|-{}_|-certificate_managed".format(crtfile)
+         signing_policy = "no_such_policy"
+         ret = self.run_function(
+             "state.apply",
+@@ -240,7 +308,7 @@ def test_issue_41858(self, keyfile, crtfile):
+     @with_tempfile(suffix=".crt", create=False)
+     @with_tempfile(suffix=".key", create=False)
+     def test_compound_match_minion_have_correct_grain_value(self, keyfile, crtfile):
+-        ret_key = "x509_|-test_crt_|-{0}_|-certificate_managed".format(crtfile)
++        ret_key = "x509_|-test_crt_|-{}_|-certificate_managed".format(crtfile)
+         signing_policy = "compound_match"
+         ret = self.run_function(
+             "state.apply",
+@@ -274,7 +342,7 @@ def test_compound_match_ca_have_correct_grain_value(self, keyfile, crtfile):
+             minion_tgt="sub_minion",
+         )
+ 
+-        ret_key = "x509_|-test_crt_|-{0}_|-certificate_managed".format(crtfile)
++        ret_key = "x509_|-test_crt_|-{}_|-certificate_managed".format(crtfile)
+         signing_policy = "compound_match"
+         self.run_function(
+             "state.apply",
+@@ -350,7 +418,7 @@ def test_old_self_signed_cert_is_recreated(self, keyfile, crtfile):
+                 "days_remaining": 10,
+             },
+         )
+-        key = "x509_|-self_signed_cert_|-{0}_|-certificate_managed".format(crtfile)
++        key = "x509_|-self_signed_cert_|-{}_|-certificate_managed".format(crtfile)
+         self.assertEqual(
+             "Certificate is valid and up to date",
+             first_run[key]["changes"]["Status"]["New"],
+@@ -410,7 +478,7 @@ def test_mismatched_self_signed_cert_is_recreated(self, keyfile, crtfile):
+                 "subjectAltName": "DNS:alt.service.local",
+             },
+         )
+-        key = "x509_|-self_signed_cert_|-{0}_|-certificate_managed".format(crtfile)
++        key = "x509_|-self_signed_cert_|-{}_|-certificate_managed".format(crtfile)
+         self.assertEqual(
+             "Certificate is valid and up to date",
+             first_run[key]["changes"]["Status"]["New"],
+@@ -500,7 +568,7 @@ def test_file_properties_are_updated(self, keyfile, crtfile):
+             ["x509.self_signed_different_properties"],
+             pillar={"keyfile": keyfile, "crtfile": crtfile, "fileMode": "0755"},
+         )
+-        key = "x509_|-self_signed_cert_|-{0}_|-certificate_managed".format(crtfile)
++        key = "x509_|-self_signed_cert_|-{}_|-certificate_managed".format(crtfile)
+         self.assertEqual(
+             "Certificate is valid and up to date",
+             first_run[key]["changes"]["Status"]["New"],
+@@ -545,7 +613,7 @@ def test_file_managed_failure(self, keyfile, crtfile):
+             pillar={"keyfile": keyfile, "crtfile": bad_crtfile},
+         )
+ 
+-        key = "x509_|-self_signed_cert_|-{0}_|-certificate_managed".format(bad_crtfile)
++        key = "x509_|-self_signed_cert_|-{}_|-certificate_managed".format(bad_crtfile)
+         self.assertFalse(ret[key]["result"], "State should have failed.")
+         self.assertEqual({}, ret[key]["changes"])
+         self.assertFalse(

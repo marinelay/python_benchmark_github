@@ -1,0 +1,491 @@
+diff --git a/paddle/fluid/operators/activation_op.cc b/paddle/fluid/operators/activation_op.cc
+old mode 100644
+new mode 100755
+index a640a6c745cc..a541831f79a1
+--- a/paddle/fluid/operators/activation_op.cc
++++ b/paddle/fluid/operators/activation_op.cc
+@@ -301,6 +301,15 @@ Natural logarithm of x.
+ 
+ )DOC";
+ 
++UNUSED constexpr char Log2Doc[] = R"DOC(
++Log2 Activation Operator.
++
++$$out = \log_2x$$
++
++logarithm of x base to 2.
++
++)DOC";
++
+ UNUSED constexpr char Log1pDoc[] = R"DOC(
+ Log Activation Operator.
+ 
+@@ -697,6 +706,7 @@ REGISTER_ACTIVATION_OP_MAKER(Cosh, CoshDoc);
+ REGISTER_ACTIVATION_OP_MAKER(Round, RoundDoc);
+ REGISTER_ACTIVATION_OP_MAKER(Reciprocal, ReciprocalDoc);
+ REGISTER_ACTIVATION_OP_MAKER(Log, LogDoc);
++REGISTER_ACTIVATION_OP_MAKER(Log2, Log2Doc);
+ REGISTER_ACTIVATION_OP_MAKER(Log1p, Log1pDoc);
+ REGISTER_ACTIVATION_OP_MAKER(Square, SquareDoc);
+ REGISTER_ACTIVATION_OP_MAKER(Softsign, SoftsignDoc);
+diff --git a/paddle/fluid/operators/activation_op.h b/paddle/fluid/operators/activation_op.h
+old mode 100644
+new mode 100755
+index a5c613297a47..0892eca35c3b
+--- a/paddle/fluid/operators/activation_op.h
++++ b/paddle/fluid/operators/activation_op.h
+@@ -820,6 +820,27 @@ struct LogGradFunctor : public BaseActivationFunctor<T> {
+   static constexpr ActBwdOpFwdDeps FwdDeps() { return kDepX; }
+ };
+ 
++// log2(x) = logarithm to the base 2 of the elements of x
++template <typename T>
++struct Log2Functor : public BaseActivationFunctor<T> {
++  template <typename Device, typename X, typename Out>
++  void operator()(Device d, X x, Out out) const {
++    out.device(d) = x.log() / static_cast<T>(log(2));
++  }
++};
++
++// the gradient of log2(x) is 1/(x*ln(2))
++template <typename T>
++struct Log2GradFunctor : public BaseActivationFunctor<T> {
++  template <typename Device, typename X, typename Out, typename dOut,
++            typename dX>
++  void operator()(Device d, X x, Out out, dOut dout, dX dx) const {
++    dx.device(d) = dout * static_cast<T>(1) / (x * static_cast<T>(log(2)));
++  }
++
++  static constexpr ActBwdOpFwdDeps FwdDeps() { return kDepX; }
++};
++
+ // log1p(x) = natural logarithm of x+1
+ template <typename T>
+ struct Log1pFunctor : public BaseActivationFunctor<T> {
+@@ -1908,6 +1929,7 @@ struct LogGradGradFunctor : public BaseActivationFunctor<T> {
+   __macro(round, Round, RoundFunctor, ZeroGradFunctor);                       \
+   __macro(reciprocal, Reciprocal, ReciprocalFunctor, ReciprocalGradFunctor);  \
+   __macro(log1p, Log1p, Log1pFunctor, Log1pGradFunctor);                      \
++  __macro(log2, Log2, Log2Functor, Log2GradFunctor);                          \
+   __macro(brelu, BRelu, BReluFunctor, BReluGradFunctor);                      \
+   __macro(soft_relu, SoftRelu, SoftReluFunctor, SoftReluGradFunctor);         \
+   __macro(stanh, STanh, STanhFunctor, STanhGradFunctor);                      \
+diff --git a/python/paddle/__init__.py b/python/paddle/__init__.py
+index 50c1142c7bfb..70f9510596fc 100755
+--- a/python/paddle/__init__.py
++++ b/python/paddle/__init__.py
+@@ -153,6 +153,7 @@
+ from .tensor.math import floor  #DEFINE_ALIAS
+ from .tensor.math import increment  #DEFINE_ALIAS
+ from .tensor.math import log  #DEFINE_ALIAS
++from .tensor.math import log2  #DEFINE_ALIAS
+ from .tensor.math import multiplex  #DEFINE_ALIAS
+ from .tensor.math import pow  #DEFINE_ALIAS
+ from .tensor.math import reciprocal  #DEFINE_ALIAS
+diff --git a/python/paddle/fluid/tests/unittests/test_activation_op.py b/python/paddle/fluid/tests/unittests/test_activation_op.py
+index 8d9056f0ee37..53e4bbc4bf28 100755
+--- a/python/paddle/fluid/tests/unittests/test_activation_op.py
++++ b/python/paddle/fluid/tests/unittests/test_activation_op.py
+@@ -180,10 +180,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.log_sigmoid, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[11, 17], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[11, 17], dtype='int32')
+             self.assertRaises(TypeError, F.log_sigmoid, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[11, 17], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[11, 17], dtype='float16')
+             F.log_sigmoid(x_fp16)
+ 
+ 
+@@ -260,10 +262,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.tanh, 1)
+             # The input dtype must be float16, float32.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.tanh, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.tanh(x_fp16)
+ 
+ 
+@@ -519,10 +523,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.tanhshrink, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.tanhshrink, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.tanhshrink(x_fp16)
+ 
+ 
+@@ -616,10 +622,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.hardshrink, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.hardshrink, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.hardshrink(x_fp16)
+ 
+ 
+@@ -676,10 +684,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.hardtanh, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.hardtanh, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.hardtanh(x_fp16)
+ 
+ 
+@@ -759,13 +769,16 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.softshrink, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.softshrink, x_int32)
+             # The threshold must be no less than zero
+-            x_fp32 = paddle.fluid.data(name='x_fp32', shape=[12, 10], dtype='float32')
++            x_fp32 = paddle.fluid.data(
++                name='x_fp32', shape=[12, 10], dtype='float32')
+             self.assertRaises(ValueError, F.softshrink, x_fp32, -1.0)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.softshrink(x_fp16)
+ 
+ 
+@@ -1010,10 +1023,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.relu, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[10, 12], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[10, 12], dtype='int32')
+             self.assertRaises(TypeError, F.relu, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[10, 12], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[10, 12], dtype='float16')
+             F.relu(x_fp16)
+ 
+ 
+@@ -1119,10 +1134,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.leaky_relu, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.leaky_relu, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.leaky_relu(x_fp16)
+ 
+ 
+@@ -1218,10 +1235,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.gelu, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[11, 17], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[11, 17], dtype='int32')
+             self.assertRaises(TypeError, F.gelu, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[11, 17], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[11, 17], dtype='float16')
+             F.gelu(x_fp16)
+ 
+ 
+@@ -1368,10 +1387,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.relu6, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.relu6, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.relu6(x_fp16)
+ 
+ 
+@@ -1455,10 +1476,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.hardswish, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.hardswish, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.hardswish(x_fp16)
+ 
+ 
+@@ -1572,10 +1595,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.elu, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[10, 12], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[10, 12], dtype='int32')
+             self.assertRaises(TypeError, F.elu, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[10, 12], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[10, 12], dtype='float16')
+             F.elu(x_fp16)
+ 
+ 
+@@ -1624,6 +1649,55 @@ def test_error(self):
+         self.assertRaises(TypeError, fluid.layers.log, in2)
+ 
+ 
++class TestLog2(TestActivation):
++    def setUp(self):
++        self.op_type = "log2"
++        self.init_dtype()
++
++        x = np.random.uniform(0.1, 1, [11, 17]).astype(self.dtype)
++        out = np.log2(x)
++
++        self.inputs = {'X': OpTest.np_dtype_to_fluid_dtype(x)}
++        self.outputs = {'Out': out}
++
++    def test_check_grad(self):
++        if self.dtype == np.float16:
++            return
++        self.check_grad(['X'], 'Out')
++
++    def test_error(self):
++        in1 = paddle.static.data(name="in1", shape=[11, 17], dtype="int32")
++        in2 = paddle.static.data(name="in2", shape=[11, 17], dtype="int64")
++
++        self.assertRaises(TypeError, paddle.log2, in1)
++        self.assertRaises(TypeError, paddle.log2, in2)
++
++    def test_api(self):
++        with paddle.static.program_guard(paddle.static.Program(),
++                                         paddle.static.Program()):
++            input_x = np.random.uniform(0.1, 1, [11, 17]).astype("float64")
++            data_x = paddle.static.data(
++                name="data_x", shape=[11, 17], dtype="float64")
++
++            out1 = paddle.log2(data_x)
++            exe = paddle.static.Executor(place=fluid.CPUPlace())
++            exe.run(paddle.static.default_startup_program())
++            res1 = exe.run(paddle.static.default_main_program(),
++                           feed={"data_x": input_x},
++                           fetch_list=[out1])
++        expected_res = np.log2(input_x)
++        self.assertTrue(np.allclose(res1, expected_res))
++
++        # dygraph
++        with fluid.dygraph.guard():
++            np_x = np.random.uniform(0.1, 1, [11, 17]).astype("float64")
++            data_x = paddle.to_tensor(np_x)
++            z = paddle.log2(data_x)
++            np_z = z.numpy()
++            z_expected = np.array(np.log2(np_x))
++        self.assertTrue(np.allclose(np_z, z_expected))
++
++
+ class TestLog1p(TestActivation):
+     def setUp(self):
+         self.op_type = "log1p"
+@@ -1895,10 +1969,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.softplus, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.softplus, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.softplus(x_fp16)
+ 
+ 
+@@ -1972,10 +2048,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.softsign, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.softsign, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.softsign(x_fp16)
+ 
+ 
+@@ -2055,10 +2133,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.thresholded_relu, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.thresholded_relu, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.thresholded_relu(x_fp16)
+ 
+ 
+@@ -2154,10 +2234,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.hardsigmoid, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.hardsigmoid, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.hardsigmoid(x_fp16)
+ 
+ 
+@@ -2232,10 +2314,12 @@ def test_errors(self):
+             # The input type must be Variable.
+             self.assertRaises(TypeError, F.swish, 1)
+             # The input dtype must be float16, float32, float64.
+-            x_int32 = paddle.fluid.data(name='x_int32', shape=[12, 10], dtype='int32')
++            x_int32 = paddle.fluid.data(
++                name='x_int32', shape=[12, 10], dtype='int32')
+             self.assertRaises(TypeError, F.swish, x_int32)
+             # support the input dtype is float16
+-            x_fp16 = paddle.fluid.data(name='x_fp16', shape=[12, 10], dtype='float16')
++            x_fp16 = paddle.fluid.data(
++                name='x_fp16', shape=[12, 10], dtype='float16')
+             F.swish(x_fp16)
+ 
+ 
+@@ -2347,6 +2431,7 @@ def test_check_grad(self):
+ create_test_act_fp16_class(TestELU)
+ create_test_act_fp16_class(TestReciprocal)
+ create_test_act_fp16_class(TestLog)
++create_test_act_fp16_class(TestLog2, atol=5e-2)
+ create_test_act_fp16_class(TestLog1p, grad_atol=0.9)
+ create_test_act_fp16_class(TestSquare)
+ create_test_act_fp16_class(TestPow, atol=5e-2)
+diff --git a/python/paddle/tensor/__init__.py b/python/paddle/tensor/__init__.py
+index 2a9820d4a90d..55cb0a898674 100755
+--- a/python/paddle/tensor/__init__.py
++++ b/python/paddle/tensor/__init__.py
+@@ -151,6 +151,7 @@
+ from .math import atan  #DEFINE_ALIAS
+ from .math import logsumexp  #DEFINE_ALIAS
+ from .math import inverse  #DEFINE_ALIAS
++from .math import log2  #DEFINE_ALIAS
+ from .math import log1p  #DEFINE_ALIAS
+ from .math import erf  #DEFINE_ALIAS
+ # from .math import addcmul  #DEFINE_ALIAS
+diff --git a/python/paddle/tensor/math.py b/python/paddle/tensor/math.py
+index d2e9340e8a86..fc7981c962bf 100755
+--- a/python/paddle/tensor/math.py
++++ b/python/paddle/tensor/math.py
+@@ -79,6 +79,7 @@
+         'floor',
+         'increment',
+         'log',
++        'log2',
+         'logsumexp',
+         'mul',
+         'multiplex',
+@@ -1312,6 +1313,54 @@ def log1p(x, name=None):
+     helper.append_op(type="log1p", inputs={"X": x}, outputs={"Out": out})
+     return out
+ 
++def log2(x, name=None):
++    """
++    Calculates the log to the base 2 of the given input tensor, element-wise.
++
++    .. math::
++
++        Out = \\log_2x
++
++    Args:
++        x (Tensor): Input tensor must be one of the following types: float32, float64.
++        name (str|None): The default value is None. Normally there is no need for user to set this property. For more information, please refer to :ref:`api_guide_Name`
++
++
++    Returns:
++        Tensor: The log to the base 2 of the input Tensor computed element-wise.
++
++    Examples:
++
++        .. code-block:: python
++        
++            import paddle
++
++            # example 1: x is a float
++            x_i = paddle.to_tensor([[1.0], [2.0]])
++            res = paddle.log2(x_i) # [[0.], [1.0]]
++
++            # example 2: x is float32
++            x_i = paddle.full(shape=[1], fill_value=2, dtype='float32')
++            paddle.to_tensor(x_i)
++            res = paddle.log2(x_i)
++            print(res) # [1.0]
++
++            # example 3: x is float64
++            x_i = paddle.full(shape=[1], fill_value=2, dtype='float64')
++            paddle.to_tensor(x_i)
++            res = paddle.log2(x_i)
++            print(res) # [1.0]
++    """
++    if in_dygraph_mode():
++        return core.ops.log2(x)
++
++    check_variable_and_dtype(x, 'x', ['float16', 'float32', 'float64'], "log2")
++    inputs = {'X': [x]}
++    helper = LayerHelper('log2', **locals())
++    dtype = helper.input_dtype(input_param_name='x')
++    out = helper.create_variable_for_type_inference(dtype)
++    helper.append_op(type="log2", inputs={"X": x}, outputs={"Out": out})
++    return out
+ 
+ def addcmul(input, tensor1, tensor2, value=1.0, name=None):
+     """

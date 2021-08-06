@@ -1,0 +1,118 @@
+diff --git a/pandas/_libs/tslibs/parsing.pyx b/pandas/_libs/tslibs/parsing.pyx
+index bf0a0ae5a3fe9..796d1400194fd 100644
+--- a/pandas/_libs/tslibs/parsing.pyx
++++ b/pandas/_libs/tslibs/parsing.pyx
+@@ -233,7 +233,7 @@ def parse_datetime_string(date_string, freq=None, dayfirst=False,
+     return dt
+ 
+ 
+-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
++def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
+     """
+     Try hard to parse datetime string, leveraging dateutil plus some extra
+     goodies like quarter recognition.
+@@ -253,7 +253,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
+     datetime, datetime/dateutil.parser._result, str
+     """
+     if not isinstance(arg, str):
+-        return arg
++        raise TypeError("parse_time_string argument must be str")
+ 
+     if getattr(freq, "_typ", None) == "dateoffset":
+         freq = freq.rule_code
+diff --git a/pandas/core/indexes/datetimes.py b/pandas/core/indexes/datetimes.py
+index 477525d7ab272..a6c070fc2ba8d 100644
+--- a/pandas/core/indexes/datetimes.py
++++ b/pandas/core/indexes/datetimes.py
+@@ -1107,7 +1107,7 @@ def _maybe_cast_slice_bound(self, label, side, kind):
+         else:
+             return label
+ 
+-    def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
++    def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):
+         freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
+         _, parsed, reso = parsing.parse_time_string(key, freq)
+         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs, use_rhs=use_rhs)
+diff --git a/pandas/core/indexes/period.py b/pandas/core/indexes/period.py
+index f085dff84462d..a20290e77023a 100644
+--- a/pandas/core/indexes/period.py
++++ b/pandas/core/indexes/period.py
+@@ -457,11 +457,8 @@ def __contains__(self, key):
+             try:
+                 self.get_loc(key)
+                 return True
+-            except (ValueError, TypeError, KeyError):
++            except (TypeError, KeyError):
+                 # TypeError can be reached if we pass a tuple that is not hashable
+-                # ValueError can be reached if pass a 2-tuple and parse_time_string
+-                #  raises with the wrong number of return values
+-                #  TODO: the latter is a bug in parse_time_string
+                 return False
+ 
+     @cache_readonly
+@@ -608,7 +605,7 @@ def get_value(self, series, key):
+         try:
+             return com.maybe_box(self, super().get_value(s, key), series, key)
+         except (KeyError, IndexError):
+-            try:
++            if isinstance(key, str):
+                 asdt, parsed, reso = parse_time_string(key, self.freq)
+                 grp = resolution.Resolution.get_freq_group(reso)
+                 freqn = resolution.get_freq_group(self.freq)
+@@ -634,8 +631,6 @@ def get_value(self, series, key):
+                     )
+                 else:
+                     raise KeyError(key)
+-            except TypeError:
+-                pass
+ 
+             period = Period(key, self.freq)
+             key = period.value if isna(period) else period.ordinal
+diff --git a/pandas/core/indexes/timedeltas.py b/pandas/core/indexes/timedeltas.py
+index 62a74fefa6577..983e68f38a4b9 100644
+--- a/pandas/core/indexes/timedeltas.py
++++ b/pandas/core/indexes/timedeltas.py
+@@ -528,7 +528,7 @@ def get_loc(self, key, method=None, tolerance=None):
+             # the try/except clauses below
+             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+ 
+-        if _is_convertible_to_td(key):
++        if _is_convertible_to_td(key) or key is NaT:
+             key = Timedelta(key)
+             return Index.get_loc(self, key, method, tolerance)
+ 
+@@ -550,7 +550,6 @@ def _maybe_cast_slice_bound(self, label, side, kind):
+         """
+         If label is a string, cast it to timedelta according to resolution.
+ 
+-
+         Parameters
+         ----------
+         label : object
+@@ -559,8 +558,7 @@ def _maybe_cast_slice_bound(self, label, side, kind):
+ 
+         Returns
+         -------
+-        label :  object
+-
++        label : object
+         """
+         assert kind in ["ix", "loc", "getitem", None]
+ 
+diff --git a/pandas/tests/tslibs/test_parsing.py b/pandas/tests/tslibs/test_parsing.py
+index 126a1bd12ad59..9b6ed86bc2770 100644
+--- a/pandas/tests/tslibs/test_parsing.py
++++ b/pandas/tests/tslibs/test_parsing.py
+@@ -23,6 +23,12 @@ def test_parse_time_string():
+     assert parsed == parsed_lower
+ 
+ 
++def test_parse_time_string_invalid_type():
++    # Raise on invalid input, don't just return it
++    with pytest.raises(TypeError):
++        parse_time_string((4, 5))
++
++
+ @pytest.mark.parametrize(
+     "dashed,normal", [("1988-Q2", "1988Q2"), ("2Q-1988", "2Q1988")]
+ )

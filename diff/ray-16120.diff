@@ -1,0 +1,127 @@
+diff --git a/doc/source/ray-tracing.rst b/doc/source/ray-tracing.rst
+index eddb9b3f211..3ef71ee1ebe 100644
+--- a/doc/source/ray-tracing.rst
++++ b/doc/source/ray-tracing.rst
+@@ -13,9 +13,8 @@ First, install OpenTelemetry.
+ 
+ .. code-block:: shell
+ 
+-    pip install opentelemetry-api==1.1.0
+-    pip install opentelemetry-sdk==1.1.0
+-    pip install opentelemetry-exporter-otlp==1.1.0
++    pip install opentelemetry-api==1.0.0rc1
++    pip install opentelemetry-sdk==1.0.0rc1
+ 
+ Tracing Startup Hook
+ --------------------
+@@ -31,7 +30,7 @@ Below is an example tracing startup hook that sets up the default tracing provid
+   from opentelemetry.sdk.trace import TracerProvider
+   from opentelemetry.sdk.trace.export import (
+       ConsoleSpanExporter,
+-      SimpleSpanProcessor,
++      SimpleExportSpanProcessor,
+   )
+   
+   
+@@ -42,7 +41,7 @@ Below is an example tracing startup hook that sets up the default tracing provid
+       # context and will log a warning if attempted multiple times.
+       trace.set_tracer_provider(TracerProvider())
+       trace.get_tracer_provider().add_span_processor(
+-          SimpleSpanProcessor(
++          SimpleExportSpanProcessor(
+               ConsoleSpanExporter(
+                   out=open(f"/tmp/spans/{os.getpid()}.json", "a")
+                   )
+diff --git a/python/ray/tests/test_tracing.py b/python/ray/tests/test_tracing.py
+index ee30e272ce7..1385c0c1bd3 100644
+--- a/python/ray/tests/test_tracing.py
++++ b/python/ray/tests/test_tracing.py
+@@ -39,17 +39,6 @@ def ray_start_cli_tracing(scope="function"):
+     check_call_ray(["stop", "--force"])
+ 
+ 
+-@pytest.fixture()
+-def ray_start_cli_predefined_actor_tracing(scope="function"):
+-    """Start ray with tracing-startup-hook, and clean up at end of test."""
+-    check_call_ray(["stop", "--force"], )
+-    check_call_ray(
+-        ["start", "--head", "--tracing-startup-hook", setup_tracing_path], )
+-    yield
+-    ray.shutdown()
+-    check_call_ray(["stop", "--force"])
+-
+-
+ @pytest.fixture()
+ def ray_start_init_tracing(scope="function"):
+     """Call ray.init with tracing-startup-hook, and clean up at end of test."""
+@@ -102,7 +91,7 @@ def f(value):
+     }
+ 
+ 
+-def sync_actor_helper(connect_to_cluster: bool = False):
++def sync_actor_helper():
+     """Run a Ray sync actor and check the spans produced."""
+ 
+     @ray.remote
+@@ -114,9 +103,6 @@ def increment(self):
+             self.value += 1
+             return self.value
+ 
+-    if connect_to_cluster:
+-        ray.init(address="auto")
+-
+     # Create an actor from this class.
+     counter = Counter.remote()
+     obj_ref = counter.increment.remote()
+@@ -191,11 +177,6 @@ def test_tracing_async_actor_start_workflow(cleanup_dirs,
+     assert async_actor_helper()
+ 
+ 
+-def test_tracing_predefined_actor(cleanup_dirs,
+-                                  ray_start_cli_predefined_actor_tracing):
+-    assert sync_actor_helper(connect_to_cluster=True)
+-
+-
+ def test_wrapping(ray_start_init_tracing):
+     @ray.remote
+     def f(**_kwargs):
+diff --git a/python/ray/util/tracing/tracing_helper.py b/python/ray/util/tracing/tracing_helper.py
+index f9f908a1c02..f93e63e8a8d 100644
+--- a/python/ray/util/tracing/tracing_helper.py
++++ b/python/ray/util/tracing/tracing_helper.py
+@@ -145,7 +145,7 @@ def _function_hydrate_span_args(func: Callable[..., Any]):
+     # We only get task ID for workers
+     if ray.worker.global_worker.mode == ray.worker.WORKER_MODE:
+         task_id = (runtime_context["task_id"].hex()
+-                   if runtime_context.get("task_id") else None)
++                   if runtime_context["task_id"] else None)
+         if task_id:
+             span_args["ray.task_id"] = task_id
+ 
+@@ -195,7 +195,7 @@ def _actor_hydrate_span_args(class_: _nameable, method: _nameable):
+     # We only get actor ID for workers
+     if ray.worker.global_worker.mode == ray.worker.WORKER_MODE:
+         actor_id = (runtime_context["actor_id"].hex()
+-                    if runtime_context.get("actor_id") else None)
++                    if runtime_context["actor_id"] else None)
+ 
+         if actor_id:
+             span_args["ray.actor_id"] = actor_id
+@@ -313,7 +313,6 @@ def _invocation_actor_class_remote_span(
+             kwargs = {}
+         # If tracing feature flag is not on, perform a no-op
+         if not is_tracing_enabled():
+-            kwargs["_ray_trace_ctx"] = None
+             return method(self, args, kwargs, *_args, **_kwargs)
+ 
+         class_name = self.__ray_metadata__.class_name
+@@ -465,7 +464,8 @@ async def _resume_span(
+         # Skip tracing for staticmethod or classmethod, because these method
+         # might not be called directly by remote calls. Additionally, they are
+         # tricky to get wrapped and unwrapped.
+-        if (is_static_method(_cls, name) or is_class_method(method)):
++        if (is_static_method(_cls, name) or is_class_method(method)
++                or not is_tracing_enabled()):
+             continue
+ 
+         # Add _ray_trace_ctx to method signature

@@ -1,0 +1,145 @@
+diff --git a/salt/modules/artifactory.py b/salt/modules/artifactory.py
+index 74f23fc755253..d521e786f3a6d 100644
+--- a/salt/modules/artifactory.py
++++ b/salt/modules/artifactory.py
+@@ -14,6 +14,7 @@
+ import salt.ext.six.moves.http_client  # pylint: disable=import-error,redefined-builtin,no-name-in-module
+ from salt.ext.six.moves import urllib  # pylint: disable=no-name-in-module
+ from salt.ext.six.moves.urllib.error import HTTPError, URLError  # pylint: disable=no-name-in-module
++from salt.exceptions import CommandExecutionError
+ 
+ # Import 3rd party libs
+ try:
+@@ -295,13 +296,23 @@ def _get_artifact_metadata_url(artifactory_url, repository, group_id, artifact_i
+ 
+ 
+ def _get_artifact_metadata_xml(artifactory_url, repository, group_id, artifact_id, headers):
+-    artifact_metadata_url = _get_artifact_metadata_url(artifactory_url=artifactory_url, repository=repository, group_id=group_id, artifact_id=artifact_id)
++
++    artifact_metadata_url = _get_artifact_metadata_url(
++        artifactory_url=artifactory_url,
++        repository=repository,
++        group_id=group_id,
++        artifact_id=artifact_id
++    )
++
+     try:
+         request = urllib.request.Request(artifact_metadata_url, None, headers)
+         artifact_metadata_xml = urllib.request.urlopen(request).read()
+-    except HTTPError as http_error:
+-        message = 'Could not fetch data from url: {url}, HTTPError: {error}'
+-        raise Exception(message.format(url=artifact_metadata_url, error=http_error))
++    except (HTTPError, URLError) as err:
++        message = 'Could not fetch data from url: {0}. ERROR: {1}'.format(
++            artifact_metadata_url,
++            err
++        )
++        raise CommandExecutionError(message)
+ 
+     log.debug('artifact_metadata_xml=%s', artifact_metadata_xml)
+     return artifact_metadata_xml
+@@ -334,13 +345,25 @@ def _get_snapshot_version_metadata_url(artifactory_url, repository, group_id, ar
+ 
+ 
+ def _get_snapshot_version_metadata_xml(artifactory_url, repository, group_id, artifact_id, version, headers):
+-    snapshot_version_metadata_url = _get_snapshot_version_metadata_url(artifactory_url=artifactory_url, repository=repository, group_id=group_id, artifact_id=artifact_id, version=version)
++
++    snapshot_version_metadata_url = _get_snapshot_version_metadata_url(
++        artifactory_url=artifactory_url,
++        repository=repository,
++        group_id=group_id,
++        artifact_id=artifact_id,
++        version=version
++    )
++
+     try:
+         request = urllib.request.Request(snapshot_version_metadata_url, None, headers)
+         snapshot_version_metadata_xml = urllib.request.urlopen(request).read()
+-    except HTTPError as http_error:
+-        message = 'Could not fetch data from url: {url}, HTTPError: {error}'
+-        raise Exception(message.format(url=snapshot_version_metadata_url, error=http_error))
++    except (HTTPError, URLError) as err:
++        message = 'Could not fetch data from url: {0}. ERROR: {1}'.format(
++            snapshot_version_metadata_url,
++            err
++        )
++        raise CommandExecutionError(message)
++
+     log.debug('snapshot_version_metadata_xml=%s', snapshot_version_metadata_xml)
+     return snapshot_version_metadata_xml
+ 
+@@ -378,13 +401,23 @@ def __get_latest_version_url(artifactory_url, repository, group_id, artifact_id)
+ 
+ 
+ def __find_latest_version(artifactory_url, repository, group_id, artifact_id, headers):
+-    latest_version_url = __get_latest_version_url(artifactory_url=artifactory_url, repository=repository, group_id=group_id, artifact_id=artifact_id)
++
++    latest_version_url = __get_latest_version_url(
++        artifactory_url=artifactory_url,
++        repository=repository,
++        group_id=group_id,
++        artifact_id=artifact_id
++    )
++
+     try:
+         request = urllib.request.Request(latest_version_url, None, headers)
+         version = urllib.request.urlopen(request).read()
+-    except HTTPError as http_error:
+-        message = 'Could not fetch data from url: {url}, HTTPError: {error}'
+-        raise Exception(message.format(url=latest_version_url, error=http_error))
++    except (HTTPError, URLError) as err:
++        message = 'Could not fetch data from url: {0}. ERROR: {1}'.format(
++            latest_version_url,
++            err
++        )
++        raise CommandExecutionError(message)
+ 
+     log.debug("Response of: %s", version)
+ 
+diff --git a/salt/states/artifactory.py b/salt/states/artifactory.py
+index 5f0d83b0dd161..ddcc7a6707d25 100644
+--- a/salt/states/artifactory.py
++++ b/salt/states/artifactory.py
+@@ -85,19 +85,20 @@ def downloaded(name, artifact, target_dir='/tmp', target_file=None):
+ 
+     try:
+         fetch_result = __fetch_from_artifactory(artifact, target_dir, target_file)
+-        log.debug("fetch_result=%s", str(fetch_result))
+-
+-        ret['result'] = fetch_result['status']
+-        ret['comment'] = fetch_result['comment']
+-        ret['changes'] = fetch_result['changes']
+-        log.debug("ret=%s", str(ret))
+-
+-        return ret
+     except Exception as exc:
+         ret['result'] = False
+-        ret['comment'] = exc
++        ret['comment'] = str(exc)
+         return ret
+ 
++    log.debug("fetch_result=%s", str(fetch_result))
++
++    ret['result'] = fetch_result['status']
++    ret['comment'] = fetch_result['comment']
++    ret['changes'] = fetch_result['changes']
++    log.debug("ret=%s", str(ret))
++
++    return ret
++
+ 
+ def __fetch_from_artifactory(artifact, target_dir, target_file):
+     if ('latest_snapshot' in artifact and artifact['latest_snapshot']) or artifact['version'] == 'latest_snapshot':
+diff --git a/tests/unit/states/artifactory_test.py b/tests/unit/states/artifactory_test.py
+index c85025b34a32b..218857c99f6fe 100644
+--- a/tests/unit/states/artifactory_test.py
++++ b/tests/unit/states/artifactory_test.py
+@@ -56,7 +56,7 @@ def test_downloaded(self):
+                           MagicMock(side_effect=Exception('error'))):
+             ret = artifactory.downloaded(name, artifact)
+             self.assertEqual(ret['result'], False)
+-            self.assertEqual(repr(ret['comment']), repr(Exception('error')))
++            self.assertEqual(ret['comment'], 'error')
+ 
+ 
+ if __name__ == '__main__':

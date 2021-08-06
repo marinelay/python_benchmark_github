@@ -1,0 +1,27 @@
+diff --git a/numpy/lib/function_base.py b/numpy/lib/function_base.py
+index fb40ef92785..7a405b382b1 100644
+--- a/numpy/lib/function_base.py
++++ b/numpy/lib/function_base.py
+@@ -1235,6 +1235,8 @@ def diff(a, n=1, axis=-1, prepend=np._NoValue, append=np._NoValue):
+ 
+     a = asanyarray(a)
+     nd = a.ndim
++    if nd == 0:
++        raise ValueError("diff requires input that is at least one dimensional")
+     axis = normalize_axis_index(axis, nd)
+ 
+     combined = []
+diff --git a/numpy/lib/tests/test_function_base.py b/numpy/lib/tests/test_function_base.py
+index 1e04bfaec71..8f1b56e3f6f 100644
+--- a/numpy/lib/tests/test_function_base.py
++++ b/numpy/lib/tests/test_function_base.py
+@@ -695,6 +695,9 @@ def test_axis(self):
+         assert_raises(np.AxisError, diff, x, axis=3)
+         assert_raises(np.AxisError, diff, x, axis=-4)
+ 
++        x = np.array(1.11111111111, np.float64)
++        assert_raises(ValueError, diff, x)
++
+     def test_nd(self):
+         x = 20 * rand(10, 20, 30)
+         out1 = x[:, :, 1:] - x[:, :, :-1]

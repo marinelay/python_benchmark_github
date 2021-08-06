@@ -1,0 +1,53 @@
+diff --git a/python/paddle/fluid/dygraph/nn.py b/python/paddle/fluid/dygraph/nn.py
+index 51eaccc05831..f80e410edd3e 100644
+--- a/python/paddle/fluid/dygraph/nn.py
++++ b/python/paddle/fluid/dygraph/nn.py
+@@ -834,6 +834,10 @@ def forward(self, input):
+                      'use_mkldnn', False, 'exclusive', self._exclusive)
+             return core.ops.pool2d(input, *attrs)
+ 
++        check_variable_and_dtype(
++            input, 'input', ['int8', 'uint8', 'float16', 'float32', 'float64'],
++            'Pool2D')
++
+         attrs = {
+             "pooling_type": self._pool_type,
+             "ksize": self._pool_size,
+diff --git a/python/paddle/fluid/tests/unittests/test_pool2d_op.py b/python/paddle/fluid/tests/unittests/test_pool2d_op.py
+index a28462214f29..e3b79fe9651a 100644
+--- a/python/paddle/fluid/tests/unittests/test_pool2d_op.py
++++ b/python/paddle/fluid/tests/unittests/test_pool2d_op.py
+@@ -21,6 +21,7 @@
+ import paddle.fluid.core as core
+ from op_test import OpTest
+ import paddle.fluid as fluid
++from paddle.fluid import Program, program_guard
+ 
+ 
+ def adaptive_start_index(index, input_size, output_size):
+@@ -1275,5 +1276,25 @@ def run_5():
+         self.assertRaises(ValueError, run_5)
+ 
+ 
++class TestDygraphPool2DAPIError(unittest.TestCase):
++    def test_errors(self):
++        with program_guard(Program(), Program()):
++            # the input of Pool2D must be Variable.
++            data1 = np.random.random((3, 32, 32, 5)).astype('float32')
++            pool2d = fluid.dygraph.Pool2D(
++                pool_size=2,
++                pool_type='max',
++                pool_stride=1,
++                global_pooling=False)
++            self.assertRaises(TypeError, pool2d, data1)
++
++            # the input dtype of Pool2D must be uint8 or int8 or float16 or float32 or float64
++            # uint8 and int8 only can be set on mkldnn
++            # float16 only can be set on GPU place
++            data2 = fluid.layers.data(
++                name='x1', shape=[3, 32, 32, 5], dtype="int32")
++            self.assertRaises(TypeError, pool2d, data2)
++
++
+ if __name__ == '__main__':
+     unittest.main()

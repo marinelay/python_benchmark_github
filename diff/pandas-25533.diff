@@ -1,0 +1,48 @@
+diff --git a/doc/source/whatsnew/v0.25.0.rst b/doc/source/whatsnew/v0.25.0.rst
+index 124ec8f4ab92c..e1a1c975b5ed8 100644
+--- a/doc/source/whatsnew/v0.25.0.rst
++++ b/doc/source/whatsnew/v0.25.0.rst
+@@ -150,7 +150,7 @@ Timezones
+ 
+ - Bug in :func:`to_datetime` with ``utc=True`` and datetime strings that would apply previously parsed UTC offsets to subsequent arguments (:issue:`24992`)
+ - Bug in :func:`Timestamp.tz_localize` and :func:`Timestamp.tz_convert` does not propagate ``freq`` (:issue:`25241`)
+--
++- Bug in :func:`Series.at` where setting :class:`Timestamp` with timezone raises ``TypeError`` (:issue:`25506`)
+ 
+ Numeric
+ ^^^^^^^
+diff --git a/pandas/core/series.py b/pandas/core/series.py
+index cada6663ce651..3d275edc2f78b 100644
+--- a/pandas/core/series.py
++++ b/pandas/core/series.py
+@@ -1229,7 +1229,7 @@ def _set_value(self, label, value, takeable=False):
+                 self._values[label] = value
+             else:
+                 self.index._engine.set_value(self._values, label, value)
+-        except KeyError:
++        except (KeyError, TypeError):
+ 
+# try except에 갇혀있으니 except를 이용한다???
+
+             # set using a non-recursive method
+             self.loc[label] = value
+diff --git a/pandas/tests/indexing/test_scalar.py b/pandas/tests/indexing/test_scalar.py
+index 0cd41562541d1..20053264ac4f1 100644
+--- a/pandas/tests/indexing/test_scalar.py
++++ b/pandas/tests/indexing/test_scalar.py
+@@ -185,6 +185,14 @@ def test_at_with_tz(self):
+         result = df.at[0, 'date']
+         assert result == expected
+
+ 
++    def test_series_set_tz_timestamp(self, tz_naive_fixture):
++        # GH 25506
++        ts = Timestamp('2017-08-05 00:00:00+0100', tz=tz_naive_fixture)
++        result = Series(ts)
++        result.at[1] = ts
++        expected = Series([ts, ts])
++        tm.assert_series_equal(result, expected)
++
+     def test_mixed_index_at_iat_loc_iloc_series(self):
+         # GH 19860
+         s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
